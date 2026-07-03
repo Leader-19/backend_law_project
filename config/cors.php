@@ -19,7 +19,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000', 'http://localhost:5173', 'https://spritup-org-jcyg.vercel.app', 'https://spritup-org-jcyg.vercel.app/')],
+   'allowed_origins' => [
+    env(
+        'FRONTEND_URL',
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://spritup-org-jcyg.vercel.app',
+        'https://spritup-org-jcyg.vercel.app/',
+    )
+],
 
     'allowed_origins_patterns' => [],
 
