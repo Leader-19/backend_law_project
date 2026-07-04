@@ -27,12 +27,13 @@ class CategoriesRepository implements CategoriesInterface
         return Category::findOrFail($id);
     }
 
-    public function update($id, $data)
-    {
-        $category = Category::findOrFail($id);
-        $category->update($data);
-        return $category;
-    }
+   public function update($id, $data)
+{
+    $category = Category::findOrFail($id);
+    $data['description'] = $data['description'] ?? '';
+    $category->update($data);
+    return $category;
+}
 
     public function delete($id)
     {

@@ -8,7 +8,7 @@ import { route } from 'ziggy-js';
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Update Document',
-        href: route('documents.index'), // Correct route
+        href: route('documents.index'),
     },
 ];
 
@@ -20,9 +20,10 @@ const props = defineProps<{
         doc_title: string;
         description: string | null;
         doc_upload?: string | null;
-        category_id?: number | null; // nullable category
+        image?: string | null;
+        category_id?: number | null;
     };
-    categories: { id: number; title: string }[]; // list of categories
+    categories: { id: number; title: string }[];
 }>();
 
 // Initialize Inertia form
@@ -32,6 +33,7 @@ const form = useForm({
     doc_title: props.document.doc_title ?? '',
     description: props.document.description ?? '',
     doc_upload: null as File | null,
+    image: null as File | null,
     category_id: props.document.category_id ?? null,
 });
 
@@ -40,6 +42,13 @@ const handleFileUpload = (e: Event) => {
     const target = e.target as HTMLInputElement;
     if (target.files && target.files[0]) {
         form.doc_upload = target.files[0];
+    }
+};
+
+const handleImageUpload = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        form.image = target.files[0];
     }
 };
 
@@ -112,9 +121,27 @@ const submit = () => {
                         {{ form.errors.doc_upload }}
                     </p>
 
+                    <!-- Current file -->
                     <p v-if="props.document.doc_upload" class="text-xs text-gray-500">
                         Current file:
                         <a :href="`/storage/${props.document.doc_upload}`" target="_blank"
+                            class="text-blue-500 underline">
+                            View
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Image Upload -->
+                <div class="grid gap-1">
+                    <label class="text-sm font-medium">Image</label>
+                    <input type="file" name="image" @change="handleImageUpload" accept="image/*"
+                        class="block w-full border rounded-md p-2 text-xs" />
+                    <p class="text-red-500 text-xs" v-if="form.errors.image">
+                        {{ form.errors.image }}
+                    </p>
+                    <p v-if="props.document.image" class="text-xs text-gray-500">
+                        Current image:
+                        <a :href="`/storage/${props.document.image}`" target="_blank"
                             class="text-blue-500 underline">
                             View
                         </a>

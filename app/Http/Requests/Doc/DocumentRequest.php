@@ -26,6 +26,7 @@ class DocumentRequest extends FormRequest
             'doc_name' => 'required|string|max:255',
             'doc_title' => 'required|string|max:255',
             'doc_upload' => 'nullable|file|max:100000',
+            'image' => 'nullable|image|max:5000',
             'description' => 'nullable|string|max:500',
             'category_id' => 'required|exists:categories,id',
 

@@ -12,6 +12,7 @@ class Document extends Model
         'doc_name',
         'doc_title',
         'doc_upload',
+        'image',
         'description',
         'category_id',
         'user_id',

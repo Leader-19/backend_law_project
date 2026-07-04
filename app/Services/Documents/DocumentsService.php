@@ -27,6 +27,7 @@ class DocumentsService
     public function store($request)
     {
         $path = null;
+        $imagePath = null;
 
         if ($request->hasFile('doc_upload')) {
             $file = $request->file('doc_upload');
@@ -37,12 +38,19 @@ class DocumentsService
             $path = $file->storeAs('documents', $filename, 'public');
         }
 
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imagePath = $image->storeAs('documents/images', $imageName, 'public');
+        }
+
         return $this->repo->store([
             'user_id' => auth()->id(),
             'category_id' => $request->category_id,
             'doc_name' => $request->doc_name,
             'doc_title' => $request->doc_title,
             'doc_upload' => $path,
+            'image' => $imagePath,
             'description' => $request->description,
         ]);
     }
@@ -75,6 +83,15 @@ class DocumentsService
             $filename = time() . '_' . $file->getClientOriginalName();
 
             $data['doc_upload'] = $file->storeAs('documents', $filename, 'public');
+        }
+
+        if ($request->hasFile('image')) {
+            if ($document->image) {
+                \Storage::disk('public')->delete($document->image);
+            }
+            $image = $request->file('image');
+            $imageName = time() . '_' . $image->getClientOriginalName();
+            $data['image'] = $image->storeAs('documents/images', $imageName, 'public');
         }
 
         return $this->repo->update($id, $data);
