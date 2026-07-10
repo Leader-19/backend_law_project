@@ -146,7 +146,7 @@ function handlePerPageChange(perPage: number) {
                             <input
                                 type="text"
                                 v-model="createForm.description"
-                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                                class="mt-1 block w-full border rounded-md border-gray-300 px-3 py-2"
                                 placeholder="រៀបរាប់"
                             />
                             <p v-if="createForm.errors.description" class="text-red-500 text-sm mt-1">
@@ -158,7 +158,7 @@ function handlePerPageChange(perPage: number) {
                             <DialogClose as-child>
                                 <button
                                     type="button"
-                                    class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                                    class="px-3 py-2 text-xs font-medium border text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
                                 >
                                     បោះបង់
                                 </button>
@@ -186,7 +186,7 @@ function handlePerPageChange(perPage: number) {
                             <input
                                 type="text"
                                 v-model="editForm.title"
-                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
                                 placeholder="Enter the name"
                             />
                             <p v-if="editForm.errors.title" class="text-red-500 text-sm mt-1">
@@ -199,7 +199,7 @@ function handlePerPageChange(perPage: number) {
                             <input
                                 type="text"
                                 v-model="editForm.description"
-                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
                                 placeholder="Enter description"
                             />
                             <p v-if="editForm.errors.description" class="text-red-500 text-sm mt-1">

@@ -9,13 +9,63 @@ use Illuminate\Http\Request;
 class CategoryController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display all categories with their documents
      */
     public function index()
     {
+        $categories = Category::with(['documents' => function ($query) {
+            $query->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at');
+        }])->withCount('documents')->get();
+
         return response()->json([
             'status' => 'success',
-            'categories' => Category::all(),
+            'categories' => $categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'description' => $category->description,
+                    'documents_count' => $category->documents_count,
+                    'documents' => $category->documents->map(function ($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'doc_name' => $doc->doc_name,
+                            'doc_title' => $doc->doc_title,
+                            'description' => $doc->description,
+                            'doc_upload' => $doc->doc_upload,
+                            'image' => $doc->image,
+                        ];
+                    }),
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * Display the specified category with documents
+     */
+    public function show(string $id)
+    {
+        $category = Category::with(['documents' => function ($query) {
+            $query->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at');
+        }])->findOrFail($id);
+
+        return response()->json([
+            'status' => 'success',
+            'category' => [
+                'id' => $category->id,
+                'title' => $category->title,
+                'description' => $category->description,
+                'documents' => $category->documents->map(function ($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'doc_name' => $doc->doc_name,
+                        'doc_title' => $doc->doc_title,
+                        'description' => $doc->description,
+                        'doc_upload' => $doc->doc_upload,
+                        'image' => $doc->image,
+                    ];
+                }),
+            ],
         ]);
     }
 
@@ -23,14 +73,6 @@ class CategoryController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
     {
         //
     }

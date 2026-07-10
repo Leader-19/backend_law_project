@@ -15,6 +15,9 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import { can } from '@/lib/can';
+
+const hasDocumentPermission = can('document.view') || can('document.create') || can('document.edit') || can('document.delete');
 
 const mainNavItems: NavItem[] = [
     {
@@ -44,6 +47,12 @@ const mainNavItems: NavItem[] = [
         icon: Calendar,
         items: undefined
     },
+    ...(hasDocumentPermission ? [{
+        title: 'គ្របគ្រងប្រភេទ',
+        href: '/category-management',
+        icon: Calendar,
+        items: undefined
+    }] : []),
     {
         title: 'ឯកសារ',
         href: '/documents',

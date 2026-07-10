@@ -53,8 +53,19 @@ class CategoryController extends Controller
 
     public function show(string $id)
     {
+        $category = $this->service->find($id);
+        $documents = \App\Models\Document::where('category_id', $id)->paginate(10);
+        
         return Inertia::render("Category/CategoryDetails", [
-            "category" => $this->service->find($id),
+            "category" => $category,
+            'categories' => \App\Models\Category::all(),
+            'documents' => $documents->items(),
+            'pagination' => [
+                'current_page' => $documents->currentPage(),
+                'last_page' => $documents->lastPage(),
+                'per_page' => $documents->perPage(),
+                'total' => $documents->total(),
+            ]
         ]);
     }
 

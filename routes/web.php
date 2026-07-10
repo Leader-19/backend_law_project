@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CategoryManagementController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -82,8 +83,19 @@ Route::resource('categories', CategoryController::class)
     ->middleware('permission:category.create|category.edit|category.delete|category.view');
 
 /**
- * End Categories route
- */
+  * End Categories route
+  */
+
+/**
+  * Category Management route
+  */
+Route::get('category-management', [CategoryManagementController::class, 'index'])
+    ->middleware(['auth', 'permission:document.view|document.create|document.edit|document.delete'])
+    ->name('category-management.index');
+
+/**
+  * End Category Management route
+  */
 
 /**
  * Documents route

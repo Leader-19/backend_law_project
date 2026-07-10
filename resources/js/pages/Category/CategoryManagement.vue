@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, Link, router, useForm } from '@inertiajs/vue3'
-import { route } from 'ziggy-js'
-import {
-    FileText,
-    Plus,
-    Pencil,
-    Trash2,
-    Search
-} from 'lucide-vue-next'
-import { type BreadcrumbItem } from '@/types'
-import { ref } from 'vue'
-import { can } from '@/lib/can'
-import DataTable from '@/components/ui/data-table/DataTable.vue'
+import AppLayout from '@/layouts/AppLayout.vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
+import { Pencil, Trash2, Plus, Search } from 'lucide-vue-next';
+import DataTable from '@/components/ui/data-table/DataTable.vue';
+import { ref } from 'vue';
 import {
     Dialog,
     DialogTrigger,
@@ -21,48 +13,52 @@ import {
     DialogTitle,
     DialogFooter,
     DialogClose
-} from '@/components/ui/dialog'
-
-interface Document {
-    id: number
-    doc_name: string
-    doc_title: string
-    description: string | null
-    doc_upload: string
-    image: string | null
-    category_id: number
-}
+} from '@/components/ui/dialog';
+import { can } from '@/lib/can';
+import { type BreadcrumbItem } from '@/types';
 
 interface Category {
-    id: number
-    title: string
+    id: number;
+    title: string;
+    description: string | null;
+    documents_count: number;
+}
+
+interface Document {
+    id: number;
+    doc_name: string;
+    doc_title: string;
+    description: string | null;
+    doc_upload: string;
+    image: string | null;
+    category_id: number;
 }
 
 interface Pagination {
-    current_page: number
-    last_page: number
-    per_page: number
-    total: number
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'ឯកសារ',
-        href: '/documents',
+        title: 'គ្របគ្រងប្រភេទ',
+        href: '/category-management',
     },
-]
+];
 
 const props = defineProps<{
-    documents: Document[],
-    categories: Category[],
-    pagination: Pagination
-}>()
+    categories: Category[];
+    documents: Document[];
+    pagination: Pagination;
+}>();
 
-const selectedCategory = ref<number | null>(null)
-const searchQuery = ref<string>('')
-const isCreateOpen = ref(false)
-const isEditOpen = ref(false)
-const editingId = ref<number | null>(null)
+const selectedCategory = ref<number | null>(null);
+const searchQuery = ref<string>('');
+const isEditOpen = ref(false);
+const isCreateOpen = ref(false);
+const editingId = ref<number | null>(null);
 
 const createForm = useForm({
     doc_name: '',
@@ -70,8 +66,8 @@ const createForm = useForm({
     description: '',
     doc_upload: null as File | null,
     image: null as File | null,
-    category_id: '',
-})
+    category_id: '' as string | number,
+});
 
 const editForm = useForm({
     doc_name: '',
@@ -80,124 +76,119 @@ const editForm = useForm({
     doc_upload: null as File | null,
     image: null as File | null,
     category_id: '' as string | number,
-    _method: 'put',
-})
+});
 
 function handleCreateFileUpload(e: Event) {
-    const input = e.target as HTMLInputElement
+    const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-        createForm.doc_upload = input.files[0]
+        createForm.doc_upload = input.files[0];
     }
 }
 
 function handleCreateImageUpload(e: Event) {
-    const input = e.target as HTMLInputElement
+    const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-        createForm.image = input.files[0]
+        createForm.image = input.files[0];
     }
 }
 
-function submitCreate() {
+function handleSubmitCreate() {
     createForm.post(route('documents.store'), {
         forceFormData: true,
         onSuccess: () => {
-            isCreateOpen.value = false
-            createForm.reset()
+            isCreateOpen.value = false;
+            createForm.reset();
         }
-    })
+    });
 }
 
 function handleEditFileUpload(e: Event) {
-    const input = e.target as HTMLInputElement
+    const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-        editForm.doc_upload = input.files[0]
+        editForm.doc_upload = input.files[0];
     }
 }
 
 function handleEditImageUpload(e: Event) {
-    const input = e.target as HTMLInputElement
+    const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-        editForm.image = input.files[0]
+        editForm.image = input.files[0];
     }
 }
 
 function openEditDialog(item: Document) {
-    editingId.value = item.id
-    editForm.clearErrors()
-    editForm.doc_name = item.doc_name
-    editForm.doc_title = item.doc_title
-    editForm.description = item.description ?? ''
-    editForm.category_id = item.category_id
-    editForm.doc_upload = null
-    editForm.image = null
-    isEditOpen.value = true
+    editingId.value = item.id;
+    editForm.clearErrors();
+    editForm.doc_name = item.doc_name;
+    editForm.doc_title = item.doc_title;
+    editForm.description = item.description ?? '';
+    editForm.category_id = item.category_id;
+    editForm.doc_upload = null;
+    editForm.image = null;
+    isEditOpen.value = true;
 }
 
-function submitEdit() {
-    if (editingId.value === null) return
+function handleSubmitEdit() {
+    if (editingId.value === null) return;
 
     editForm.post(route('documents.update', editingId.value), {
         forceFormData: true,
         onSuccess: () => {
-            isEditOpen.value = false
-            editingId.value = null
-            editForm.reset()
+            isEditOpen.value = false;
+            editingId.value = null;
+            editForm.reset();
         }
-    })
+    });
 }
 
 function deleteDocument(id: number) {
-    if (confirm("Are you want to delete this Final Slide")) {
+    if (confirm("តើអ្នកចង់លុបឯកសារនេះមែនទេ?")) {
         router.delete(route('documents.destroy', id));
     }
 }
 
-function changeItemsPerPage(perPage: number) {
-    router.get(route('documents.index'), {
-        per_page: perPage,
-        category_id: selectedCategory.value,
-        search: searchQuery.value,
-        page: 1
-    }, { preserveState: true })
-}
-
 function changePage(page: number) {
-    if (page < 1 || page > props.pagination.last_page) return
-    router.get(route('documents.index'), {
-        per_page: props.pagination.per_page,
+    router.get(route('category-management.index'), {
         category_id: selectedCategory.value,
         search: searchQuery.value,
         page: page
-    }, { preserveState: true })
+    }, { preserveState: true });
+}
+
+function changeItemsPerPage(perPage: number) {
+    router.get(route('category-management.index'), {
+        category_id: selectedCategory.value,
+        search: searchQuery.value,
+        per_page: perPage,
+        page: 1
+    }, { preserveState: true });
 }
 
 function filterByCategory(categoryId: number | null) {
-    selectedCategory.value = categoryId
-    router.get(route('documents.index'), {
+    selectedCategory.value = categoryId;
+    router.get(route('category-management.index'), {
         category_id: categoryId,
         search: searchQuery.value,
         per_page: props.pagination.per_page,
         page: 1
-    }, { preserveState: true })
+    }, { preserveState: true });
 }
 
 function handleSearch() {
-    router.get(route('documents.index'), {
+    router.get(route('category-management.index'), {
         search: searchQuery.value,
         category_id: selectedCategory.value,
         per_page: props.pagination.per_page,
         page: 1
-    }, { preserveState: true })
+    }, { preserveState: true });
 }
 </script>
 
 <template>
-    <Head title="ឯកសារ" />
+    <Head title="គ្របគ្រងប្រភេទ" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-3">
-
-            <!-- Create Button and Search -->
             <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-4">
                     <Dialog v-model:open="isCreateOpen">
@@ -207,14 +198,14 @@ function handleSearch() {
                                 class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
                             >
                                 <Plus class="w-4 h-4" />
-                                បង្កើត​ ឯកសារ
+                                បង្កើតឯកសារថ្មី
                             </button>
                         </DialogTrigger>
                         <DialogContent class="sm:max-w-lg">
                             <DialogHeader>
-                                <DialogTitle>បង្កើតឯកសារ</DialogTitle>
+                                <DialogTitle>បង្កើតឯកសារថ្មី</DialogTitle>
                             </DialogHeader>
-                            <form @submit.prevent="submitCreate" class="space-y-4 mt-4">
+                            <form @submit.prevent="handleSubmitCreate" class="space-y-4 mt-4">
                                 <div>
                                     <label class="block text-sm font-medium">ឈ្មោះឯកសារ</label>
                                     <input
@@ -310,7 +301,6 @@ function handleSearch() {
                         </DialogContent>
                     </Dialog>
 
-                    <!-- Search Input -->
                     <div class="relative flex items-center">
                         <input
                             v-model="searchQuery"
@@ -330,112 +320,7 @@ function handleSearch() {
                 </div>
             </div>
 
-            <!-- Edit Dialog (no visible trigger button here; opened programmatically from the table row) -->
-            <Dialog v-model:open="isEditOpen">
-                <DialogContent class="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>កែសម្រួលឯកសារ</DialogTitle>
-                    </DialogHeader>
-                    <form @submit.prevent="submitEdit" class="space-y-4 mt-4">
-                        <div>
-                            <label class="block text-sm font-medium">ឈ្មោះឯកសារ</label>
-                            <input
-                                type="text"
-                                v-model="editForm.doc_name"
-                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                                placeholder="Enter document name"
-                            />
-                            <p v-if="editForm.errors.doc_name" class="text-red-500 text-sm mt-1">
-                                {{ editForm.errors.doc_name }}
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">ចំណងជើង</label>
-                            <input
-                                type="text"
-                                v-model="editForm.doc_title"
-                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                                placeholder="Enter title"
-                            />
-                            <p v-if="editForm.errors.doc_title" class="text-red-500 text-sm mt-1">
-                                {{ editForm.errors.doc_title }}
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">ប្រភេទ</label>
-                            <select
-                                v-model="editForm.category_id"
-                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                            >
-                                <option value="">Select Category</option>
-                                <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
-                                    {{ cat.title }}
-                                </option>
-                            </select>
-                            <p v-if="editForm.errors.category_id" class="text-red-500 text-sm mt-1">
-                                {{ editForm.errors.category_id }}
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">Upload File (leave empty to keep current)</label>
-                            <input
-                                type="file"
-                                @change="handleEditFileUpload"
-                                class="mt-1 block w-full text-sm border border-gray-300 rounded-md p-2"
-                            />
-                            <p v-if="editForm.errors.doc_upload" class="text-red-500 text-sm mt-1">
-                                {{ editForm.errors.doc_upload }}
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">Image (leave empty to keep current)</label>
-                            <input
-                                type="file"
-                                @change="handleEditImageUpload"
-                                accept="image/*"
-                                class="mt-1 block w-full border text-sm border border-gray-300 rounded-md p-2"
-                            />
-                            <p v-if="editForm.errors.image" class="text-red-500 text-sm mt-1">
-                                {{ editForm.errors.image }}
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">រៀបរាប់</label>
-                            <input
-                                type="text"
-                                v-model="editForm.description"
-                                class="mt-1 block w-full border rounded-md border-gray-300 px-3 py-2"
-                                placeholder="Optional description"
-                            />
-                            <p v-if="editForm.errors.description" class="text-red-500 text-sm mt-1">
-                                {{ editForm.errors.description }}
-                            </p>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose as-child>
-                                <button
-                                    type="button"
-                                    class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-                                >
-                                    បោះបង់
-                                </button>
-                            </DialogClose>
-                            <button
-                                type="submit"
-                                :disabled="editForm.processing"
-                                class="px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-                            >
-                                រក្សាទុក
-                            </button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            <!-- Category Row -->
             <div class="flex flex-wrap gap-2 mt-4 mb-3">
-
-                <!-- All -->
                 <button
                     @click="filterByCategory(null)"
                     :class="[
@@ -448,7 +333,6 @@ function handleSearch() {
                     All
                 </button>
 
-                <!-- Categories -->
                 <button
                     v-for="cat in props.categories"
                     :key="cat.id"
@@ -460,29 +344,40 @@ function handleSearch() {
                             : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'
                     ]"
                 >
-                    {{ cat.title }}
+                    {{ cat.title }} ({{ cat.documents_count }})
                 </button>
-
             </div>
 
             <DataTable
                 :data="props.documents"
                 :pagination="props.pagination"
-                :columns="['stt', 'doc_name', 'doc_title', 'image', 'doc_upload', 'description', 'actions']"
-                class="mt-3"
+                :columns="['stt', 'doc_name', 'doc_title', 'category', 'image', 'doc_upload', 'description', 'actions']"
                 @page-change="changePage"
                 @per-page-change="changeItemsPerPage"
             >
                 <template #header-stt>លរ</template>
                 <template #header-doc_name>ឈ្មោះ​ ឯកសារ</template>
                 <template #header-doc_title>ចំណងជើង</template>
+                <template #header-category>ប្រភេទ</template>
                 <template #header-image>រូបភាព</template>
                 <template #header-doc_upload>File</template>
                 <template #header-description>រៀបរាប់</template>
                 <template #header-actions>សកម្មភាព</template>
 
                 <template #stt="{ index }">
-                    {{ (props.pagination.current_page - 1) * props.pagination.per_page + index + 1 }}
+                    {{ (pagination.current_page - 1) * pagination.per_page + index + 1 }}
+                </template>
+
+                <template #doc_name="{ item }">
+                    {{ item.doc_name }}
+                </template>
+
+                <template #doc_title="{ item }">
+                    {{ item.doc_title }}
+                </template>
+
+                <template #category="{ item }">
+                    {{ props.categories.find(c => c.id === item.category_id)?.title ?? '-' }}
                 </template>
 
                 <template #image="{ item }">
@@ -512,19 +407,15 @@ function handleSearch() {
                     </a>
                 </template>
 
+                <template #description="{ item }">
+                    {{ item.description ?? '-' }}
+                </template>
+
                 <template #actions="{ item }">
                     <div class="flex justify-center gap-2">
-
-                        <Link
-                            :href="route('documents.show', item.id)"
-                            class="p-2 bg-gray-800 rounded hover:bg-gray-700"
-                        >
-                            <FileText class="w-4 h-4 text-white" />
-                        </Link>
-
                         <button
                             @click="openEditDialog(item)"
-                            class="p-2 bg-blue-500 rounded hover:bg-blue-900"
+                            class="p-2 bg-blue-500 rounded hover:bg-blue-700"
                         >
                             <Pencil class="w-4 h-4 text-white" />
                         </button>
@@ -535,11 +426,114 @@ function handleSearch() {
                         >
                             <Trash2 class="w-4 h-4 text-white" />
                         </button>
-
                     </div>
                 </template>
             </DataTable>
 
+            <div v-if="documents.length === 0" class="text-center py-8 text-gray-400">
+                មិនមានឯកសារ
+            </div>
+
+            <Dialog v-model:open="isEditOpen">
+                <DialogContent class="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>កែសម្រួលឯកសារ</DialogTitle>
+                    </DialogHeader>
+                    <form @submit.prevent="handleSubmitEdit" class="space-y-4 mt-4">
+                        <div>
+                            <label class="block text-sm font-medium">ឈ្មោះឯកសារ</label>
+                            <input
+                                type="text"
+                                v-model="editForm.doc_name"
+                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                                placeholder="Enter document name"
+                            />
+                            <p v-if="editForm.errors.doc_name" class="text-red-500 text-sm mt-1">
+                                {{ editForm.errors.doc_name }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">ចំណងជើង</label>
+                            <input
+                                type="text"
+                                v-model="editForm.doc_title"
+                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                                placeholder="Enter title"
+                            />
+                            <p v-if="editForm.errors.doc_title" class="text-red-500 text-sm mt-1">
+                                {{ editForm.errors.doc_title }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">ប្រភេទ</label>
+                            <select
+                                v-model="editForm.category_id"
+                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                            >
+                                <option value="">Select Category</option>
+                                <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
+                                    {{ cat.title }}
+                                </option>
+                            </select>
+                            <p v-if="editForm.errors.category_id" class="text-red-500 text-sm mt-1">
+                                {{ editForm.errors.category_id }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Upload File (leave empty to keep current)</label>
+                            <input
+                                type="file"
+                                @change="handleEditFileUpload"
+                                class="mt-1 block w-full text-sm border border-gray-300 rounded-md p-2"
+                            />
+                            <p v-if="editForm.errors.doc_upload" class="text-red-500 text-sm mt-1">
+                                {{ editForm.errors.doc_upload }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Image (leave empty to keep current)</label>
+                            <input
+                                type="file"
+                                @change="handleEditImageUpload"
+                                accept="image/*"
+                                class="mt-1 block w-full text-sm border border-gray-300 rounded-md p-2"
+                            />
+                            <p v-if="editForm.errors.image" class="text-red-500 text-sm mt-1">
+                                {{ editForm.errors.image }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">រៀបរាប់</label>
+                            <input
+                                type="text"
+                                v-model="editForm.description"
+                                class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
+                                placeholder="Optional description"
+                            />
+                            <p v-if="editForm.errors.description" class="text-red-500 text-sm mt-1">
+                                {{ editForm.errors.description }}
+                            </p>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose as-child>
+                                <button
+                                    type="button"
+                                    class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                                >
+                                    បោះបង់
+                                </button>
+                            </DialogClose>
+                            <button
+                                type="submit"
+                                :disabled="editForm.processing"
+                                class="px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                រក្សាទុក
+                            </button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     </AppLayout>
 </template>

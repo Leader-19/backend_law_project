@@ -30,7 +30,7 @@
             }
         </style>
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'SPRITUP') }}</title>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -44,7 +44,7 @@
     <link rel="preload" href="https://fonts.bunny.net/instrument-sans/files/instrument-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
 
     <!-- Your CSS/JS -->
-    
+
         @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
         {{-- @vite(['resources/css/app.css', 'resources/js/app.js']) --}}
         @inertiaHead

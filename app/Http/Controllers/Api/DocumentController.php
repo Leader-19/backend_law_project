@@ -6,73 +6,39 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Document;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class DocumentController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display all categories with their documents
      */
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
-        $page = $request->get('page', 1);
-        $search = $request->get('search', '');
-        $categoryId = $request->get('category_id');
-
-        $query = Document::with('category')->orderBy('created_at', 'desc');
-
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('doc_name', 'like', "%{$search}%")
-                  ->orWhere('doc_title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        if ($categoryId) {
-            $query->where('category_id', $categoryId);
-        }
-
-        $documents = $query->paginate($perPage, ['*'], 'page', $page);
-
-        $categories = Category::all();
-
-        if ($request->header('X-Inertia')) {
-            return Inertia::render('Documents/DocumentIndex', [
-                'documents' => $documents,
-                'categories' => $categories,
-            ]);
-        }
+        $categories = Category::with(['documents' => function ($query) {
+            $query->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at');
+        }])->withCount('documents')->get();
 
         return response()->json([
             'status' => 'success',
-            'documents' => $documents->items(),
-            'categories' => $categories,
-            'pagination' => [
-                'current_page' => $documents->currentPage(),
-                'last_page' => $documents->lastPage(),
-                'per_page' => $documents->perPage(),
-                'total' => $documents->total(),
-            ]
+            'categories' => $categories->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'description' => $category->description,
+                    'documents_count' => $category->documents_count,
+                    'documents' => $category->documents->map(function ($doc) {
+                        return [
+                            'id' => $doc->id,
+                            'doc_name' => $doc->doc_name,
+                            'doc_title' => $doc->doc_title,
+                            'description' => $doc->description,
+                            'doc_upload' => $doc->doc_upload,
+                            'image' => $doc->image,
+                        ];
+                    }),
+                ];
+            }),
         ]);
-    }
-
-    
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
     }
 
     /**
@@ -117,24 +83,35 @@ class DocumentController extends Controller
         }
         
         return response()->json([
-            'document' => $document,
+            'document' => [
+                'id' => $document->id,
+                'doc_name' => $document->doc_name,
+                'doc_title' => $document->doc_title,
+                'description' => $document->description,
+                'category' => $document->category,
+            ],
             'content' => $content
         ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Display the specified resource.
      */
-    public function update(Request $request, string $id)
+    public function show(string $id)
     {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $document = Document::with('category')->findOrFail($id);
+        
+        return response()->json([
+            'status' => 'success',
+            'document' => [
+                'id' => $document->id,
+                'doc_name' => $document->doc_name,
+                'doc_title' => $document->doc_title,
+                'description' => $document->description,
+                'doc_upload' => $document->doc_upload,
+                'image' => $document->image,
+                'category' => $document->category,
+            ]
+        ]);
     }
 }
