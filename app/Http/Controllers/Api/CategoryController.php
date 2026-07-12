@@ -28,7 +28,7 @@ class CategoryController extends Controller
                 'description' => $category->description,
                 'parent_id' => $category->parent_id,
                 'documents_count' => $category->documents_count,
-                'documents' => $category->documents->map(function ($doc) {
+                'documents' => collect($category->documents)->map(function ($doc) {
                     return [
                         'id' => $doc->id,
                         'doc_name' => $doc->doc_name,
@@ -76,7 +76,7 @@ class CategoryController extends Controller
                     'title' => $category->parent->title,
                 ] : null,
                 'documents_count' => $category->documents_count,
-                'documents' => $category->documents->map(function ($doc) {
+                'documents' => collect($category->documents)->map(function ($doc) {
                     return [
                         'id' => $doc->id,
                         'doc_name' => $doc->doc_name,
