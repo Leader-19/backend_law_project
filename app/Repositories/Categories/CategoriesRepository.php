@@ -12,9 +12,25 @@ class CategoriesRepository implements CategoriesInterface
         return Category::all();
     }
 
-    public function getPaginated($perPage = 10)
+    public function getPaginated($perPage = 10, $parentIds = [])
     {
-        return Category::withCount('documents')->paginate($perPage);
+        $query = Category::with('parent')->withCount('documents');
+
+        if ($parentIds !== []) {
+            $query->whereIn('parent_id', $parentIds);
+        }
+
+        return $query->paginate($perPage);
+    }
+
+    public function getTree()
+    {
+        return Category::with('childrenRecursive')->whereNull('parent_id')->get();
+    }
+
+    public function getChildren($parentId)
+    {
+        return Category::with('documents')->where('parent_id', $parentId)->get();
     }
 
     public function store($data)
@@ -24,7 +40,7 @@ class CategoriesRepository implements CategoriesInterface
 
     public function find($id)
     {
-        return Category::findOrFail($id);
+        return Category::with('childrenRecursive')->findOrFail($id);
     }
 
    public function update($id, $data)

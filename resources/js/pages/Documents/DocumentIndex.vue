@@ -7,18 +7,21 @@ import {
     Plus,
     Pencil,
     Trash2,
-    Search
+    Search,
+    Filter
 } from 'lucide-vue-next'
 import { type BreadcrumbItem } from '@/types'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { can } from '@/lib/can'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
+import CategoryPicker from '@/components/CategoryPicker.vue'
 import {
     Dialog,
     DialogTrigger,
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
     DialogClose
 } from '@/components/ui/dialog'
@@ -36,6 +39,7 @@ interface Document {
 interface Category {
     id: number
     title: string
+    parent_id: number | null
 }
 
 interface Pagination {
@@ -55,14 +59,36 @@ const breadcrumbs: BreadcrumbItem[] = [
 const props = defineProps<{
     documents: Document[],
     categories: Category[],
+    selectedCategoryIds: number[],
     pagination: Pagination
 }>()
 
-const selectedCategory = ref<number | null>(null)
+const selectedCategoryIds = ref<number[]>([...props.selectedCategoryIds])
+const categoryFilterSearch = ref('')
+const isCategoryFilterOpen = ref(false)
 const searchQuery = ref<string>('')
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
 const editingId = ref<number | null>(null)
+const selectedIds = ref<number[]>([])
+const isAllSelected = computed(() => props.documents.length > 0 && props.documents.every((document) => selectedIds.value.includes(document.id)))
+const allCategoriesSelected = computed(() => props.categories.length > 0 && props.categories.every((category) => selectedCategoryIds.value.includes(category.id)))
+const categoryOptions = computed(() => {
+    const categoriesById = new Map(props.categories.map((category) => [category.id, category]))
+
+    function labelFor(category: Category, visited: number[] = []): string {
+        if (category.parent_id === null || visited.includes(category.id)) return category.title
+
+        const parent = categoriesById.get(category.parent_id)
+        return parent ? `${labelFor(parent, [...visited, category.id])} — ${category.title}` : category.title
+    }
+
+    return props.categories.map((category) => ({ id: category.id, label: labelFor(category) }))
+})
+const filteredCategoryOptions = computed(() => {
+    const query = categoryFilterSearch.value.trim().toLocaleLowerCase()
+    return query ? categoryOptions.value.filter((category) => category.label.toLocaleLowerCase().includes(query)) : categoryOptions.value
+})
 
 const createForm = useForm({
     doc_name: '',
@@ -152,10 +178,23 @@ function deleteDocument(id: number) {
     }
 }
 
+function toggleSelectAll() {
+    selectedIds.value = isAllSelected.value ? [] : props.documents.map((document) => document.id)
+}
+
+function deleteSelected() {
+    if (selectedIds.value.length === 0 || !confirm(`Delete ${selectedIds.value.length} selected documents?`)) return
+
+    router.delete(route('documents.bulk-destroy'), {
+        data: { ids: selectedIds.value },
+        onSuccess: () => { selectedIds.value = [] },
+    })
+}
+
 function changeItemsPerPage(perPage: number) {
     router.get(route('documents.index'), {
         per_page: perPage,
-        category_id: selectedCategory.value,
+        category_ids: selectedCategoryIds.value,
         search: searchQuery.value,
         page: 1
     }, { preserveState: true })
@@ -165,26 +204,36 @@ function changePage(page: number) {
     if (page < 1 || page > props.pagination.last_page) return
     router.get(route('documents.index'), {
         per_page: props.pagination.per_page,
-        category_id: selectedCategory.value,
+        category_ids: selectedCategoryIds.value,
         search: searchQuery.value,
         page: page
     }, { preserveState: true })
 }
 
-function filterByCategory(categoryId: number | null) {
-    selectedCategory.value = categoryId
+function applyCategoryFilter() {
     router.get(route('documents.index'), {
-        category_id: categoryId,
+        category_ids: selectedCategoryIds.value,
         search: searchQuery.value,
         per_page: props.pagination.per_page,
         page: 1
     }, { preserveState: true })
 }
 
+function toggleAllCategories(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked
+    selectedCategoryIds.value = checked ? props.categories.map((category) => category.id) : []
+    applyCategoryFilter()
+}
+
+function clearCategoryFilter() {
+    selectedCategoryIds.value = []
+    applyCategoryFilter()
+}
+
 function handleSearch() {
     router.get(route('documents.index'), {
         search: searchQuery.value,
-        category_id: selectedCategory.value,
+        category_ids: selectedCategoryIds.value,
         per_page: props.pagination.per_page,
         page: 1
     }, { preserveState: true })
@@ -199,7 +248,7 @@ function handleSearch() {
 
             <!-- Create Button and Search -->
             <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-4">
+                <div class="flex flex-wrap items-center gap-3">
                     <Dialog v-model:open="isCreateOpen">
                         <DialogTrigger as-child>
                             <button
@@ -213,6 +262,9 @@ function handleSearch() {
                         <DialogContent class="sm:max-w-lg">
                             <DialogHeader>
                                 <DialogTitle>បង្កើតឯកសារ</DialogTitle>
+                                <DialogDescription>
+                                    បញ្ចូលពត៌មានឯកសារថ្មី
+                                </DialogDescription>
                             </DialogHeader>
                             <form @submit.prevent="submitCreate" class="space-y-4 mt-4">
                                 <div>
@@ -241,15 +293,7 @@ function handleSearch() {
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium">ប្រភេទ</label>
-                                    <select
-                                        v-model="createForm.category_id"
-                                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                                    >
-                                        <option value="">Select Category</option>
-                                        <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
-                                            {{ cat.title }}
-                                        </option>
-                                    </select>
+                                    <CategoryPicker v-model="createForm.category_id" :categories="props.categories" input-id="quick-create-document-category" />
                                     <p v-if="createForm.errors.category_id" class="text-red-500 text-sm mt-1">
                                         {{ createForm.errors.category_id }}
                                     </p>
@@ -327,15 +371,34 @@ function handleSearch() {
                             ស្វែងរក
                         </button>
                     </div>
+
+                    <div class="relative">
+                        <button type="button" class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="isCategoryFilterOpen = !isCategoryFilterOpen">
+                            <Filter class="h-4 w-4" /> Filter categories
+                            <span v-if="selectedCategoryIds.length" class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">{{ selectedCategoryIds.length }}</span>
+                        </button>
+                        <div v-if="isCategoryFilterOpen" class="absolute left-0 z-40 mt-2 w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                            <input v-model="categoryFilterSearch" type="search" placeholder="Search categories" class="mb-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                            <label class="flex cursor-pointer items-center gap-2 border-b border-gray-200 pb-2 text-sm font-semibold"><input type="checkbox" :checked="allCategoriesSelected" @change="toggleAllCategories" /> Select all categories</label>
+                            <div class="max-h-64 overflow-y-auto py-2">
+                                <label v-for="category in filteredCategoryOptions" :key="category.id" class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-gray-50"><input v-model="selectedCategoryIds" type="checkbox" :value="category.id" @change="applyCategoryFilter" /><span>{{ category.label }}</span></label>
+                                <p v-if="filteredCategoryOptions.length === 0" class="px-2 py-3 text-sm text-gray-500">No categories found.</p>
+                            </div>
+                            <div class="flex justify-between border-t border-gray-200 pt-2"><button type="button" class="text-sm text-blue-600 hover:underline" @click="clearCategoryFilter">Clear filter</button><button type="button" class="text-sm text-gray-600 hover:underline" @click="isCategoryFilterOpen = false">Close</button></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Edit Dialog (no visible trigger button here; opened programmatically from the table row) -->
             <Dialog v-model:open="isEditOpen">
-                <DialogContent class="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>កែសម្រួលឯកសារ</DialogTitle>
-                    </DialogHeader>
+                    <DialogContent class="sm:max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle>កែសម្រួលឯកសារ</DialogTitle>
+                            <DialogDescription>
+                                កែសម្រួលពត៌មានឯកសារ
+                            </DialogDescription>
+                        </DialogHeader>
                     <form @submit.prevent="submitEdit" class="space-y-4 mt-4">
                         <div>
                             <label class="block text-sm font-medium">ឈ្មោះឯកសារ</label>
@@ -363,15 +426,7 @@ function handleSearch() {
                         </div>
                         <div>
                             <label class="block text-sm font-medium">ប្រភេទ</label>
-                            <select
-                                v-model="editForm.category_id"
-                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                            >
-                                <option value="">Select Category</option>
-                                <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
-                                    {{ cat.title }}
-                                </option>
-                            </select>
+                            <CategoryPicker v-model="editForm.category_id" :categories="props.categories" input-id="quick-edit-document-category" />
                             <p v-if="editForm.errors.category_id" class="text-red-500 text-sm mt-1">
                                 {{ editForm.errors.category_id }}
                             </p>
@@ -432,47 +487,20 @@ function handleSearch() {
                 </DialogContent>
             </Dialog>
 
-            <!-- Category Row -->
-            <div class="flex flex-wrap gap-2 mt-4 mb-3">
-
-                <!-- All -->
-                <button
-                    @click="filterByCategory(null)"
-                    :class="[
-                        'px-4 py-1 text-xs font-medium rounded transition',
-                        selectedCategory === null
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'
-                    ]"
-                >
-                    All
-                </button>
-
-                <!-- Categories -->
-                <button
-                    v-for="cat in props.categories"
-                    :key="cat.id"
-                    @click="filterByCategory(cat.id)"
-                    :class="[
-                        'px-4 py-1 text-xs font-medium rounded transition',
-                        selectedCategory === cat.id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'
-                    ]"
-                >
-                    {{ cat.title }}
-                </button>
-
-            </div>
-
             <DataTable
                 :data="props.documents"
                 :pagination="props.pagination"
-                :columns="['stt', 'doc_name', 'doc_title', 'image', 'doc_upload', 'description', 'actions']"
+                :columns="['select', 'stt', 'doc_name', 'doc_title', 'image', 'doc_upload', 'description', 'actions']"
                 class="mt-3"
                 @page-change="changePage"
                 @per-page-change="changeItemsPerPage"
             >
+                <template #header-select>
+                    <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" aria-label="Select all documents" />
+                </template>
+                <template #select="{ item }">
+                    <input v-model="selectedIds" type="checkbox" :value="item.id" :aria-label="`Select ${item.doc_name}`" />
+                </template>
                 <template #header-stt>លរ</template>
                 <template #header-doc_name>ឈ្មោះ​ ឯកសារ</template>
                 <template #header-doc_title>ចំណងជើង</template>
@@ -539,6 +567,13 @@ function handleSearch() {
                     </div>
                 </template>
             </DataTable>
+
+            <div v-if="selectedIds.length && can('document.delete')" class="mt-3 flex items-center gap-3">
+                <span class="text-sm text-gray-600">{{ selectedIds.length }} selected</span>
+                <button @click="deleteSelected" class="inline-flex items-center gap-2 rounded bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">
+                    <Trash2 class="w-4 h-4" /> Delete selected
+                </button>
+            </div>
 
         </div>
     </AppLayout>

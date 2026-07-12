@@ -13,7 +13,7 @@ class DocumentsRepository implements DocumentsInterface
         return Document::with('category')->get();
     }
 
-    public function getPaginated($perPage = 10, $page = 1, $search = '', $categoryId = null)
+    public function getPaginated($perPage = 10, $page = 1, $search = '', $categoryIds = [])
     {
         $query = Document::with('category')->orderBy('created_at', 'desc');
 
@@ -25,8 +25,8 @@ class DocumentsRepository implements DocumentsInterface
             });
         }
 
-        if ($categoryId) {
-            $query->where('category_id', $categoryId);
+        if ($categoryIds !== []) {
+            $query->whereIn('category_id', $categoryIds);
         }
 
         return $query->paginate($perPage, ['*'], 'page', $page);

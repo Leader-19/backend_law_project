@@ -41,4 +41,17 @@ export default defineConfig({
             '@': path.resolve(__dirname, './resources/js'),
         },
     },
+
+    // Laravel/Tailwind can discover files under `vendor/`. Do not ask the
+    // development server to create an inotify watcher for every dependency.
+    server: {
+        watch: {
+            ignored: [
+                '**/vendor/**',
+                '**/node_modules/**',
+                '**/.git/**',
+                '**/storage/framework/**',
+            ],
+        },
+    },
 });

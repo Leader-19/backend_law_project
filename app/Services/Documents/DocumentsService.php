@@ -19,9 +19,9 @@ class DocumentsService
         return $this->repo->getAll();
     }
 
-    public function getPaginated($perPage = 10, $page = 1, $search = '', $categoryId = null)
+    public function getPaginated($perPage = 10, $page = 1, $search = '', $categoryIds = [])
     {
-        return $this->repo->getPaginated($perPage, $page, $search, $categoryId);
+        return $this->repo->getPaginated($perPage, $page, $search, $categoryIds);
     }
 
     public function store($request)

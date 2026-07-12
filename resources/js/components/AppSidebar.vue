@@ -13,11 +13,16 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users } from 'lucide-vue-next';
+import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { can } from '@/lib/can';
 
-const hasDocumentPermission = can('document.view') || can('document.create') || can('document.edit') || can('document.delete');
+const hasAnyPermission = (permissions: string[]) => permissions.some((permission) => can(permission));
+
+const hasUserPermission = hasAnyPermission(['users.view', 'users.create', 'users.edit', 'users.delete']);
+const hasRolePermission = hasAnyPermission(['roles.view', 'roles.create', 'roles.edit', 'roles.delete']);
+const hasCategoryPermission = hasAnyPermission(['category.view', 'category.create', 'category.edit', 'category.delete']);
+const hasDocumentPermission = hasAnyPermission(['document.view', 'document.create', 'document.edit', 'document.delete']);
 
 const mainNavItems: NavItem[] = [
     {
@@ -27,37 +32,50 @@ const mainNavItems: NavItem[] = [
         items: undefined
     },
 
-    {
+    ...(hasUserPermission ? [{
         title: 'អ្នកប្រើប្រាស់',
         href: '/users',
         icon: Users,
         items: undefined
-    },
+    }] : []),
 
-    {
+    ...(hasRolePermission ? [{
         title: 'តួនាទី',
         href: '/roles',
         icon: Notebook,
         items: undefined
-    },
+    }] : []),
+    ...(hasRolePermission ? [{
+        title: 'ការអនុញ្ញាត',
+        href: '/permissions',
+        icon: ShieldCheck,
+        items: undefined
+    }] : []),
 
-     {
+    ...(hasCategoryPermission ? [{
         title: 'ប្រភេទ',
         href: '/categories',
         icon: Calendar,
         items: undefined
-    },
+    }] : []),
     ...(hasDocumentPermission ? [{
         title: 'គ្របគ្រងប្រភេទ',
         href: '/category-management',
         icon: Calendar,
         items: undefined
     }] : []),
-    {
+    ...(hasDocumentPermission ? [{
         title: 'ឯកសារ',
         href: '/documents',
         icon: FileText,
         items: undefined
+    }] : []),
+    {
+        title: 'Backup',
+        href: '/backup/download',
+        icon: Download,
+        items: undefined,
+        external: true,
     },
     // {
     //     title: 'Final Slides',

@@ -4,6 +4,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { ref } from 'vue'
 import { type BreadcrumbItem } from '@/types'
+import CategoryPicker from '@/components/CategoryPicker.vue'
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -124,20 +125,8 @@ const submit = () => {
                         Category
                     </label>
 
-                    <select
-                        v-model="form.category_id"
-                        class="w-full border rounded px-3 py-2"
-                    >
-                        <option value="">Select Category</option>
-
-                        <option
-                            v-for="category in categories"
-                            :key="category.id"
-                            :value="category.id"
-                        >
-                            {{ category.title }}
-                        </option>
-                    </select>
+                    <CategoryPicker v-model="form.category_id" :categories="categories" input-id="create-document-category" />
+                    <p class="mt-1 text-xs text-gray-500">Search by category name; subcategories are shown with their full path.</p>
 
                     <p
                         v-if="form.errors.category_id"
@@ -150,15 +139,20 @@ const submit = () => {
                 <!-- Document Upload -->
                 <div>
                     <label class="block font-medium mb-1">
-                        Upload Document
+                        Upload Document *
                     </label>
 
                     <input
                         type="file"
                         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                        required
                         @change="handleFileUpload"
                         class="block w-full border rounded px-3 py-2"
                     />
+
+                    <p class="mt-1 text-xs text-gray-500">
+                        Required when creating a document.
+                    </p>
 
                     <p
                         v-if="form.errors.doc_upload"

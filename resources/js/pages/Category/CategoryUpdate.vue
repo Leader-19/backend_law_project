@@ -5,7 +5,17 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { User } from 'lucide-vue-next';
 import { route } from 'ziggy-js';
+import CategoryPicker from '@/components/CategoryPicker.vue';
 
+const props = defineProps<{
+    category: {
+        id: number;
+        title: string;
+        description: string;
+        parent_id: number | null;
+    };
+    parents?: { id: number; title: string }[];
+}>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -14,15 +24,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const props = defineProps({
-    "category": Object,
-});
-
 const form = useForm({
-    "title": props.category.title,
-    "description": props.category.description
+    title: props.category.title,
+    description: props.category.description,
+    parent_id: props.category.parent_id,
 })
-
 
 </script>
 
@@ -61,6 +67,19 @@ const form = useForm({
                         class="block w-full border rounded-md px-3 py-2" />
                     <p class="text-red-500 text-xs" v-if="form.errors.description">
                         {{ form.errors.description }}
+                    </p>
+                </div>
+
+                <div class="grid gap-1">
+                    <label class="text-sm font-medium">ប្រភេទមេ</label>
+                    <CategoryPicker
+                        v-model="form.parent_id"
+                        :categories="props.parents || []"
+                        input-id="update-category-parent"
+                    />
+                    <p class="text-xs text-gray-500">ស្វែងរកប្រភេទមេ ឬលុបអក្សរដើម្បីដកប្រភេទមេ</p>
+                    <p class="text-red-500 text-xs" v-if="form.errors.parent_id">
+                        {{ form.errors.parent_id }}
                     </p>
                 </div>
 

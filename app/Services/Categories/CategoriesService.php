@@ -19,9 +19,19 @@ class CategoriesService
         return $this->repo->getAll();
     }
 
-    public function getPaginated($perPage = 10)
+    public function getPaginated($perPage = 10, $parentIds = [])
     {
-        return $this->repo->getPaginated($perPage);
+        return $this->repo->getPaginated($perPage, $parentIds);
+    }
+
+    public function getTree()
+    {
+        return $this->repo->getTree();
+    }
+
+    public function getChildren($parentId)
+    {
+        return $this->repo->getChildren($parentId);
     }
 
     public function store($request)
@@ -30,6 +40,7 @@ class CategoriesService
             'title' => $request->title,
             'description' => $request->description,
             'user_id' => Auth::id(),
+            'parent_id' => $request->parent_id ?? null,
         ]);
     }
 
@@ -43,6 +54,7 @@ class CategoriesService
         return $this->repo->update($id, [
             'title' => $request->title,
             'description' => $request->description,
+            'parent_id' => $request->parent_id ?? null,
         ]);
     }
 

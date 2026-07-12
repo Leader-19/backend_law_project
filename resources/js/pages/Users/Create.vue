@@ -1,101 +1,16 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { User } from 'lucide-vue-next';
+import AppLayout from '@/layouts/AppLayout.vue'
+import { type BreadcrumbItem } from '@/types'
+import { Head, Link, useForm } from '@inertiajs/vue3'
+import { ArrowLeft, LockKeyhole, Mail, Save, UserPlus } from 'lucide-vue-next'
+import { route } from 'ziggy-js'
 
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Users Create',
-        href: '/users',
-    },
-];
-
-defineProps ({
-    "roles" : Array
-})
-
-const form = useForm({
-    "name": "",
-    "email": "",
-    "password": "",
-    "roles" : []
-})
-
-
+const props = defineProps<{ roles: string[] }>()
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Create user', href: '/users' }]
+const form = useForm({ name: '', email: '', password: '', roles: [] as string[] })
 </script>
 
 <template>
-
-    <Head title="Users Create" />
-
-
-    <AppLayout :breadcrumbs="breadcrumbs">
-
-
-
-        <div class="over-flow-x-auto p-3">
-
-            <Link href="/users"
-                class="cursor-pointer px-3 py-2 text-xs mb-3 font-medium text-white bg-blue-500 rounded">
-                Back
-            </Link>
-
-            <form @submit.prevent="form.post('/users')" class="space-y-6 mt-4 max-w-md mx-auto">
-
-                <!-- Name -->
-                <div class="grid gap-2">
-                    <label for="name" class="text-sm leading-none font-medium select-none peer-disable-cusor">
-                        Name
-                    </label>
-
-                    <input type="text" id="name" name="name" v-model="form.name" placeholder="Enter the name"
-                        class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 text-base">
-                    <p class="text-red-500 text-sm mt-1" v-if="form.errors.name">{{ form.errors.name }}</p>
-                </div>
-
-                <!-- Email -->
-                <div class="grid gap-2">
-                    <label for="email" class="text-sm leading-none font-medium select-none">
-                        Email
-                    </label>
-
-                    <input type="email" id="email" name="email" v-model="form.email" placeholder="Enter the email"
-                        class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 text-base">
-                    <p class="text-red-500 text-sm mt-1" v-if="form.errors.email">{{ form.errors.email }}</p>
-                </div>
-
-                <!-- Password -->
-                <div class="grid gap-2">
-                    <label for="password" class="text-sm leading-none font-medium select-none">
-                        Password
-                    </label>
-
-                    <input type="password" id="password" name="password" v-model="form.password"
-                        placeholder="Enter the password"
-                        class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2 text-base">
-                    <p class="text-red-500 text-sm mt-1" v-if="form.errors.password">{{ form.errors.password }}</p>
-                </div>
-
-                <div class="grid gap-2">
-                    <label for="name" class="text-sm leading-none font-medium select-none peer-disable-cusor">
-                        Roles:
-                    </label>
-
-                    <label v-for="role in roles" class="flex items-center space-x-2">
-                        <input v-model="form.roles" :value="role" type="checkbox"
-                            class="form-checkbox h-5 w-5 text-blue-600 focus:ring-2">
-                        <span class="text-gray-500 capitalize">{{ role }}</span>
-                    </label>
-                    <p class="text-red-500 text-sm mt-1" v-if="form.errors.roles">{{ form.errors.roles }}
-                    </p>
-                </div>
-
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium rounded px-4 py-2">
-                    Create
-                </button>
-            </form>
-        </div>
-    </AppLayout>
+    <Head title="Create User" />
+    <AppLayout :breadcrumbs="breadcrumbs"><main class="mx-auto max-w-4xl p-4 sm:p-6"><Link :href="route('users.index')" class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 dark:text-slate-300"><ArrowLeft class="h-4 w-4" /> Back to users</Link><form class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-950" @submit.prevent="form.post(route('users.store'))"><div class="bg-gradient-to-r from-blue-700 to-indigo-700 p-6 text-white"><div class="flex items-center gap-4"><div class="rounded-xl bg-white/15 p-3"><UserPlus class="h-6 w-6" /></div><div><h1 class="text-xl font-bold">Create a user</h1><p class="mt-1 text-sm text-blue-100">Add account details, then assign the appropriate roles.</p></div></div></div><div class="grid gap-6 p-6 lg:grid-cols-2"><section class="space-y-5"><h2 class="font-semibold text-slate-900 dark:text-white">Account details</h2><div><label class="text-sm font-medium">Full name</label><input v-model="form.name" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800" placeholder="Enter full name" /><p v-if="form.errors.name" class="mt-1 text-sm text-red-600">{{ form.errors.name }}</p></div><div><label class="text-sm font-medium">Email address</label><div class="relative mt-2"><Mail class="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input v-model="form.email" type="email" class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800" placeholder="name@example.com" /></div><p v-if="form.errors.email" class="mt-1 text-sm text-red-600">{{ form.errors.email }}</p></div><div><label class="text-sm font-medium">Password</label><div class="relative mt-2"><LockKeyhole class="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input v-model="form.password" type="password" class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800" placeholder="Create a secure password" /></div><p v-if="form.errors.password" class="mt-1 text-sm text-red-600">{{ form.errors.password }}</p></div></section><section><div class="flex items-center justify-between"><div><h2 class="font-semibold text-slate-900 dark:text-white">Assign roles</h2><p class="text-sm text-slate-500">A user can have more than one role.</p></div><span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">{{ form.roles.length }} selected</span></div><div class="mt-4 space-y-2"><label v-for="role in props.roles" :key="role" class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900"><input v-model="form.roles" :value="role" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" /><span class="font-medium capitalize text-slate-700 dark:text-slate-200">{{ role }}</span></label></div><p v-if="form.errors.roles" class="mt-2 text-sm text-red-600">{{ form.errors.roles }}</p></section></div><div class="flex justify-end gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"><Link :href="route('users.index')" class="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancel</Link><button :disabled="form.processing" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"><Save class="h-4 w-4" /> Create user</button></div></form></main></AppLayout>
 </template>

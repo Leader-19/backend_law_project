@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryManagementController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +25,13 @@ Route::get('dashboard', function () {
         'categories' => \App\Models\Category::withCount('documents')->get(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+/**
+ * Backup route
+ */
+Route::get('backup/download', [BackupController::class, 'download'])
+    ->middleware('auth')
+    ->name('backup.download');
 
 /**
  * User routes
@@ -62,6 +71,13 @@ Route::resource('roles', RoleController::class)
 Route::resource('roles', RoleController::class)
     ->only(['index', 'show'])
     ->middleware('permission:roles.create|roles.edit|roles.delete|roles.view');
+
+Route::get('permissions', [PermissionController::class, 'index'])
+    ->middleware('permission:roles.view|roles.edit')
+    ->name('permissions.index');
+Route::post('permissions/scan', [PermissionController::class, 'scan'])
+    ->middleware('permission:roles.edit')
+    ->name('permissions.scan');
 /**
  * End role route
  */
@@ -69,6 +85,9 @@ Route::resource('roles', RoleController::class)
 /**
  * Categories route
  */
+Route::delete('categories/bulk', [CategoryController::class, 'bulkDestroy'])
+    ->middleware('permission:category.delete')
+    ->name('categories.bulk-destroy');
 Route::resource('categories', CategoryController::class)
     ->only(['create', 'store'])
     ->middleware('permission:category.create');
@@ -100,6 +119,9 @@ Route::get('category-management', [CategoryManagementController::class, 'index']
 /**
  * Documents route
  */
+Route::delete('documents/bulk', [DocumentController::class, 'bulkDestroy'])
+    ->middleware('auth')
+    ->name('documents.bulk-destroy');
 Route::resource('documents', DocumentController::class)
     ->only(['create', 'store'])
     ->middleware('auth');

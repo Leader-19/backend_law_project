@@ -3,7 +3,11 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { type BreadcrumbItem } from '@/types'
+import CategoryPicker from '@/components/CategoryPicker.vue'
 
+const props = defineProps<{
+    parents?: { id: number; title: string }[]
+}>()
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -15,6 +19,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 const form = useForm({
     title: '',
     description: '', // keep spelling if DB uses this
+    parent_id: null as number | null,
 })
 
 </script>
@@ -64,6 +69,20 @@ const form = useForm({
                     />
                     <p v-if="form.errors.description" class="text-red-500 text-sm mt-1">
                         {{ form.errors.description }}
+                    </p>
+                </div>
+
+                <!-- Parent Category -->
+                <div>
+                    <label class="block text-sm font-medium">ប្រភេទមេ</label>
+                    <CategoryPicker
+                        v-model="form.parent_id"
+                        :categories="props.parents || []"
+                        input-id="create-category-parent"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">ស្វែងរកប្រភេទមេ ឬទុកទទេដើម្បីបង្កើតប្រភេទមេថ្មី</p>
+                    <p v-if="form.errors.parent_id" class="text-red-500 text-sm mt-1">
+                        {{ form.errors.parent_id }}
                     </p>
                 </div>
 

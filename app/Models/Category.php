@@ -14,6 +14,7 @@ class Category extends Model
         'title',
         'description',
         'user_id',
+        'parent_id',
     ];
 
       // Category belongs to a User (creator)
@@ -26,5 +27,25 @@ class Category extends Model
     public function documents()
     {
         return $this->hasMany(Document::class);
+    }
+
+    // Category has many subcategories
+    public function children()
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    /**
+     * All nested descendants of this category.
+     */
+    public function childrenRecursive()
+    {
+        return $this->children()->with('childrenRecursive');
+    }
+
+    // Category belongs to parent category
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
     }
 }

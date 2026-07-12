@@ -9,48 +9,56 @@ use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
-    /**
-     * Display all categories with their documents
-     */
     public function index(Request $request)
     {
-        $categories = Category::with(['documents' => function ($query) {
-            $query->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at');
-        }])->withCount('documents')->get();
+        $allCategories = Category::with('documents')->withCount('documents')->orderBy('title')->get();
+        $categoriesById = $allCategories->keyBy('id');
+
+        $childrenMap = [];
+        foreach ($allCategories as $category) {
+            if ($category->parent_id) {
+                $childrenMap[$category->parent_id][] = $category;
+            }
+        }
+
+        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
+            return [
+                'id' => $category->id,
+                'title' => $category->title,
+                'description' => $category->description,
+                'parent_id' => $category->parent_id,
+                'documents_count' => $category->documents_count,
+                'documents' => $category->documents->map(function ($doc) {
+                    return [
+                        'id' => $doc->id,
+                        'doc_name' => $doc->doc_name,
+                        'doc_title' => $doc->doc_title,
+                        'description' => $doc->description,
+                        'doc_upload' => $doc->doc_upload,
+                        'image' => $doc->image,
+                    ];
+                }),
+                'subcategories' => isset($childrenMap[$category->id])
+                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
+                    : [],
+            ];
+        };
+
+        $rootCategories = $allCategories->whereNull('parent_id');
 
         return response()->json([
             'status' => 'success',
-            'categories' => $categories->map(function ($category) {
-                return [
-                    'id' => $category->id,
-                    'title' => $category->title,
-                    'description' => $category->description,
-                    'documents_count' => $category->documents_count,
-                    'documents' => $category->documents->map(function ($doc) {
-                        return [
-                            'id' => $doc->id,
-                            'doc_name' => $doc->doc_name,
-                            'doc_title' => $doc->doc_title,
-                            'description' => $doc->description,
-                            'doc_upload' => $doc->doc_upload,
-                            'image' => $doc->image,
-                        ];
-                    }),
-                ];
-            }),
+            'categories' => $rootCategories->map($mapCategory)->all(),
         ]);
     }
 
-    /**
-     * Get document content for viewing
-     */
     public function getContent(string $id)
     {
         $document = Document::with('category')->findOrFail($id);
-        
+
         $path = storage_path('app/public/' . $document->doc_upload);
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        
+
         $content = '';
         try {
             if (file_exists($path)) {
@@ -81,7 +89,7 @@ class DocumentController extends Controller
         } catch (\Exception $e) {
             $content = 'Could not extract file content: ' . $e->getMessage();
         }
-        
+
         return response()->json([
             'document' => [
                 'id' => $document->id,
@@ -94,13 +102,10 @@ class DocumentController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         $document = Document::with('category')->findOrFail($id);
-        
+
         return response()->json([
             'status' => 'success',
             'document' => [

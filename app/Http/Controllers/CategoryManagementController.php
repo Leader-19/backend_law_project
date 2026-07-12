@@ -16,7 +16,7 @@ class CategoryManagementController extends Controller
         $search = $request->get('search', '');
         $categoryId = $request->get('category_id');
 
-        $categories = Category::withCount('documents')->get();
+        $categories = Category::whereNull('parent_id')->with('childrenRecursive')->get();
 
         $documents = Document::when($categoryId, function ($query, $categoryId) {
                 $query->where('category_id', $categoryId);

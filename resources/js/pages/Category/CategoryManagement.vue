@@ -11,6 +11,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
     DialogClose
 } from '@/components/ui/dialog';
@@ -22,6 +23,11 @@ interface Category {
     title: string;
     description: string | null;
     documents_count: number;
+    children?: {
+        id: number;
+        title: string;
+        documents_count: number;
+    }[];
 }
 
 interface Document {
@@ -204,6 +210,9 @@ function handleSearch() {
                         <DialogContent class="sm:max-w-lg">
                             <DialogHeader>
                                 <DialogTitle>បង្កើតឯកសារថ្មី</DialogTitle>
+                                <DialogDescription>
+                                    បញ្ចូលពត៌មានឯកសារថ្មីក្នុងប្រភេទនេះ
+                                </DialogDescription>
                             </DialogHeader>
                             <form @submit.prevent="handleSubmitCreate" class="space-y-4 mt-4">
                                 <div>
@@ -234,12 +243,19 @@ function handleSearch() {
                                     <label class="block text-sm font-medium">ប្រភេទ</label>
                                     <select
                                         v-model="createForm.category_id"
-                                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                                        class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
                                     >
                                         <option value="">Select Category</option>
-                                        <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
-                                            {{ cat.title }}
-                                        </option>
+                                        <template v-for="cat in props.categories" :key="cat.id">
+                                            <option :value="cat.id">
+                                                {{ cat.title }}
+                                            </option>
+                                            <optgroup v-if="cat.children && cat.children.length" :label="cat.title + ' (subcategories)'">
+                                                <option v-for="sub in cat.children" :key="sub.id" :value="sub.id">
+                                                    — {{ sub.title }}
+                                                </option>
+                                            </optgroup>
+                                        </template>
                                     </select>
                                     <p v-if="createForm.errors.category_id" class="text-red-500 text-sm mt-1">
                                         {{ createForm.errors.category_id }}
@@ -333,19 +349,33 @@ function handleSearch() {
                     All
                 </button>
 
-                <button
-                    v-for="cat in props.categories"
-                    :key="cat.id"
-                    @click="filterByCategory(cat.id)"
-                    :class="[
-                        'px-4 py-1 text-xs font-medium rounded transition',
-                        selectedCategory === cat.id
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'
-                    ]"
-                >
-                    {{ cat.title }} ({{ cat.documents_count }})
-                </button>
+                <template v-for="cat in props.categories" :key="cat.id">
+                    <button
+                        @click="filterByCategory(cat.id)"
+                        :class="[
+                            'px-4 py-1 text-xs font-medium rounded transition',
+                            selectedCategory === cat.id
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'
+                        ]"
+                    >
+                        {{ cat.title }} ({{ cat.documents_count }})
+                    </button>
+
+                    <button
+                        v-for="sub in cat.children"
+                        :key="sub.id"
+                        @click="filterByCategory(sub.id)"
+                        :class="[
+                            'px-4 py-1 ml-4 text-xs font-medium rounded transition',
+                            selectedCategory === sub.id
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-blue-500 hover:text-white'
+                        ]"
+                    >
+                        — {{ sub.title }} ({{ sub.documents_count }})
+                    </button>
+                </template>
             </div>
 
             <DataTable
@@ -438,6 +468,9 @@ function handleSearch() {
                 <DialogContent class="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>កែសម្រួលឯកសារ</DialogTitle>
+                        <DialogDescription>
+                            កែសម្រួលពត៌មានឯកសារដែលបានជ្រើស
+                        </DialogDescription>
                     </DialogHeader>
                     <form @submit.prevent="handleSubmitEdit" class="space-y-4 mt-4">
                         <div>
@@ -471,9 +504,16 @@ function handleSearch() {
                                 class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2"
                             >
                                 <option value="">Select Category</option>
-                                <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
-                                    {{ cat.title }}
-                                </option>
+                                <template v-for="cat in props.categories" :key="cat.id">
+                                    <option :value="cat.id">
+                                        {{ cat.title }}
+                                    </option>
+                                    <optgroup v-if="cat.children && cat.children.length" :label="cat.title + ' (subcategories)'">
+                                        <option v-for="sub in cat.children" :key="sub.id" :value="sub.id">
+                                            — {{ sub.title }}
+                                        </option>
+                                    </optgroup>
+                                </template>
                             </select>
                             <p v-if="editForm.errors.category_id" class="text-red-500 text-sm mt-1">
                                 {{ editForm.errors.category_id }}

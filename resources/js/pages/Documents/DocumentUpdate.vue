@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
+import CategoryPicker from '@/components/CategoryPicker.vue';
 
 // Breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
@@ -23,7 +24,7 @@ const props = defineProps<{
         image?: string | null;
         category_id?: number | null;
     };
-    categories: { id: number; title: string }[];
+    categories: { id: number; title: string; children?: { id: number; title: string }[] }[];
 }>();
 
 // Initialize Inertia form
@@ -96,17 +97,11 @@ const submit = () => {
                     </p>
                 </div>
 
-                <!-- Category (nullable) -->
+                <!-- Category -->
                 <div class="grid gap-1">
-                    <label class="text-sm font-medium">Category (optional)</label>
-                    <select v-model="form.category_id" name="category_id"
-                        class="block w-full border rounded-md px-3 py-2">
-                        <option :value="null">-- No category --</option>
-                        <option v-for="cat in props.categories" :key="cat.id" :value="Number(cat.id)" 
-                            >
-                            {{ cat.title }}
-                        </option>
-                    </select>
+                    <label class="text-sm font-medium">Category</label>
+                    <CategoryPicker v-model="form.category_id" :categories="props.categories" input-id="update-document-category" />
+                    <p class="text-xs text-gray-500">Search and select a category or any nested subcategory.</p>
                     <p class="text-red-500 text-xs" v-if="form.errors.category_id">
                         {{ form.errors.category_id }}
                     </p>

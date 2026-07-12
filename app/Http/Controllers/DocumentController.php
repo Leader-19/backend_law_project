@@ -22,13 +22,25 @@ class DocumentController extends Controller
         $perPage = $request->get('per_page', 10);
         $page = $request->get('page', 1);
         $search = $request->get('search', '');
-        $categoryId = $request->get('category_id');
+        $categoryIds = $request->input('category_ids', []);
+        $categoryIds = is_array($categoryIds) ? $categoryIds : [];
 
-        $paginated = $this->service->getPaginated($perPage, $page, $search, $categoryId);
+        if ($categoryIds === [] && $request->filled('category_id')) {
+            $categoryIds = [$request->input('category_id')];
+        }
+
+        $validated = validator(['category_ids' => $categoryIds], [
+            'category_ids' => ['array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
+        ])->validate();
+        $categoryIds = $validated['category_ids'];
+
+        $paginated = $this->service->getPaginated($perPage, $page, $search, $categoryIds);
 
         return Inertia::render('Documents/DocumentIndex', [
             'documents' => $paginated->items(),
-            'categories' => Category::all(),
+            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
+            'selectedCategoryIds' => $categoryIds,
             'pagination' => [
                 'current_page' => $paginated->currentPage(),
                 'last_page' => $paginated->lastPage(),
@@ -41,7 +53,7 @@ class DocumentController extends Controller
     public function create()
     {
         return Inertia::render('Documents/DocumentCreate', [
-            'categories' => Category::all(),
+            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
         ]);
     }
 
@@ -64,7 +76,7 @@ class DocumentController extends Controller
     {
         return Inertia::render('Documents/DocumentUpdate', [
             'document' => $this->service->find($id),
-            'categories' => Category::all(),
+            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
         ]);
     }
 
@@ -82,5 +94,20 @@ class DocumentController extends Controller
 
         return redirect()->route('documents.index')
             ->with('success', 'Document deleted successfully!');
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:documents,id'],
+        ]);
+
+        foreach ($validated['ids'] as $id) {
+            $this->service->delete($id);
+        }
+
+        return redirect()->route('documents.index')
+            ->with('success', 'Selected documents deleted successfully!');
     }
 }
