@@ -45,11 +45,10 @@
 
     <!-- Your CSS/JS -->
 
-        @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+        @vite('resources/js/app.ts')
         {{-- @vite(['resources/css/app.css', 'resources/js/app.js']) --}}
         @inertiaHead
         @routes
-    @vite('resources/js/app.ts')
     </head>
     <body class="font-sans antialiased">
         @inertia
