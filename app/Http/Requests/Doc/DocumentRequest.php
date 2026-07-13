@@ -27,7 +27,7 @@ class DocumentRequest extends FormRequest
 
             'doc_name' => 'required|string|max:255',
             'doc_title' => 'required|string|max:255',
-            'doc_upload' => [$isCreate ? 'required' : 'nullable', 'file', 'max:102400'],
+            'doc_upload' => [$isCreate ? 'required' : 'nullable', 'file', 'max:6291456'],
             'image' => 'nullable|image|max:5000',
             'description' => 'nullable|string|max:500',
             'category_id' => 'required|exists:categories,id',

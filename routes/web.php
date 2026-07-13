@@ -26,6 +26,10 @@ Route::get('dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('log-viewer', function () {
+    return Inertia::render('LogViewer');
+})->middleware(['auth', 'verified'])->name('log-viewer');
+
 /**
  * Backup route
  */

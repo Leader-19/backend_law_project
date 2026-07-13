@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck } from 'lucide-vue-next';
+import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck, ScrollText } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { can } from '@/lib/can';
 
@@ -76,6 +76,12 @@ const mainNavItems: NavItem[] = [
         icon: Download,
         items: undefined,
         external: true,
+    },
+    {
+        title: 'Log Viewer',
+        href: '/log-viewer',
+        icon: ScrollText,
+        items: undefined,
     },
     // {
     //     title: 'Final Slides',

@@ -16,6 +16,7 @@
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
+        "opcodesio/log-viewer": "^3.24",
         "phpoffice/phppresentation": "^1.2",
         "phpoffice/phpspreadsheet": "^3.10",
         "phpoffice/phpword": "^1.4",
