@@ -4,18 +4,20 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use Database\Factories\UserFactory;
 use Dom\Document;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles;
+    /** @use HasFactory<UserFactory> */
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -54,7 +56,6 @@ class User extends Authenticatable
         ];
     }
 
-
     // User can upload many Documents
     public function documents()
     {
@@ -64,5 +65,31 @@ class User extends Authenticatable
     public function categories()
     {
         return $this->hasMany(Category::class);
+    }
+
+    protected static function booted(): void
+    {
+        // Deleting a user cascade-deletes their documents and categories at the
+        // DB level, bypassing Document model events - remove the files first.
+        static::deleting(function (User $user) {
+            $cleanup = function ($document) {
+                if ($document->doc_upload) {
+                    Storage::disk('public')->delete($document->doc_upload);
+                }
+                if ($document->image) {
+                    Storage::disk('public')->delete($document->image);
+                }
+            };
+
+            foreach ($user->documents as $document) {
+                $cleanup($document);
+            }
+
+            foreach ($user->categories as $category) {
+                foreach ($category->documents as $document) {
+                    $cleanup($document);
+                }
+            }
+        });
     }
 }

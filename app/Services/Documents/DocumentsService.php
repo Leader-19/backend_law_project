@@ -32,15 +32,15 @@ class DocumentsService
         if ($request->hasFile('doc_upload')) {
             $file = $request->file('doc_upload');
 
-            // keep original name but make it unique
-            $filename = time().'_'.$file->getClientOriginalName();
+            // keep original name but make it safe and unique
+            $filename = safe_filename($file->getClientOriginalName());
 
             $path = $file->storeAs('documents', $filename, 'public');
         }
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $imageName = time().'_'.$image->getClientOriginalName();
+            $imageName = safe_filename($image->getClientOriginalName(), 'image');
             $imagePath = $image->storeAs('documents/images', $imageName, 'public');
         }
 
@@ -80,8 +80,8 @@ class DocumentsService
 
             $file = $request->file('doc_upload');
 
-            // keep original name + timestamp
-            $filename = time().'_'.$file->getClientOriginalName();
+            // keep original name safe and unique
+            $filename = safe_filename($file->getClientOriginalName());
 
             $data['doc_upload'] = $file->storeAs('documents', $filename, 'public');
         }
@@ -91,7 +91,7 @@ class DocumentsService
                 \Storage::disk('public')->delete($document->image);
             }
             $image = $request->file('image');
-            $imageName = time().'_'.$image->getClientOriginalName();
+            $imageName = safe_filename($image->getClientOriginalName(), 'image');
             $data['image'] = $image->storeAs('documents/images', $imageName, 'public');
         }
 

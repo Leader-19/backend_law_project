@@ -5,10 +5,28 @@ namespace App\Models;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Category extends Model
 {
     use HasFactory, LogsActivity;
+
+    protected static function booted(): void
+    {
+        // Documents cascade-delete at the DB level (onDelete('cascade')),
+        // which bypasses the Document model events - clean up their files here
+        // so they are not orphaned on disk.
+        static::deleting(function (Category $category) {
+            foreach ($category->documents as $document) {
+                if ($document->doc_upload) {
+                    Storage::disk('public')->delete($document->doc_upload);
+                }
+                if ($document->image) {
+                    Storage::disk('public')->delete($document->image);
+                }
+            }
+        });
+    }
 
     protected $fillable = [
         'title',

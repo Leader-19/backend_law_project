@@ -17,6 +17,12 @@ const page = usePage()
 const categories = page.props.categories as any[]
 
 const imagePreview = ref<string | null>(null)
+const docError = ref<string | null>(null)
+const imageError = ref<string | null>(null)
+
+// Keep in sync with the server-side limits in DocumentRequest (6MB doc, 5MB image).
+const MAX_DOC_BYTES = 6 * 1024 * 1024
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 const form = useForm({
     doc_name: '',
@@ -31,7 +37,17 @@ const handleFileUpload = (event: Event) => {
     const target = event.target as HTMLInputElement
 
     if (target.files && target.files.length > 0) {
-        form.doc_upload = target.files[0]
+        const file = target.files[0]
+
+        if (file.size > MAX_DOC_BYTES) {
+            docError.value = `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 6 MB.`
+            form.doc_upload = null
+            target.value = ''
+            return
+        }
+
+        docError.value = null
+        form.doc_upload = file
     }
 }
 
@@ -41,6 +57,15 @@ const handleImageUpload = (event: Event) => {
     if (target.files && target.files.length > 0) {
         const file = target.files[0]
 
+        if (file.size > MAX_IMAGE_BYTES) {
+            imageError.value = `Image is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 5 MB.`
+            form.image = null
+            imagePreview.value = null
+            target.value = ''
+            return
+        }
+
+        imageError.value = null
         form.image = file
         imagePreview.value = URL.createObjectURL(file)
     }
@@ -155,7 +180,14 @@ const submit = () => {
                     </p>
 
                     <p
-                        v-if="form.errors.doc_upload"
+                        v-if="docError"
+                        class="text-red-500 text-sm mt-1"
+                    >
+                        {{ docError }}
+                    </p>
+
+                    <p
+                        v-else-if="form.errors.doc_upload"
                         class="text-red-500 text-sm mt-1"
                     >
                         {{ form.errors.doc_upload }}
@@ -182,7 +214,14 @@ const submit = () => {
                     />
 
                     <p
-                        v-if="form.errors.image"
+                        v-if="imageError"
+                        class="text-red-500 text-sm mt-1"
+                    >
+                        {{ imageError }}
+                    </p>
+
+                    <p
+                        v-else-if="form.errors.image"
                         class="text-red-500 text-sm mt-1"
                     >
                         {{ form.errors.image }}
