@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryManagementController;
@@ -7,6 +8,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Models\Category;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -18,17 +20,24 @@ Route::get('/', function () {
 })->name('home');
 
 /**
-  * Dashboard route
-  */
+ * Dashboard route
+ */
 Route::get('dashboard', function () {
     return Inertia::render('Dashboard', [
-        'categories' => \App\Models\Category::withCount('documents')->get(),
+        'categories' => Category::withCount('documents')->get(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('log-viewer', function () {
     return Inertia::render('LogViewer');
 })->middleware(['auth', 'verified'])->name('log-viewer');
+
+/**
+ * Activity logs for create/update/delete actions.
+ */
+Route::get('activity-logs', [ActivityLogController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('activity-logs.index');
 
 /**
  * Backup route
@@ -106,19 +115,19 @@ Route::resource('categories', CategoryController::class)
     ->middleware('permission:category.create|category.edit|category.delete|category.view');
 
 /**
-  * End Categories route
-  */
+ * End Categories route
+ */
 
 /**
-  * Category Management route
-  */
+ * Category Management route
+ */
 Route::get('category-management', [CategoryManagementController::class, 'index'])
     ->middleware(['auth', 'permission:document.view|document.create|document.edit|document.delete'])
     ->name('category-management.index');
 
 /**
-  * End Category Management route
-  */
+ * End Category Management route
+ */
 
 /**
  * Documents route
@@ -143,8 +152,4 @@ Route::resource('documents', DocumentController::class)
  * End Documents route
  */
 
-
-
-
-
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

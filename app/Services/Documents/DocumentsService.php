@@ -33,14 +33,14 @@ class DocumentsService
             $file = $request->file('doc_upload');
 
             // keep original name but make it unique
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time().'_'.$file->getClientOriginalName();
 
             $path = $file->storeAs('documents', $filename, 'public');
         }
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imageName = time().'_'.$image->getClientOriginalName();
             $imagePath = $image->storeAs('documents/images', $imageName, 'public');
         }
 
@@ -54,6 +54,7 @@ class DocumentsService
             'description' => $request->description,
         ]);
     }
+
     public function find($id)
     {
         return $this->repo->find($id);
@@ -80,7 +81,7 @@ class DocumentsService
             $file = $request->file('doc_upload');
 
             // keep original name + timestamp
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time().'_'.$file->getClientOriginalName();
 
             $data['doc_upload'] = $file->storeAs('documents', $filename, 'public');
         }
@@ -90,7 +91,7 @@ class DocumentsService
                 \Storage::disk('public')->delete($document->image);
             }
             $image = $request->file('image');
-            $imageName = time() . '_' . $image->getClientOriginalName();
+            $imageName = time().'_'.$image->getClientOriginalName();
             $data['image'] = $image->storeAs('documents/images', $imageName, 'public');
         }
 
@@ -103,6 +104,10 @@ class DocumentsService
 
         if ($document->doc_upload) {
             Storage::disk('public')->delete($document->doc_upload);
+        }
+
+        if ($document->image) {
+            Storage::disk('public')->delete($document->image);
         }
 
         return $this->repo->delete($id);
