@@ -45,9 +45,6 @@ Route::get('activity-logs', [ActivityLogController::class, 'index'])
 Route::get('backup', [BackupController::class, 'index'])
     ->middleware('auth')
     ->name('backup.index');
-Route::post('backup', [BackupController::class, 'backup'])
-    ->middleware('auth')
-    ->name('backup.create');
 Route::get('backup/download', [BackupController::class, 'download'])
     ->middleware('auth')
     ->name('backup.download');

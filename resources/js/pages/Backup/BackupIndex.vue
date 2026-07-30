@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { route } from 'ziggy-js';
+import { Head, Link } from '@inertiajs/vue3';
 import { Download } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import { ref } from 'vue';
@@ -29,11 +28,6 @@ const props = defineProps<{
 
 const selectedCategories = ref<number[]>([]);
 const isDownloading = ref(false);
-const downloadUrl = ref<string | null>(null);
-
-const backupForm = useForm({
-    category_ids: [] as number[],
-});
 
 function toggleCategory(categoryId: number) {
     const index = selectedCategories.value.indexOf(categoryId);
@@ -69,24 +63,19 @@ function hasSelected(): boolean {
     return selectedCategories.value.length > 0;
 }
 
-function submitBackup() {
+function downloadBackup() {
+    if (!hasSelected()) return;
+
     isDownloading.value = true;
-    downloadUrl.value = null;
 
-    backupForm.category_ids = selectedCategories.value;
+    const params = new URLSearchParams();
+    selectedCategories.value.forEach(id => params.append('category_ids[]', String(id)));
 
-    backupForm.post(route('backup.create'), {
-        forceFormData: true,
-        onSuccess: (response) => {
-            isDownloading.value = false;
-        },
-        onError: (errors) => {
-            isDownloading.value = false;
-        },
-        onFinish: () => {
-            isDownloading.value = false;
-        },
-    });
+    window.location.href = `/backup/download?${params.toString()}`;
+
+    setTimeout(() => {
+        isDownloading.value = false;
+    }, 3000);
 }
 </script>
 
@@ -153,12 +142,12 @@ function submitBackup() {
                 <div class="mt-4 flex items-center gap-3">
                     <button
                         type="button"
-                        @click="submitBackup"
-                        :disabled="backupForm.processing || !hasSelected()"
+                        @click="downloadBackup"
+                        :disabled="isDownloading || !hasSelected()"
                         class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
                     >
                         <Download class="w-4 h-4" />
-                        {{ backupForm.processing ? 'Generating...' : 'Generate Backup' }}
+                        {{ isDownloading ? 'Downloading...' : 'Download Backup' }}
                     </button>
 
                     <span v-if="!hasSelected()" class="text-xs text-gray-400">

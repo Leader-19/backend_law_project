@@ -23,7 +23,7 @@ class BackupController extends Controller
         ]);
     }
 
-    public function backup(Request $request): StreamedResponse
+    public function download(Request $request): StreamedResponse
     {
         $request->validate([
             'category_ids' => 'nullable|array',
