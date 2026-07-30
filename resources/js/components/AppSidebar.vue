@@ -72,10 +72,9 @@ const mainNavItems: NavItem[] = [
     }] : []),
     {
         title: 'Backup',
-        href: '/backup/download',
+        href: '/backup',
         icon: Download,
         items: undefined,
-        external: true,
     },
     {
         title: 'Log Viewer',

@@ -76,6 +76,7 @@ const createForm = useForm({
 });
 
 const editForm = useForm({
+    _method: 'put',
     doc_name: '',
     doc_title: '',
     description: '',

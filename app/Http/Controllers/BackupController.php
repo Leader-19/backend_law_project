@@ -2,68 +2,133 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class BackupController extends Controller
 {
-    public function download(): StreamedResponse
+    public function index()
     {
-        $connection = config('database.default');
-        $config = config("database.connections.{$connection}");
-        $dbName = $config['database'];
-        $username = $config['username'] ?? '';
-        $password = $config['password'] ?? '';
-        $host = $config['host'] ?? '127.0.0.1';
-        $port = $config['port'] ?? 3306;
+        $categories = Category::whereNull('parent_id')->with('children')->get();
 
-        $mysqlDump = trim(shell_exec('which mysqldump'));
+        return Inertia::render('Backup/BackupIndex', [
+            'categories' => $categories,
+        ]);
+    }
 
-        if ($mysqlDump && file_exists($mysqlDump)) {
-            $fileName = 'backup_' . now()->format('Y-m-d_H-i-s') . '.sql';
-            $tempPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $fileName;
+    public function backup(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'integer|exists:categories,id',
+        ]);
 
-            $command = sprintf(
-                '%s --skip-column-statistics --host=%s --port=%s --user=%s %s %s > %s 2>/dev/null',
-                escapeshellcmd($mysqlDump),
-                escapeshellarg($host),
-                escapeshellarg((string) $port),
-                escapeshellarg($username),
-                $password ? '--password=' . escapeshellarg($password) : '',
-                escapeshellarg($dbName),
-                escapeshellarg($tempPath)
-            );
+        $categoryIds = $request->input('category_ids', []);
 
-            passthru($command);
+        $backupName = 'backup_' . now()->format('Y-m-d_H-i-s');
+        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $backupName;
+        File::makeDirectory($tempDir);
 
-            if (file_exists($tempPath)) {
-                return response()->streamDownload(function () use ($tempPath) {
-                    try {
-                        readfile($tempPath);
-                    } finally {
-                        File::delete($tempPath);
-                    }
-                }, $fileName, [
-                    'Content-Type' => 'application/sql',
-                ]);
+        $this->exportDatabase($tempDir);
+
+        $documents = Document::when($categoryIds, function ($query, $ids) {
+                $query->whereIn('category_id', $ids);
+            })
+            ->with('category')
+            ->get();
+
+        $this->exportFiles($tempDir, $documents);
+
+        $zipPath = $this->createZip($tempDir, $backupName);
+
+        return response()->streamDownload(function () use ($zipPath, $tempDir) {
+            try {
+                readfile($zipPath);
+            } finally {
+                File::deleteDirectory($tempDir);
+                File::delete($zipPath);
+            }
+        }, $backupName . '.zip', [
+            'Content-Type' => 'application/zip',
+        ]);
+    }
+
+    private function exportDatabase(string $tempDir): void
+    {
+        $sql = $this->generateSql();
+        file_put_contents($tempDir . DIRECTORY_SEPARATOR . 'database.sql', $sql);
+    }
+
+    private function exportFiles(string $tempDir, $documents): void
+    {
+        $categoriesDir = $tempDir . DIRECTORY_SEPARATOR . 'categories';
+        File::makeDirectory($categoriesDir);
+
+        foreach ($documents as $document) {
+            $categoryName = $document->category?->title ?? 'uncategorized';
+            $categoryDir = $categoriesDir . DIRECTORY_SEPARATOR . $this->sanitizeDirName($categoryName);
+
+            if (!File::isDirectory($categoryDir)) {
+                File::makeDirectory($categoryDir, 0755, true, true);
+            }
+
+            if ($document->doc_upload && Storage::disk('public')->exists($document->doc_upload)) {
+                $ext = pathinfo($document->doc_upload, PATHINFO_EXTENSION);
+                $safeName = $this->sanitizeFileName($document->doc_name) . '.' . $ext;
+                $dest = $categoryDir . DIRECTORY_SEPARATOR . $safeName;
+                if (!File::exists($dest)) {
+                    File::copy(Storage::disk('public')->path($document->doc_upload), $dest);
+                }
+            }
+
+            if ($document->image && Storage::disk('public')->exists($document->image)) {
+                $ext = pathinfo($document->image, PATHINFO_EXTENSION);
+                $safeName = $this->sanitizeFileName($document->doc_name) . '_image.' . $ext;
+                $dest = $categoryDir . DIRECTORY_SEPARATOR . $safeName;
+                if (!File::exists($dest)) {
+                    File::copy(Storage::disk('public')->path($document->image), $dest);
+                }
             }
         }
+    }
 
-        $fileName = 'backup_' . now()->format('Y-m-d_H-i-s') . '.sql';
+    private function createZip(string $tempDir, string $backupName): string
+    {
+        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $backupName . '.zip';
+        $zip = new ZipArchive();
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
-        return response()->streamDownload(function () {
-            echo $this->generateSql();
-        }, $fileName, [
-            'Content-Type' => 'application/sql',
-        ]);
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($tempDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY
+        );
+
+        foreach ($files as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $filePath = $file->getRealPath();
+            $relativePath = substr($filePath, strlen($tempDir) + 1);
+            $zip->addFile($filePath, $relativePath);
+        }
+
+        $zip->close();
+
+        return $zipPath;
     }
 
     private function generateSql(): string
     {
         $output = '';
-        $output .= "-- Law Sharing Documents SQL Backup\n";
+        $output .= "-- Law Sharing Documents Backup\n";
         $output .= "-- Generated: " . now()->format('Y-m-d H:i:s T') . "\n\n";
 
         $tables = DB::select('SHOW TABLES');
@@ -98,5 +163,15 @@ class BackupController extends Controller
         }
 
         return $output;
+    }
+
+    private function sanitizeDirName(string $name): string
+    {
+        return preg_replace('/[^a-zA-Z0-9_\-\s]/', '_', $name);
+    }
+
+    private function sanitizeFileName(string $name): string
+    {
+        return preg_replace('/[^a-zA-Z0-9_\-\s]/', '_', $name);
     }
 }
