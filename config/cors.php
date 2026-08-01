@@ -24,7 +24,7 @@ return [
     // ],
 
     'allowed_origins' => [
-        'https://spritup-org-jcyg.vercel.app',
+        'https://www.spritup.site',
     ],
 
     'allowed_origins_patterns' => [],
