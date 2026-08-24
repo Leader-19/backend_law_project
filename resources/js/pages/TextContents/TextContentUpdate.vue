@@ -1,0 +1,110 @@
+<script setup lang="ts">
+import AppLayout from '@/layouts/AppLayout.vue'
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
+import { route } from 'ziggy-js'
+import { type BreadcrumbItem } from '@/types'
+
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'កែសម្រួលអត្ថបទ',
+        href: '/text-contents',
+    },
+]
+
+const page = usePage()
+const textContent = page.props.textContent as any
+const categories = page.props.categories as any[]
+
+const form = useForm({
+    title: textContent.title,
+    body: textContent.body,
+    category_id: textContent.category_id,
+})
+
+const submit = () => {
+    form.put(route('text-contents.update', textContent.id), {
+        onSuccess: () => {
+            // stay on page or redirect
+        },
+    })
+}
+</script>
+
+<template>
+    <Head title="កែសម្រួលអត្ថបទ" />
+
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <div class="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
+
+            <div class="mb-6">
+                <Link
+                    :href="route('text-contents.index')"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                    ← Back
+                </Link>
+            </div>
+
+            <h1 class="text-lg font-semibold mb-4">កែសម្រួលអត្ថបទ</h1>
+
+            <form @submit.prevent="submit" class="space-y-5">
+                <!-- Title -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ចំណងជើង</label>
+                    <input
+                        v-model="form.title"
+                        type="text"
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter title"
+                    />
+                    <p v-if="form.errors.title" class="text-red-500 text-sm mt-1">{{ form.errors.title }}</p>
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">ប្រភេទ</label>
+                    <select
+                        v-model="form.category_id"
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                        <option value="">-- Select Category --</option>
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                            {{ cat.title }}
+                        </option>
+                    </select>
+                    <p v-if="form.errors.category_id" class="text-red-500 text-sm mt-1">{{ form.errors.category_id }}</p>
+                </div>
+
+                <!-- Body -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">អត្ថបទ (Body Text)</label>
+                    <textarea
+                        v-model="form.body"
+                        rows="6"
+                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                        placeholder="Enter the text content here..."
+                    ></textarea>
+                    <p class="text-xs text-gray-400 mt-1">Edit the book text content or meaning.</p>
+                    <p v-if="form.errors.body" class="text-red-500 text-sm mt-1">{{ form.errors.body }}</p>
+                </div>
+
+                <!-- Submit -->
+                <div class="flex justify-end gap-3">
+                    <Link
+                        :href="route('text-contents.index')"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                    >
+                        បោះបង់
+                    </Link>
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                        {{ form.processing ? 'Saving...' : 'រក្សាទុក' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </AppLayout>
+</template>

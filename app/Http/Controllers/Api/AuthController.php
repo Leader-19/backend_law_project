@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -24,7 +25,10 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'registration_source' => 'frontend',
         ]);
+
+        $user->assignRole('Normal');
 
         return $this->authenticatedResponse($user, $validated['device_name'] ?? 'api-client', 201);
     }
@@ -91,6 +95,31 @@ class AuthController extends Controller
         return response()->json(['message' => 'Password updated successfully.']);
     }
 
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $path = $request->file('avatar')->store('avatars', 'public');
+
+        $user->update(['avatar' => $path]);
+
+        $avatarUrl = asset(Storage::url($path));
+
+        return response()->json([
+            'message' => 'Avatar updated successfully.',
+            'avatar_url' => $avatarUrl,
+            'user' => $this->userPayload($user),
+        ]);
+    }
+
     private function authenticatedResponse(User $user, string $deviceName, int $status = 200)
     {
         $token = $user->createToken($deviceName)->plainTextToken;
@@ -104,12 +133,32 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
+        $subscription = $user->activeSubscription()->with('plan')->first();
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
             'roles' => $user->getRoleNames()->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values(),
+            'subscription' => $subscription ? [
+                'id' => $subscription->id,
+                'status' => $subscription->status,
+                'starts_at' => $subscription->starts_at?->format('Y-m-d'),
+                'ends_at' => $subscription->ends_at?->format('Y-m-d'),
+                'plan' => $subscription->plan ? [
+                    'id' => $subscription->plan->id,
+                    'name' => $subscription->plan->name,
+                    'slug' => $subscription->plan->slug,
+                    'price' => $subscription->plan->price,
+                    'currency' => $subscription->plan->currency,
+                    'max_categories' => $subscription->plan->max_categories,
+                    'max_documents' => $subscription->plan->max_documents,
+                    'max_text_contents' => $subscription->plan->max_text_contents,
+                    'max_storage_mb' => $subscription->plan->max_storage_mb,
+                ] : null,
+            ] : null,
         ];
     }
 }
