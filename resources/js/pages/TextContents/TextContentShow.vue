@@ -43,9 +43,7 @@ const textContent = page.props.textContent as any
 
             <div class="border-t pt-4">
                 <h2 class="text-sm font-semibold text-gray-600 mb-2">អត្ថបទ (Body)</h2>
-                <div class="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">
-                    {{ textContent.body }}
-                </div>
+                <div class="prose prose-sm max-w-none text-sm text-gray-800 leading-relaxed" v-html="textContent.body"></div>
             </div>
 
             <div class="mt-6 flex gap-3">

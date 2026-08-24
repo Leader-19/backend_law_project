@@ -246,8 +246,8 @@ const quotaExhausted = computed(() => {
                 </template>
 
                 <template #body="{ item }">
-                    <span class="text-xs text-gray-600" :title="item.body">
-                        {{ truncateText(item.body) }}
+                    <span class="text-xs text-gray-600" :title="item.body.replace(/<[^>]*>/g, '')">
+                        {{ truncateText(item.body.replace(/<[^>]*>/g, '')) }}
                     </span>
                 </template>
 

@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { type BreadcrumbItem } from '@/types'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -75,16 +76,13 @@ const submit = () => {
                     <p v-if="form.errors.category_id" class="text-red-500 text-sm mt-1">{{ form.errors.category_id }}</p>
                 </div>
 
-                <!-- Body -->
+                <!-- Body - Rich Text Editor -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700">អត្ថបទ (Body Text)</label>
-                    <textarea
-                        v-model="form.body"
-                        rows="6"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                        placeholder="Enter the text content here..."
-                    ></textarea>
-                    <p class="text-xs text-gray-400 mt-1">Edit the book text content or meaning.</p>
+                    <div class="mt-1">
+                        <RichTextEditor v-model="form.body" placeholder="Enter the text content here..." />
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Edit the book text content or meaning. Use the toolbar to format text.</p>
                     <p v-if="form.errors.body" class="text-red-500 text-sm mt-1">{{ form.errors.body }}</p>
                 </div>
 
