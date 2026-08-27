@@ -24,15 +24,15 @@ defineProps<{
 
         <div
             v-if="status"
-            class="mb-4 text-center text-sm font-medium text-green-600"
+            class="mb-6 text-center text-sm font-medium text-green-600 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg"
         >
             {{ status }}
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800">
             <Form v-bind="email.form()" v-slot="{ errors, processing }">
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Email address</Label>
                     <Input
                         id="email"
                         type="email"
@@ -40,13 +40,16 @@ defineProps<{
                         autocomplete="off"
                         autofocus
                         placeholder="email@example.com"
+                        class="h-11"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
-                <div class="my-6 flex items-center justify-start">
+                <div class="mt-6">
                     <Button
-                        class="w-full"
+                        type="submit"
+                        class="w-full h-11 text-base font-semibold"
+                        size="lg"
                         :disabled="processing"
                         data-test="email-password-reset-link-button"
                     >
@@ -56,9 +59,9 @@ defineProps<{
                 </div>
             </Form>
 
-            <div class="space-x-1 text-center text-sm text-muted-foreground">
+            <div class="text-center text-sm text-muted-foreground">
                 <span>Or, return to</span>
-                <TextLink :href="login()">log in</TextLink>
+                <TextLink :href="login()" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">log in</TextLink>
             </div>
         </div>
     </AuthLayout>

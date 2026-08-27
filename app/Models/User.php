@@ -22,13 +22,15 @@ class User extends Authenticatable
      * The attributes that are mass assignable.
      *
      * @var list<string>
-     */
-    protected $fillable = [
+     */    protected $fillable = [
         'name',
         'email',
+        'status',
         'password',
         'avatar',
         'registration_source',
+        'approved_at',
+        'rejection_reason',
     ];
 
     /**
@@ -54,7 +56,46 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'approved_at' => 'datetime',
         ];
+    }
+
+    // Account status constants
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+    public const STATUS_INACTIVE = 'inactive';
+
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_APPROVED,
+        self::STATUS_REJECTED,
+        self::STATUS_INACTIVE,
+    ];
+
+    public function isPending(): bool
+    {
+        return $this->status === self::STATUS_PENDING;
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === self::STATUS_APPROVED;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === self::STATUS_REJECTED;
+    }
+
+    public function isInactive(): bool
+    {
+        return $this->status === self::STATUS_INACTIVE;
+    }
+
+    public function canLogin(): bool
+    {
+        return $this->isApproved();
     }
 
     // User can upload many Documents
@@ -107,13 +148,27 @@ class User extends Authenticatable
             ->latest('user_subscriptions.id');
     }
 
+    /**
+     * Get the current plan, using cache to avoid repeated queries.
+     */
+    public function getCurrentPlanCached(): ?SubscriptionPlan
+    {
+        $activeSubscription = $this->activeSubscription()->first();
+
+        if (! $activeSubscription) {
+            return null;
+        }
+
+        return SubscriptionPlan::getCachedWithCategories($activeSubscription->subscription_plan_id);
+    }
+
     public function canCreateCategory(): bool
     {
         if ($this->hasRole('Admin')) {
             return true;
         }
 
-        $plan = $this->currentPlan()->first();
+        $plan = $this->getCurrentPlanCached();
 
         if (! $plan) {
             return false;
@@ -132,7 +187,7 @@ class User extends Authenticatable
             return true;
         }
 
-        $plan = $this->currentPlan()->first();
+        $plan = $this->getCurrentPlanCached();
 
         if (! $plan) {
             return false;
@@ -151,9 +206,7 @@ class User extends Authenticatable
             return null;
         }
 
-        $plan = $this->currentPlan()->first();
-
-        return $plan?->max_categories;
+        return $this->getCurrentPlanCached()?->max_categories;
     }
 
     public function documentLimit(): ?int
@@ -162,9 +215,7 @@ class User extends Authenticatable
             return null;
         }
 
-        $plan = $this->currentPlan()->first();
-
-        return $plan?->max_documents;
+        return $this->getCurrentPlanCached()?->max_documents;
     }
 
     public function canCreateTextContent(): bool
@@ -173,7 +224,7 @@ class User extends Authenticatable
             return true;
         }
 
-        $plan = $this->currentPlan()->first();
+        $plan = $this->getCurrentPlanCached();
 
         if (! $plan) {
             return false;
@@ -192,9 +243,37 @@ class User extends Authenticatable
             return null;
         }
 
-        $plan = $this->currentPlan()->first();
+        return $this->getCurrentPlanCached()?->max_text_contents;
+    }
 
-        return $plan?->max_text_contents;
+    // User library (saved/favorited documents)
+    public function library()
+    {
+        return $this->belongsToMany(Document::class, 'user_library')->withTimestamps();
+    }
+
+    // Reading history
+    public function readingHistory()
+    {
+        return $this->hasMany(ReadingHistory::class);
+    }
+
+    // Quiz attempts
+    public function quizAttempts()
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
+
+    // Certificates
+    public function certificates()
+    {
+        return $this->hasMany(Certificate::class);
+    }
+
+    // Contact messages
+    public function contactMessages()
+    {
+        return $this->hasMany(ContactMessage::class);
     }
 
     // Categories this user has specific permissions for
@@ -271,7 +350,10 @@ class User extends Authenticatable
             return Category::pluck('id')->all();
         }
 
-        $categoryIds = $this->currentPlan()->first()?->categories()->pluck('categories.id')->all() ?? [];
+        $activeSubscription = $this->activeSubscription()->first();
+        $categoryIds = $activeSubscription
+            ? SubscriptionPlan::getPlanCategoryIds($activeSubscription->subscription_plan_id)
+            : [];
 
         $categoryIds = [...$categoryIds, ...$this->categoryPermissions()
             ->where(function ($query) {
@@ -300,7 +382,9 @@ class User extends Authenticatable
 
         // Find all ancestors of viewable categories using batch iterative approach
         if ($categoryIds !== []) {
+            $categoryIdsSet = array_flip($categoryIds);
             $allAncestorIds = [];
+            $allAncestorIdsSet = [];
             $pending = Category::whereIn('id', $categoryIds)
                 ->pluck('parent_id')
                 ->filter()
@@ -313,14 +397,15 @@ class User extends Authenticatable
                     ->get();
 
                 foreach ($found as $cat) {
-                    if (! in_array($cat->id, $allAncestorIds) && ! in_array($cat->id, $categoryIds)) {
+                    if (! isset($allAncestorIdsSet[$cat->id]) && ! isset($categoryIdsSet[$cat->id])) {
                         $allAncestorIds[] = $cat->id;
+                        $allAncestorIdsSet[$cat->id] = true;
                     }
                 }
 
                 $pending = $found->pluck('parent_id')
                     ->filter()
-                    ->reject(fn ($id) => in_array($id, $allAncestorIds) || in_array($id, $categoryIds))
+                    ->reject(fn ($id) => isset($allAncestorIdsSet[$id]) || isset($categoryIdsSet[$id]))
                     ->values()
                     ->all();
             }
@@ -348,19 +433,20 @@ class User extends Authenticatable
 
     private function hasPlanCategoryAccess(Category $category): bool
     {
-        $plan = $this->currentPlan()->with('categories')->first();
-        if (! $plan) {
+        $activeSubscription = $this->activeSubscription()->first();
+        if (! $activeSubscription) {
             return false;
         }
 
-        $planCategoryIds = $plan->categories->pluck('id')->all();
+        $planCategoryIds = SubscriptionPlan::getPlanCategoryIds($activeSubscription->subscription_plan_id);
+        $planCategoryIdsSet = array_flip($planCategoryIds);
 
-        if (in_array($category->id, $planCategoryIds)) {
+        if (isset($planCategoryIdsSet[$category->id])) {
             return true;
         }
 
         // Check ancestors using batch iterative approach
-        $ancestorIds = [];
+        $ancestorIdsSet = [];
         $pending = array_filter([$category->parent_id]);
 
         while (! empty($pending)) {
@@ -369,15 +455,15 @@ class User extends Authenticatable
                 ->get();
 
             foreach ($found as $cat) {
-                $ancestorIds[] = $cat->id;
-                if (in_array($cat->id, $planCategoryIds)) {
+                $ancestorIdsSet[$cat->id] = true;
+                if (isset($planCategoryIdsSet[$cat->id])) {
                     return true;
                 }
             }
 
             $pending = $found->pluck('parent_id')
                 ->filter()
-                ->reject(fn ($id) => in_array($id, $ancestorIds))
+                ->reject(fn ($id) => isset($ancestorIdsSet[$id]))
                 ->values()
                 ->all();
         }

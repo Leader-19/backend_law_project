@@ -26,6 +26,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'registration_source' => 'frontend',
+            'status' => User::STATUS_PENDING,
         ]);
 
         $user->assignRole('Normal');
@@ -45,6 +46,17 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json(['message' => 'The provided credentials are incorrect.'], 422);
+        }
+
+        if (! $user->canLogin()) {
+            $message = match ($user->status) {
+                User::STATUS_PENDING => 'Your account is pending approval. Please wait for an administrator to approve your account.',
+                User::STATUS_REJECTED => 'Your account has been rejected. Please contact an administrator for more information.',
+                User::STATUS_INACTIVE => 'Your account has been deactivated. Please contact an administrator.',
+                default => 'Your account cannot be accessed at this time.',
+            };
+
+            return response()->json(['message' => $message], 403);
         }
 
         return $this->authenticatedResponse($user, $validated['device_name'] ?? 'api-client');

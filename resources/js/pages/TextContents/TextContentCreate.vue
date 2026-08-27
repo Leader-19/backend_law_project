@@ -3,13 +3,10 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { type BreadcrumbItem } from '@/types'
-import RichTextEditor from '@/components/RichTextEditor.vue'
+import TextContentFormFields from '@/components/text-contents/TextContentFormFields.vue'
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'បង្កើតអត្ថបទ',
-        href: '/text-contents',
-    },
+    { title: 'បង្កើតអត្ថបទ', href: '/text-contents' },
 ]
 
 const page = usePage()
@@ -48,44 +45,13 @@ const submit = () => {
             <h1 class="text-lg font-semibold mb-4">បង្កើតអត្ថបទថ្មី</h1>
 
             <form @submit.prevent="submit" class="space-y-5">
-                <!-- Title -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">ចំណងជើង</label>
-                    <input
-                        v-model="form.title"
-                        type="text"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="Enter title"
-                    />
-                    <p v-if="form.errors.title" class="text-red-500 text-sm mt-1">{{ form.errors.title }}</p>
-                </div>
+                <TextContentFormFields
+                    :form="form"
+                    :categories="categories"
+                    :processing="form.processing"
+                    submit-label="បង្កើត"
+                />
 
-                <!-- Category -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">ប្រភេទ</label>
-                    <select
-                        v-model="form.category_id"
-                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    >
-                        <option value="">-- Select Category --</option>
-                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                            {{ cat.title }}
-                        </option>
-                    </select>
-                    <p v-if="form.errors.category_id" class="text-red-500 text-sm mt-1">{{ form.errors.category_id }}</p>
-                </div>
-
-                <!-- Body - Rich Text Editor -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">អត្ថបទ (Body Text)</label>
-                    <div class="mt-1">
-                        <RichTextEditor v-model="form.body" placeholder="Enter the text content here... This is the meaning/summary of the book." />
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">Enter the book text content or meaning here. Use the toolbar to format text.</p>
-                    <p v-if="form.errors.body" class="text-red-500 text-sm mt-1">{{ form.errors.body }}</p>
-                </div>
-
-                <!-- Submit -->
                 <div class="flex justify-end gap-3">
                     <Link
                         :href="route('text-contents.index')"

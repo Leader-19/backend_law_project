@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -12,10 +13,32 @@ class RoleController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render("Roles/Index", [
-            "roles" => Role::with("permissions")->get()
+        $perPage = min(max((int) $request->integer('per_page', 15), 5), 100);
+        $search = trim((string) $request->query('search', ''));
+
+        $query = Role::with('permissions');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('permissions', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $roles = $query->orderBy('name')->paginate($perPage)->withQueryString();
+
+        return Inertia::render('Roles/Index', [
+            'roles' => $roles->items(),
+            'pagination' => [
+                'current_page' => $roles->currentPage(),
+                'last_page' => $roles->lastPage(),
+                'per_page' => $roles->perPage(),
+                'total' => $roles->total(),
+            ],
         ]);
     }
 
@@ -24,8 +47,8 @@ class RoleController extends Controller
      */
     public function create()
     {
-        return Inertia::render("Roles/Create", [
-            "permissions" => Permission::pluck("name")->all()
+        return Inertia::render('Roles/Create', [
+            'permissions' => Permission::pluck('name')->all(),
         ]);
     }
 
@@ -34,24 +57,16 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
-        /**
-         * debug data input
-         */
-        // dd($request->all());
-
-        /**
-         * add validation
-         */
-
         $request->validate([
-            "name"=>"required",
-            "permissions" => "required"
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $role = Role::create(["name" => $request->name]);
+        $role = Role::create(['name' => $request->name]);
         $role->syncPermissions($request->permissions);
 
-       return to_route("roles.index");
+        return to_route('roles.index');
 
     }
 
@@ -62,9 +77,9 @@ class RoleController extends Controller
     {
         $role = Role::find($id);
 
-        return Inertia::render("Roles/Show", [
-            "role" => $role,
-            "rolePermissions" => $role->permissions()->pluck("name")->all()
+        return Inertia::render('Roles/Show', [
+            'role' => $role,
+            'rolePermissions' => $role->permissions()->pluck('name')->all(),
         ]);
     }
 
@@ -74,10 +89,11 @@ class RoleController extends Controller
     public function edit(string $id)
     {
         $role = Role::find($id);
-        return Inertia::render("Roles/Edit", [
-            "role" => $role,
-            "rolePermissions" =>$role->permissions()->pluck("name")->all(),
-            "permissions" => Permission::pluck("name")->all()
+
+        return Inertia::render('Roles/Edit', [
+            'role' => $role,
+            'rolePermissions' => $role->permissions()->pluck('name')->all(),
+            'permissions' => Permission::pluck('name')->all(),
         ]);
     }
 
@@ -87,17 +103,18 @@ class RoleController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate([
-            "name"=>"required",
-            "permissions" => "required"
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name,'.$id],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
-        $role = Role::find($id);
+        $role = Role::findOrFail($id);
 
         $role->name = $request->name;
         $role->save();
         $role->syncPermissions($request->permissions);
 
-       return to_route("roles.index");
+        return to_route('roles.index');
     }
 
     /**
@@ -105,8 +122,9 @@ class RoleController extends Controller
      */
     public function destroy(string $id)
     {
+        $this->authorize('delete', [Role::class, $id]);
         Role::destroy($id);
 
-        return to_route("roles.index");
+        return to_route('roles.index');
     }
 }

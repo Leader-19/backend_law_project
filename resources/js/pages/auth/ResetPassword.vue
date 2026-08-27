@@ -29,61 +29,61 @@ const inputEmail = ref(props.email);
             :transform="(data) => ({ ...data, token, email })"
             :reset-on-success="['password', 'password_confirmation']"
             v-slot="{ errors, processing }"
+            class="grid gap-5 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
         >
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        name="email"
-                        autocomplete="email"
-                        v-model="inputEmail"
-                        class="mt-1 block w-full"
-                        readonly
-                    />
-                    <InputError :message="errors.email" class="mt-2" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        name="password"
-                        autocomplete="new-password"
-                        class="mt-1 block w-full"
-                        autofocus
-                        placeholder="Password"
-                    />
-                    <InputError :message="errors.password" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="password_confirmation">
-                        Confirm Password
-                    </Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        name="password_confirmation"
-                        autocomplete="new-password"
-                        class="mt-1 block w-full"
-                        placeholder="Confirm password"
-                    />
-                    <InputError :message="errors.password_confirmation" />
-                </div>
-
-                <Button
-                    type="submit"
-                    class="mt-4 w-full"
-                    :disabled="processing"
-                    data-test="reset-password-button"
-                >
-                    <Spinner v-if="processing" />
-                    Reset password
-                </Button>
+            <div class="grid gap-2">
+                <Label for="email" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Email</Label>
+                <Input
+                    id="email"
+                    type="email"
+                    name="email"
+                    autocomplete="email"
+                    v-model="inputEmail"
+                    class="h-11"
+                    readonly
+                />
+                <InputError :message="errors.email" />
             </div>
+
+            <div class="grid gap-2">
+                <Label for="password" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Password</Label>
+                <Input
+                    id="password"
+                    type="password"
+                    name="password"
+                    autocomplete="new-password"
+                    class="h-11"
+                    autofocus
+                    placeholder="Password"
+                />
+                <InputError :message="errors.password" />
+            </div>
+
+            <div class="grid gap-2">
+                <Label for="password_confirmation" class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Confirm Password
+                </Label>
+                <Input
+                    id="password_confirmation"
+                    type="password"
+                    name="password_confirmation"
+                    autocomplete="new-password"
+                    class="h-11"
+                    placeholder="Confirm password"
+                />
+                <InputError :message="errors.password_confirmation" />
+            </div>
+
+            <Button
+                type="submit"
+                class="mt-2 w-full h-11 text-base font-semibold"
+                size="lg"
+                :disabled="processing"
+                data-test="reset-password-button"
+            >
+                <Spinner v-if="processing" />
+                Reset password
+            </Button>
         </Form>
     </AuthLayout>
 </template>

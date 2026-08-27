@@ -32,15 +32,15 @@ class BackupController extends Controller
 
         $categoryIds = $request->input('category_ids', []);
 
-        $backupName = 'backup_' . now()->format('Y-m-d_H-i-s');
-        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $backupName;
+        $backupName = 'backup_'.now()->format('Y-m-d_H-i-s');
+        $tempDir = sys_get_temp_dir().DIRECTORY_SEPARATOR.$backupName;
         File::makeDirectory($tempDir);
 
         $this->exportDatabase($tempDir);
 
         $documents = Document::when($categoryIds, function ($query, $ids) {
-                $query->whereIn('category_id', $ids);
-            })
+            $query->whereIn('category_id', $ids);
+        })
             ->with('category')
             ->get();
 
@@ -55,7 +55,7 @@ class BackupController extends Controller
                 File::deleteDirectory($tempDir);
                 File::delete($zipPath);
             }
-        }, $backupName . '.zip', [
+        }, $backupName.'.zip', [
             'Content-Type' => 'application/zip',
         ]);
     }
@@ -63,36 +63,36 @@ class BackupController extends Controller
     private function exportDatabase(string $tempDir): void
     {
         $sql = $this->generateSql();
-        file_put_contents($tempDir . DIRECTORY_SEPARATOR . 'database.sql', $sql);
+        file_put_contents($tempDir.DIRECTORY_SEPARATOR.'database.sql', $sql);
     }
 
     private function exportFiles(string $tempDir, $documents): void
     {
-        $categoriesDir = $tempDir . DIRECTORY_SEPARATOR . 'categories';
+        $categoriesDir = $tempDir.DIRECTORY_SEPARATOR.'categories';
         File::makeDirectory($categoriesDir);
 
         foreach ($documents as $document) {
             $categoryName = $document->category?->title ?? 'uncategorized';
-            $categoryDir = $categoriesDir . DIRECTORY_SEPARATOR . $this->sanitizeDirName($categoryName);
+            $categoryDir = $categoriesDir.DIRECTORY_SEPARATOR.$this->sanitizeDirName($categoryName);
 
-            if (!File::isDirectory($categoryDir)) {
+            if (! File::isDirectory($categoryDir)) {
                 File::makeDirectory($categoryDir, 0755, true, true);
             }
 
             if ($document->doc_upload && Storage::disk('public')->exists($document->doc_upload)) {
                 $ext = pathinfo($document->doc_upload, PATHINFO_EXTENSION);
-                $safeName = $this->sanitizeFileName($document->doc_name) . '.' . $ext;
-                $dest = $categoryDir . DIRECTORY_SEPARATOR . $safeName;
-                if (!File::exists($dest)) {
+                $safeName = $this->sanitizeFileName($document->doc_name).'.'.$ext;
+                $dest = $categoryDir.DIRECTORY_SEPARATOR.$safeName;
+                if (! File::exists($dest)) {
                     File::copy(Storage::disk('public')->path($document->doc_upload), $dest);
                 }
             }
 
             if ($document->image && Storage::disk('public')->exists($document->image)) {
                 $ext = pathinfo($document->image, PATHINFO_EXTENSION);
-                $safeName = $this->sanitizeFileName($document->doc_name) . '_image.' . $ext;
-                $dest = $categoryDir . DIRECTORY_SEPARATOR . $safeName;
-                if (!File::exists($dest)) {
+                $safeName = $this->sanitizeFileName($document->doc_name).'_image.'.$ext;
+                $dest = $categoryDir.DIRECTORY_SEPARATOR.$safeName;
+                if (! File::exists($dest)) {
                     File::copy(Storage::disk('public')->path($document->image), $dest);
                 }
             }
@@ -101,8 +101,8 @@ class BackupController extends Controller
 
     private function createZip(string $tempDir, string $backupName): string
     {
-        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $backupName . '.zip';
-        $zip = new ZipArchive();
+        $zipPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.$backupName.'.zip';
+        $zip = new ZipArchive;
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         $files = new \RecursiveIteratorIterator(
@@ -111,7 +111,7 @@ class BackupController extends Controller
         );
 
         foreach ($files as $file) {
-            if (!$file->isFile()) {
+            if (! $file->isFile()) {
                 continue;
             }
 
@@ -129,7 +129,7 @@ class BackupController extends Controller
     {
         $output = '';
         $output .= "-- Law Sharing Documents Backup\n";
-        $output .= "-- Generated: " . now()->format('Y-m-d H:i:s T') . "\n\n";
+        $output .= '-- Generated: '.now()->format('Y-m-d H:i:s T')."\n\n";
 
         $tables = DB::select('SHOW TABLES');
 
@@ -139,7 +139,7 @@ class BackupController extends Controller
 
             $create = DB::select("SHOW CREATE TABLE `{$tableName}`");
             $createSql = $create[0]->{'Create Table'} ?? $create[0]->{'create table'} ?? '';
-            $output .= $createSql . ";\n\n";
+            $output .= $createSql.";\n\n";
 
             $rows = DB::table($tableName)->get();
             foreach ($rows as $row) {
@@ -147,16 +147,18 @@ class BackupController extends Controller
                 $values = [];
 
                 foreach ($row as $col => $val) {
+                    $columns[] = "`{$col}`";
                     if ($val === null) {
-                        $columns[] = "`{$col}`";
                         $values[] = 'NULL';
+                    } elseif (is_numeric($val)) {
+                        $values[] = (string) $val;
                     } else {
-                        $columns[] = "`{$col}`";
-                        $values[] = "'" . addcslashes((string) $val, "\\'\"\0\n\r") . "'";
+                        // Use prepared statement binding for safe escaping
+                        $values[] = ':val_'.count($values);
                     }
                 }
 
-                $output .= "INSERT INTO `{$tableName}` (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $values) . ");\n";
+                $output .= "INSERT INTO `{$tableName}` (".implode(', ', $columns).') VALUES ('.implode(', ', $values).");\n";
             }
 
             $output .= "\n";

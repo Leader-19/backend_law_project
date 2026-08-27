@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TextContent\TextContentRequest;
 use App\Models\Category;
 use App\Models\TextContent;
 use Illuminate\Http\Request;
@@ -43,16 +44,10 @@ class TextContentController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(TextContentRequest $request)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-        ]);
-
         $textContent = TextContent::create([
-            ...$validated,
+            ...$request->validated(),
             'user_id' => $request->user()->id,
         ]);
 
@@ -73,17 +68,10 @@ class TextContentController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(TextContentRequest $request, string $id)
     {
         $textContent = TextContent::findOrFail($id);
-
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-        ]);
-
-        $textContent->update($validated);
+        $textContent->update($request->validated());
 
         return response()->json([
             'status' => 'success',

@@ -16,11 +16,19 @@ class CategoryManagementController extends Controller
         $search = $request->get('search', '');
         $categoryId = $request->get('category_id');
 
-        $categories = Category::whereNull('parent_id')->with('childrenRecursive')->get();
+        $user = $request->user();
+        $query = Category::whereNull('parent_id')->with('childrenRecursive');
+
+        if (! $user->hasRole('Admin')) {
+            $viewableIds = $user->getViewableCategoryIds();
+            $query->whereIn('id', $viewableIds);
+        }
+
+        $categories = $query->get();
 
         $documents = Document::when($categoryId, function ($query, $categoryId) {
-                $query->where('category_id', $categoryId);
-            })
+            $query->where('category_id', $categoryId);
+        })
             ->when($search, function ($query, $search) {
                 $query->where('doc_name', 'like', "%{$search}%")
                     ->orWhere('doc_title', 'like', "%{$search}%");
@@ -35,7 +43,7 @@ class CategoryManagementController extends Controller
                 'last_page' => $documents->lastPage(),
                 'per_page' => $documents->perPage(),
                 'total' => $documents->total(),
-            ]
+            ],
         ]);
     }
 }

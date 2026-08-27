@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
-import CategoryPicker from '@/components/CategoryPicker.vue';
+import DocumentFormFields from '@/components/documents/DocumentFormFields.vue';
 
-// Breadcrumbs
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Update Document',
@@ -13,7 +12,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Props from Laravel/Inertia
 const props = defineProps<{
     document: {
         id: number;
@@ -27,7 +25,6 @@ const props = defineProps<{
     categories: { id: number; title: string; children?: { id: number; title: string }[] }[];
 }>();
 
-// Initialize Inertia form
 const form = useForm({
     _method: 'PUT',
     doc_name: props.document.doc_name ?? '',
@@ -38,22 +35,6 @@ const form = useForm({
     category_id: props.document.category_id ?? null,
 });
 
-// Handle file input
-const handleFileUpload = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
-        form.doc_upload = target.files[0];
-    }
-};
-
-const handleImageUpload = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files[0]) {
-        form.image = target.files[0];
-    }
-};
-
-// Submit form
 const submit = () => {
     form.post(route('documents.update', props.document.id), {
         forceFormData: true,
@@ -64,99 +45,22 @@ const submit = () => {
 </script>
 
 <template>
-
     <Head title="Update Document" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-3 max-w-lg mx-auto">
-            <!-- Back button -->
             <Link :href="route('documents.index')" class="px-3 py-2 text-xs text-white bg-blue-500 rounded">
                 Back
             </Link>
 
-            <!-- Update form -->
             <form @submit.prevent="submit" class="space-y-5 mt-4">
-
-                <!-- Document Name -->
-                <div class="grid gap-1">
-                    <label class="text-sm font-medium">ឈ្មោះឯកសារ</label>
-                    <input type="text" name="doc_name" v-model="form.doc_name" placeholder="Enter document name"
-                        class="block w-full border rounded-md px-3 py-2" />
-                    <p class="text-red-500 text-xs" v-if="form.errors.doc_name">
-                        {{ form.errors.doc_name }}
-                    </p>
-                </div>
-
-                <!-- Document Title -->
-                <div class="grid gap-1">
-                    <label class="text-sm font-medium">ចំណងជើង</label>
-                    <input type="text" name="doc_title" v-model="form.doc_title" placeholder="Enter document title"
-                        class="block w-full border rounded-md px-3 py-2" />
-                    <p class="text-red-500 text-xs" v-if="form.errors.doc_title">
-                        {{ form.errors.doc_title }}
-                    </p>
-                </div>
-
-                <!-- Category -->
-                <div class="grid gap-1">
-                    <label class="text-sm font-medium">Category</label>
-                    <CategoryPicker v-model="form.category_id" :categories="props.categories" input-id="update-document-category" />
-                    <p class="text-xs text-gray-500">Search and select a category or any nested subcategory.</p>
-                    <p class="text-red-500 text-xs" v-if="form.errors.category_id">
-                        {{ form.errors.category_id }}
-                    </p>
-                </div>
-
-                <!-- File Upload -->
-                <div class="grid gap-1">
-                    <label class="text-sm font-medium">File Upload</label>
-                    <input type="file" name="doc_upload" @change="handleFileUpload"
-                        class="block w-full border rounded-md p-2 text-xs" />
-                    <p class="text-red-500 text-xs" v-if="form.errors.doc_upload">
-                        {{ form.errors.doc_upload }}
-                    </p>
-
-                    <!-- Current file -->
-                    <p v-if="props.document.doc_upload" class="text-xs text-gray-500">
-                        Current file:
-                        <a :href="`/storage/${props.document.doc_upload}`" target="_blank"
-                            class="text-blue-500 underline">
-                            View
-                        </a>
-                    </p>
-                </div>
-
-                <!-- Image Upload -->
-                <div class="grid gap-1">
-                    <label class="text-sm font-medium">Image</label>
-                    <input type="file" name="image" @change="handleImageUpload" accept="image/*"
-                        class="block w-full border rounded-md p-2 text-xs" />
-                    <p class="text-red-500 text-xs" v-if="form.errors.image">
-                        {{ form.errors.image }}
-                    </p>
-                    <p v-if="props.document.image" class="text-xs text-gray-500">
-                        Current image:
-                        <a :href="`/storage/${props.document.image}`" target="_blank"
-                            class="text-blue-500 underline">
-                            View
-                        </a>
-                    </p>
-                </div>
-
-                <!-- Description -->
-                <div class="grid gap-1">
-                    <label class="text-sm font-medium">ការរៀបរាប់</label>
-                    <input type="text" name="description" v-model="form.description" placeholder="Enter description"
-                        class="block w-full border rounded-md px-3 py-2" />
-                    <p class="text-red-500 text-xs" v-if="form.errors.description">
-                        {{ form.errors.description }}
-                    </p>
-                </div>
-
-                <!-- Submit -->
-                <button type="submit" class="bg-green-600 text-white text-xs rounded px-4 py-2">
-                    Update Document
-                </button>
+                <DocumentFormFields
+                    :form="form"
+                    :categories="categories"
+                    :processing="form.processing"
+                    submit-label="Update Document"
+                    :is-edit="true"
+                />
             </form>
         </div>
     </AppLayout>

@@ -21,7 +21,12 @@ import {
     Search,
     X,
     AlertTriangle,
-    Info
+    Info,
+    ClipboardList,
+    Award,
+    UserCheck,
+    MessageSquare,
+    Trophy
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
@@ -33,6 +38,11 @@ interface DashboardProps {
         total_documents: number;
         total_text_contents: number;
         total_activities: number;
+        pending_approvals: number;
+        total_quizzes: number;
+        total_quiz_attempts: number;
+        total_certificates: number;
+        open_messages: number;
     };
     recent_activity?: Array<{
         id: number;
@@ -81,6 +91,11 @@ const props = withDefaults(defineProps<DashboardProps & { activity_search?: stri
         total_documents: 0,
         total_text_contents: 0,
         total_activities: 0,
+        pending_approvals: 0,
+        total_quizzes: 0,
+        total_quiz_attempts: 0,
+        total_certificates: 0,
+        open_messages: 0,
     }),
     recent_activity: () => [],
     recent_documents: () => [],
@@ -271,6 +286,84 @@ const permissionBadgeClass: Record<string, string> = {
                     </div>
                     <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
                         <span>Book text content entries</span>
+                    </div>
+                </div>
+
+                <!-- Pending Approvals Stat Card (Admin) -->
+                <div v-if="isAdmin && stats.pending_approvals > 0" class="group relative overflow-hidden rounded-2xl border border-yellow-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pending Approvals</p>
+                            <p class="mt-2 text-3xl font-extrabold text-yellow-600 dark:text-yellow-400">
+                                {{ stats.pending_approvals }}
+                            </p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
+                            <UserCheck class="h-6 w-6" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <Link href="/user-approvals?status=pending" class="text-xs font-semibold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
+                            Review Now <ArrowUpRight class="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Quizzes Stat Card (Admin) -->
+                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quizzes</p>
+                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                                {{ stats.total_quizzes }}
+                            </p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
+                            <ClipboardList class="h-6 w-6" />
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
+                        <span>{{ stats.total_quiz_attempts }} total attempts</span>
+                    </div>
+                </div>
+
+                <!-- Certificates Stat Card (Admin) -->
+                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Certificates</p>
+                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">
+                                {{ stats.total_certificates }}
+                            </p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
+                            <Award class="h-6 w-6" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <Link href="/certificate-management" class="text-xs font-semibold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
+                            Manage <ArrowUpRight class="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+                </div>
+
+                <!-- Open Messages Stat Card (Admin) -->
+                <div v-if="isAdmin && stats.open_messages > 0" class="group relative overflow-hidden rounded-2xl border border-orange-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Open Messages</p>
+                            <p class="mt-2 text-3xl font-extrabold text-orange-600 dark:text-orange-400">
+                                {{ stats.open_messages }}
+                            </p>
+                        </div>
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400">
+                            <MessageSquare class="h-6 w-6" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <Link href="/contact-messages?status=open" class="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1">
+                            Reply Now <ArrowUpRight class="h-3.5 w-3.5" />
+                        </Link>
                     </div>
                 </div>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TextContent\TextContentRequest;
 use App\Models\Category;
 use App\Models\TextContent;
 use Illuminate\Http\Request;
@@ -69,15 +70,12 @@ class TextContentController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(TextContentRequest $request)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-        ]);
+        $validated = $request->validated();
 
-        $this->authorize('create', [TextContent::class, Category::findOrFail($validated['category_id'])]);
+        $category = Category::findOrFail($validated['category_id']);
+        $this->authorize('create', [TextContent::class, $category]);
 
         TextContent::create([
             ...$validated,
@@ -109,18 +107,12 @@ class TextContentController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(TextContentRequest $request, string $id)
     {
         $textContent = TextContent::findOrFail($id);
         $this->authorize('update', $textContent);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string'],
-            'category_id' => ['required', 'exists:categories,id'],
-        ]);
-
-        $textContent->update($validated);
+        $textContent->update($request->validated());
 
         return redirect()->route('text-contents.index')
             ->with('success', 'Text content updated successfully!');

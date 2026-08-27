@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Models\Certificate;
+use App\Models\ContactMessage;
 use App\Models\Document;
+use App\Models\Quiz;
+use App\Models\QuizAttempt;
 use App\Models\TextContent;
 use App\Models\User;
 use App\Models\UserSubscription;
@@ -26,6 +30,11 @@ class DashboardController extends Controller
                 'total_documents' => Document::count(),
                 'total_text_contents' => TextContent::count(),
                 'total_activities' => ActivityLog::count(),
+                'pending_approvals' => User::where('status', 'pending')->count(),
+                'total_quizzes' => Quiz::count(),
+                'total_quiz_attempts' => QuizAttempt::count(),
+                'total_certificates' => Certificate::count(),
+                'open_messages' => ContactMessage::where('status', 'open')->count(),
             ];
 
             $activityQuery = ActivityLog::with('causer');
@@ -69,6 +78,8 @@ class DashboardController extends Controller
         } else {
             $viewableIds = $user->getViewableCategoryIds();
 
+            $viewableQuizIds = Quiz::whereIn('category_id', $viewableIds)->pluck('id');
+
             $stats = [
                 'total_categories' => Category::whereIn('id', $viewableIds)->count(),
                 'total_users' => User::count(),
@@ -77,6 +88,11 @@ class DashboardController extends Controller
                 'total_activities' => ActivityLog::whereHas('subject', function ($query) use ($viewableIds) {
                     $query->whereIn('id', $viewableIds);
                 })->count(),
+                'pending_approvals' => User::where('status', 'pending')->count(),
+                'total_quizzes' => Quiz::whereIn('category_id', $viewableIds)->count(),
+                'total_quiz_attempts' => QuizAttempt::whereIn('quiz_id', $viewableQuizIds)->count(),
+                'total_certificates' => Certificate::whereIn('quiz_id', $viewableQuizIds)->count(),
+                'open_messages' => ContactMessage::where('status', 'open')->count(),
             ];
 
             $activityQuery = ActivityLog::whereHas('subject', function ($query) use ($viewableIds) {

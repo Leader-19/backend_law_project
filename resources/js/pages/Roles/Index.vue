@@ -2,100 +2,259 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { User } from 'lucide-vue-next';
+import { Notebook, Plus, Pencil, Trash2, Eye, ShieldCheck, Search, X } from 'lucide-vue-next';
 import { route } from 'ziggy-js';
 import { can } from '@/lib/can';
+import ConfirmModal from '@/components/ConfirmModal.vue';
+import { ref, computed } from 'vue';
 
-interface User {
-    permissions: any;
+interface Permission {
+    id?: number;
+    name: string;
+}
+
+interface Role {
     id: number;
     name: string;
-    email: string;
+    permissions: Permission[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'តួនាទី',
-        href: '/roles',
-    },
+    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Roles', href: '/roles' },
 ];
 
 const props = defineProps<{
-    roles: User[];
+    roles: Role[];
+    pagination: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
 }>();
 
-function deleteRole(id) {
-    if (confirm("Are you want to delete this role")) {
-        router.delete(route('roles.destroy', id));
-    }
+const searchQuery = ref('');
+
+const filteredRoles = computed(() => {
+    if (!searchQuery.value.trim()) return props.roles;
+    const query = searchQuery.value.toLowerCase();
+    return props.roles.filter(r =>
+        r.name.toLowerCase().includes(query) ||
+        r.permissions.some(p => p.name.toLowerCase().includes(query))
+    );
+});
+
+const isDeleteOpen = ref(false);
+const deletingId = ref<number | null>(null);
+const deletingName = ref('');
+
+function deleteRole(id: number, name: string) {
+    deletingId.value = id;
+    deletingName.value = name;
+    isDeleteOpen.value = true;
 }
 
+function confirmDeleteRole() {
+    if (deletingId.value === null) return;
+    router.delete(route('roles.destroy', deletingId.value), {
+        onSuccess: () => {
+            isDeleteOpen.value = false;
+            deletingId.value = null;
+        }
+    });
+}
+
+function changePage(page: number) {
+    if (page < 1 || page > props.pagination.last_page) return;
+    router.get(route('roles.index'), {
+        page,
+        per_page: props.pagination.per_page,
+        search: searchQuery.value,
+    }, { preserveState: true });
+}
+
+function changePerPage(perPage: number) {
+    router.get(route('roles.index'), {
+        per_page: perPage,
+        page: 1,
+        search: searchQuery.value,
+    }, { preserveState: true });
+}
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+function onSearchInput() {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(route('roles.index'), {
+            search: searchQuery.value,
+            page: 1,
+        }, { preserveState: true, replace: true });
+    }, 400);
+}
+
+function clearSearch() {
+    searchQuery.value = '';
+    router.get(route('roles.index'), {}, { preserveState: true, replace: true });
+}
 </script>
 
 <template>
-
-    <Head title="តួនាទី" />
-
+    <Head title="Roles Management" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
+        <main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+            <!-- Header section -->
+            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <Notebook class="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                        <h1 class="text-xl font-bold text-slate-900 dark:text-white">Role Management</h1>
+                    </div>
+                    <p class="mt-1 text-sm text-slate-500">Manage system roles, permissions, and access control assignments.</p>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-64">
+                        <Search class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                            v-model="searchQuery"
+                            @input="onSearchInput"
+                            type="text"
+                            placeholder="Search roles or permissions..."
+                            class="w-full rounded-xl border border-slate-300 pl-9 pr-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            @click="clearSearch"
+                            class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                        >
+                            <X class="h-4 w-4" />
+                        </button>
+                    </div>
+                    <Link
+                        v-if="can('roles.create')"
+                        href="/roles/create"
+                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors flex-shrink-0"
+                    >
+                        <Plus class="h-4 w-4" />
+                        New Role
+                    </Link>
+                </div>
+            </section>
 
+            <!-- Roles Table -->
+            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
+                        <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
+                            <tr>
+                                <th class="px-6 py-3.5">#</th>
+                                <th class="px-6 py-3.5">Role Name</th>
+                                <th class="px-6 py-3.5">Permissions</th>
+                                <th class="px-6 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                            <tr v-for="(role, index) in filteredRoles" :key="role.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td class="px-6 py-4 text-slate-500 font-medium">
+                                    {{ (pagination.current_page - 1) * pagination.per_page + index + 1 }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-sm shadow-sm">
+                                            {{ role.name.charAt(0).toUpperCase() }}
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-slate-900 dark:text-white">{{ role.name }}</div>
+                                            <div class="text-xs text-slate-400">{{ role.permissions.length }} permission(s)</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap gap-1.5 max-w-lg">
+                                        <span
+                                            v-for="(permission, pIdx) in role.permissions.slice(0, 4)"
+                                            :key="pIdx"
+                                            class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                        >
+                                            {{ permission.name }}
+                                        </span>
+                                        <span
+                                            v-if="role.permissions.length > 4"
+                                            class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                        >
+                                            +{{ role.permissions.length - 4 }} more
+                                        </span>
+                                        <span v-if="!role.permissions.length" class="text-xs text-slate-400 italic">No permissions</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <Link :href="route('roles.show', role.id)" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 transition-colors" title="View Role">
+                                            <Eye class="h-4 w-4" />
+                                        </Link>
+                                        <Link v-if="can('roles.edit')" :href="route('roles.edit', role.id)" class="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors" title="Edit Role">
+                                            <Pencil class="h-4 w-4" />
+                                        </Link>
+                                        <button v-if="can('roles.delete')" type="button" @click="deleteRole(role.id, role.name)" class="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors" title="Delete Role">
+                                            <Trash2 class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="!filteredRoles.length">
+                                <td colspan="4" class="px-6 py-8 text-center text-sm text-slate-400">
+                                    {{ searchQuery ? 'No matching roles found.' : 'No roles created yet.' }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
+                <!-- Pagination -->
+                <div v-if="pagination.last_page > 1" class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-slate-500">
+                            Page {{ pagination.current_page }} of {{ pagination.last_page }} ({{ pagination.total }} total)
+                        </span>
+                        <select
+                            :value="pagination.per_page"
+                            @change="changePerPage(Number(($event.target as HTMLSelectElement).value))"
+                            class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 focus:outline-none"
+                        >
+                            <option :value="10">10 / page</option>
+                            <option :value="25">25 / page</option>
+                            <option :value="50">50 / page</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            :disabled="pagination.current_page <= 1"
+                            @click="changePage(pagination.current_page - 1)"
+                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            :disabled="pagination.current_page >= pagination.last_page"
+                            @click="changePage(pagination.current_page + 1)"
+                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </section>
 
-        <div class="over-flow-x-auto p-3">
-
-            <Link v-if="can('roles.create')" href="/roles/create"
-                class="cursor-pointer px-3 py-2 text-xs font-medium text-white bg-blue-500 rounded">
-                បង្កើត​ តួនាទី​ថ្មី
-            </Link>
-
-            <table class="w-full mt-3 text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700">
-                    <th scope="col" class="px-6 py-3">ល.រ</th>
-                    <th scope="col" class="px-6 py-3">ឈ្មោះ</th>
-                    <th scope="col" class="px-6 py-3">ការអនុញ្ញាត</th>
-                    <th scope="col" class="px-6 py-3">សកម្មភាព</th>
-                </thead>
-
-                <tbody>
-                    <tr v-for="(role, index) in roles" :key="role.id"
-                        class="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-900">
-
-                        <td class="px-6 py-2 dark:text-gray-300">{{ index + 1 }}</td>
-                        <td class="px-6 py-2 dark:text-gray-300">{{ role.name }}</td>
-                        <td class="px-6 py-2 dark:text-gray-300">
-                            <!-- Show only first 3 permissions -->
-                            <span v-for="(permission, index) in role.permissions.slice(0, 3)"
-                                :key="permission.id ?? index"
-                                class="mr-1 inline-block bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                                {{ permission.name }}
-                            </span>
-
-                            <!-- Show +N if more than 3 permissions -->
-                            <span v-if="role.permissions.length > 3"
-                                class="inline-block bg-gray-200 text-gray-700 text-xs font-medium px-2.5 py-0.5 rounded">
-                                +{{ role.permissions.length - 3 }}
-                            </span>
-                        </td>
-
-                        <td class="px-6 py-2">
-
-                            <Link :href="route('roles.show', role.id)"
-                                class="cursor-pointer px-3 py-2 text-xs mr-2 font-medium text-white bg-gray-700 rounded">
-                                បង្ហាញ
-                            </Link>
-
-                            <Link v-if="can('roles.edit')" :href="route('roles.edit', role.id)"
-                                class="cursor-pointer px-3 py-2 text-xs font-medium text-white bg-blue-500 rounded">
-                                កែរ
-                            </Link>
-                            <button v-if="can('roles.delete')" @click="deleteRole(role.id)"
-                                class="cursor-pointer px-3 py-2 text-xs font-medium text-white bg-red-500 rounded ml-2">
-                                លុប
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <!-- Delete Role Confirmation Modal -->
+            <ConfirmModal
+                :open="isDeleteOpen"
+                title="Delete Role"
+                :description="`Are you sure you want to delete the role '${deletingName}'? Users assigned to this role will lose its permissions. This action cannot be undone.`"
+                confirm-label="Delete Role"
+                @confirm="confirmDeleteRole"
+                @update:open="isDeleteOpen = $event"
+            />
+        </main>
     </AppLayout>
 </template>

@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class CompanyInternship extends Model
 {
-
     protected $fillable = [
         'user_id',
         'company_name',
@@ -14,7 +13,7 @@ class CompanyInternship extends Model
         'end_date',
         'allowance',
     ];
-    
+
     public function user()
     {
         return $this->belongsTo(User::class);

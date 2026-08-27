@@ -52,107 +52,108 @@ const visiblePages = computed(() => {
 
 <template>
     <div class="flex flex-col">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                        <th v-for="column in columns" :key="column" class="px-6 py-3">
-                            <slot :name="`header-${column}`" :column="column">
-                                {{ column }}
-                            </slot>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in data" :key="item.id"
-                        class="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800">
-                        <td v-for="column in columns" :key="column" class="px-6 py-2">
-                            <slot :name="column" :item="item" :index="index">
-                                {{ item[column] }}
-                            </slot>
-                        </td>
-                    </tr>
-                    <tr v-if="data.length === 0">
-                        <td :colspan="columns.length" class="text-center py-4 text-gray-400">
-                            <slot name="empty">No data found</slot>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                    <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                            <th v-for="column in columns" :key="column" class="px-6 py-3.5 font-semibold">
+                                <slot :name="`header-${column}`" :column="column">
+                                    {{ column }}
+                                </slot>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tr v-for="(item, index) in data" :key="item.id"
+                            class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td v-for="column in columns" :key="column" class="px-6 py-4">
+                                <slot :name="column" :item="item" :index="index">
+                                    {{ item[column] }}
+                                </slot>
+                            </td>
+                        </tr>
+                        <tr v-if="data.length === 0">
+                            <td :colspan="columns.length" class="px-6 py-12 text-center text-sm text-slate-400">
+                                <slot name="empty">No data found</slot>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
+        <!-- Pagination -->
         <div v-if="pagination.total > 0" class="flex items-center justify-between mt-4">
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-gray-600 dark:text-gray-400">ចំនួនក្នុងមួយទំព័រ:</label>
+            <div class="flex items-center gap-3">
+                <span class="text-sm text-slate-500 dark:text-slate-400">
+                    {{ pagination.current_page }} / {{ pagination.last_page }} ({{ pagination.total }} total)
+                </span>
                 <select :value="pagination.per_page" @change="handlePerPageChange"
-                    class="appearance-none pl-2 pr-6 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs">
-                    <option :value="10">១០</option>
-                    <option :value="20">២០</option>
-                    <option :value="30">៣០</option>
-                    <option :value="40">៤០</option>
-                    <option :value="50">៥០</option>
-                    <option :value="100">១០០</option>
+                    class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option :value="10">10 / page</option>
+                    <option :value="20">20 / page</option>
+                    <option :value="30">30 / page</option>
+                    <option :value="50">50 / page</option>
+                    <option :value="100">100 / page</option>
                 </select>
             </div>
 
-            <!-- Always show Prev/Next nav (disabled at the edges); only hide the numbered
-                 page list + first/last jumps when there's just a single page. -->
             <div class="flex items-center gap-1">
+                <!-- First page -->
                 <button v-if="pagination.last_page > 1" @click="changePage(1)" :disabled="pagination.current_page === 1"
                     :class="cn(
-                        'px-2 py-1 rounded text-xs',
+                        'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors',
                         pagination.current_page === 1
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     )">
-                    ដំបូភ្ជាន់
+                    First
                 </button>
 
+                <!-- Previous -->
                 <button @click="changePage(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
                     :class="cn(
-                        'px-2 py-1 rounded text-xs',
+                        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                         pagination.current_page === 1
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     )">
-                    មុន
+                    Previous
                 </button>
 
+                <!-- Page numbers -->
                 <button v-for="page in visiblePages" :key="page" @click="changePage(page)" :class="cn(
-                    'px-3 py-1 rounded text-xs font-medium',
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                     page === pagination.current_page
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 )">
                     {{ page }}
                 </button>
 
+                <!-- Next -->
                 <button @click="changePage(pagination.current_page + 1)"
                     :disabled="pagination.current_page === pagination.last_page" :class="cn(
-                        'px-2 py-1 rounded text-xs',
+                        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                         pagination.current_page === pagination.last_page
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     )">
-                    បន្ទាប់
+                    Next
                 </button>
 
+                <!-- Last page -->
                 <button v-if="pagination.last_page > 1" @click="changePage(pagination.last_page)"
                     :disabled="pagination.current_page === pagination.last_page" :class="cn(
-                        'px-2 py-1 rounded text-xs',
+                        'px-2 py-1.5 rounded-lg text-xs font-medium transition-colors',
                         pagination.current_page === pagination.last_page
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            ? 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                     )">
-                    ចុងក្រោយ
+                    Last
                 </button>
-
-                <div class="text-xs text-gray-500 dark:text-gray-400">
-                    {{ pagination.current_page }} / {{ pagination.last_page }} ({{ pagination.total }} សរុប)
-                </div>
             </div>
-
-
         </div>
     </div>
 </template>

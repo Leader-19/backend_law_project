@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck, ScrollText, Upload, CreditCard, CalendarCheck, UserPlus, Banknote, Activity, FolderTree, CreditCardIcon, BookOpen } from 'lucide-vue-next';
+import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck, ScrollText, Upload, CreditCard, CalendarCheck, UserPlus, Banknote, Activity, FolderTree, CreditCardIcon, BookOpen, BookMarked, Clock, ClipboardList, Trophy, Award, MessageSquare, UserCheck } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 import { can } from '@/lib/can';
 import { computed } from 'vue'
@@ -28,6 +28,7 @@ const hasCategoryPermission = hasAnyPermission(['category.view', 'category.creat
 const hasDocumentPermission = hasAnyPermission(['document.view', 'document.create', 'document.edit', 'document.delete']);
 
 const hasDashboardPermission = can('dashboard.view');
+const hasDocumentPermission2 = hasAnyPermission(['document.view', 'document.create', 'document.edit', 'document.delete']);
 
 const hasAdminPermission = hasAnyPermission([
     'users.view', 'users.create', 'users.edit', 'users.delete',
@@ -152,6 +153,70 @@ const mainNavItems = computed<NavItem[]>(() => [
                 ],
             },
         ],
+    }] : []),
+
+    // User-facing items
+    {
+        title: 'My Library',
+        href: '/library',
+        icon: BookMarked,
+        items: undefined,
+    },
+    {
+        title: 'Reading History',
+        href: '/reading-history',
+        icon: Clock,
+        items: undefined,
+    },
+    {
+        title: 'Quizzes',
+        href: '/quizzes',
+        icon: ClipboardList,
+        items: undefined,
+    },
+    {
+        title: 'Leaderboard',
+        href: '/leaderboard',
+        icon: Trophy,
+        items: undefined,
+    },
+    {
+        title: 'Certificates',
+        href: '/certificates',
+        icon: Award,
+        items: undefined,
+    },
+    {
+        title: 'Contact Admin',
+        href: '/contact',
+        icon: MessageSquare,
+        items: undefined,
+    },
+
+    // Admin items
+    ...(hasAnyPermission(['users.view', 'users.edit']) ? [{
+        title: 'User Approvals',
+        href: '/user-approvals',
+        icon: UserCheck,
+        items: undefined,
+    }] : []),
+    ...(hasDocumentPermission2 ? [{
+        title: 'Quiz Management',
+        href: '/quiz-management',
+        icon: ClipboardList,
+        items: undefined,
+    }] : []),
+    ...(hasDocumentPermission2 ? [{
+        title: 'Certificate Mgmt',
+        href: '/certificate-management',
+        icon: Award,
+        items: undefined,
+    }] : []),
+    ...(hasAnyPermission(['users.view']) ? [{
+        title: 'Contact Messages',
+        href: '/contact-messages',
+        icon: MessageSquare,
+        items: undefined,
     }] : []),
 
     {

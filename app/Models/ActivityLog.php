@@ -9,6 +9,7 @@ class ActivityLog extends Model
 {
     protected $fillable = [
         'action',
+        'severity',
         'description',
         'old_data',
         'new_data',
@@ -29,5 +30,13 @@ class ActivityLog extends Model
     public function causer(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Scope to filter system issues (non-CRUD actions).
+     */
+    public function scopeSystemIssues($query)
+    {
+        return $query->where('action', 'issue');
     }
 }

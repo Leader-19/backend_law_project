@@ -2,11 +2,12 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Plus, Pencil, Trash2, Eye, Filter } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, Eye, Filter, ShieldCheck } from 'lucide-vue-next'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
 import { can } from '@/lib/can'
 import { type BreadcrumbItem } from '@/types'
 import CategoryPicker from '@/components/CategoryPicker.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import { computed, ref } from 'vue'
 import {
     Dialog,
@@ -26,6 +27,7 @@ interface Category {
     parent_id: number | null
     parent_title: string | null
     documents_count: number
+    user_permissions: string[]
 }
 
 interface Pagination {
@@ -51,12 +53,30 @@ const props = defineProps<{
 
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
+const isDeleteOpen = ref(false)
+const isBulkDeleteOpen = ref(false)
 const editingId = ref<number | null>(null)
+const deletingId = ref<number | null>(null)
 const selectedIds = ref<number[]>([])
 const selectedParentIds = ref<number[]>([...props.selectedParentIds])
 const parentFilterSearch = ref('')
 const isParentFilterOpen = ref(false)
 const isAllSelected = computed(() => props.categories.length > 0 && props.categories.every((category) => selectedIds.value.includes(category.id)))
+
+function hasPermission(category: Category, permission: string): boolean {
+    return category.user_permissions.some(p => {
+        const perms = p.split(',').map(s => s.trim())
+        return perms.includes('manage') || perms.includes(permission)
+    })
+}
+
+const canBulkDelete = computed(() => {
+    if (selectedIds.value.length === 0) return false
+    return selectedIds.value.every(id => {
+        const category = props.categories.find(c => c.id === id)
+        return category && hasPermission(category, 'delete')
+    })
+})
 const filteredParents = computed(() => {
     const query = parentFilterSearch.value.trim().toLocaleLowerCase()
     return query ? props.parents.filter((parent) => parent.title.toLocaleLowerCase().includes(query)) : props.parents
@@ -105,21 +125,38 @@ function submitEdit() {
 }
 
 function deleteCategory(id: number) {
-    if (confirm("តើអ្នកនិងលុបប្រភេទ")) {
-        router.delete(route('categories.destroy', id));
-    }
+    deletingId.value = id
+    isDeleteOpen.value = true
 }
 
 function toggleSelectAll() {
     selectedIds.value = isAllSelected.value ? [] : props.categories.map((category) => category.id)
 }
 
+function confirmDeleteCategory() {
+    if (deletingId.value === null) return
+    router.delete(route('categories.destroy', deletingId.value), {
+        onSuccess: () => {
+            isDeleteOpen.value = false
+            deletingId.value = null
+        }
+    })
+}
+
 function deleteSelected() {
-    if (selectedIds.value.length === 0 || !confirm(`Delete ${selectedIds.value.length} selected categories? Documents inside deleted categories will also be deleted.`)) return
+    if (selectedIds.value.length === 0) return
+    isBulkDeleteOpen.value = true
+}
+
+function confirmDeleteSelected() {
+    if (selectedIds.value.length === 0) return
 
     router.delete(route('categories.bulk-destroy'), {
         data: { ids: selectedIds.value },
-        onSuccess: () => { selectedIds.value = [] },
+        onSuccess: () => {
+            selectedIds.value = []
+            isBulkDeleteOpen.value = false
+        }
     })
 }
 
@@ -321,6 +358,26 @@ function clearParentFilter() {
                 </DialogContent>
             </Dialog>
 
+            <!-- Delete Confirmation -->
+            <ConfirmModal
+                :open="isDeleteOpen"
+                title="Delete Category"
+                description="Are you sure you want to delete this category? All documents inside will also be deleted. This action cannot be undone."
+                confirm-label="Delete"
+                @confirm="confirmDeleteCategory"
+                @update:open="isDeleteOpen = $event"
+            />
+
+            <!-- Bulk Delete Confirmation -->
+            <ConfirmModal
+                :open="isBulkDeleteOpen"
+                title="Delete Selected Categories"
+                :description="`Are you sure you want to delete ${selectedIds.length} selected categories? All documents inside will also be deleted. This action cannot be undone.`"
+                confirm-label="Delete All"
+                @confirm="confirmDeleteSelected"
+                @update:open="isBulkDeleteOpen = $event"
+            />
+
             <DataTable
                 :data="props.categories"
                 :pagination="props.pagination"
@@ -372,14 +429,20 @@ function clearParentFilter() {
                             <Eye class="w-4 h-4" />
                         </Link>
 
+                        <Link v-if="hasPermission(item, 'edit')" :href="route('categories.permissions.index', item.id)"
+                            class="cursor-pointer p-2 font-medium text-white bg-violet-600 rounded" title="Manage access">
+                            <ShieldCheck class="w-4 h-4" />
+                        </Link>
+
                         <button
+                            v-if="hasPermission(item, 'edit')"
                             @click="openEditDialog(item)"
                             class="cursor-pointer p-2 font-medium text-white bg-blue-500 rounded"
                         >
                             <Pencil class="w-4 h-4" />
                         </button>
 
-                        <button @click="deleteCategory(item.id)"
+                        <button v-if="hasPermission(item, 'delete')" @click="deleteCategory(item.id)"
                             class="cursor-pointer p-2 font-medium text-white bg-red-500 rounded">
                             <Trash2 class="w-4 h-4" />
                         </button>
@@ -387,7 +450,7 @@ function clearParentFilter() {
                 </template>
             </DataTable>
 
-            <div v-if="selectedIds.length && can('category.delete')" class="mt-3 flex items-center gap-3">
+            <div v-if="selectedIds.length && canBulkDelete" class="mt-3 flex items-center gap-3">
                 <span class="text-sm text-gray-600">{{ selectedIds.length }} selected</span>
                 <button @click="deleteSelected" class="inline-flex items-center gap-2 rounded bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">
                     <Trash2 class="w-4 h-4" /> Delete selected

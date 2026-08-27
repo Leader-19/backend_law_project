@@ -48,7 +48,7 @@ const form = useForm({
                 Back
             </Link>
 
-            <form @submit.prevent="form.put(route('categories.update', category.id))" class="space-y-6 mt-4 max-w-md mx-auto">
+            <form @submit.prevent="form.put(route('categories.update', props.category.id))" class="space-y-6 mt-4 max-w-md mx-auto">
 
                 <!-- Name -->
                 <div class="grid gap-2">

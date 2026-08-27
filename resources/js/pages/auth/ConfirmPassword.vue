@@ -20,33 +20,34 @@ import { Form, Head } from '@inertiajs/vue3';
             v-bind="store.form()"
             reset-on-success
             v-slot="{ errors, processing }"
+            class="grid gap-5 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
         >
-            <div class="space-y-6">
-                <div class="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        name="password"
-                        class="mt-1 block w-full"
-                        required
-                        autocomplete="current-password"
-                        autofocus
-                    />
+            <div class="grid gap-2">
+                <Label for="password" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Password</Label>
+                <Input
+                    id="password"
+                    type="password"
+                    name="password"
+                    class="h-11"
+                    required
+                    autocomplete="current-password"
+                    autofocus
+                />
 
-                    <InputError :message="errors.password" />
-                </div>
+                <InputError :message="errors.password" />
+            </div>
 
-                <div class="flex items-center">
-                    <Button
-                        class="w-full"
-                        :disabled="processing"
-                        data-test="confirm-password-button"
-                    >
-                        <Spinner v-if="processing" />
-                        Confirm Password
-                    </Button>
-                </div>
+            <div class="flex items-center">
+                <Button
+                    type="submit"
+                    class="w-full h-11 text-base font-semibold"
+                    size="lg"
+                    :disabled="processing"
+                    data-test="confirm-password-button"
+                >
+                    <Spinner v-if="processing" />
+                    Confirm Password
+                </Button>
             </div>
         </Form>
     </AuthLayout>

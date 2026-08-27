@@ -5,6 +5,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { Pencil, Trash2, Plus, FolderTree } from 'lucide-vue-next';
 import DataTable from '@/components/ui/data-table/DataTable.vue';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 import { ref } from 'vue';
 import {
     Dialog,
@@ -62,8 +63,20 @@ const props = defineProps<{
 }>();
 
 const isEditOpen = ref(false);
+const isCreateDocumentOpen = ref(false);
+const isDeleteDocumentOpen = ref(false);
 const isSubcategoryOpen = ref(false);
 const editingId = ref<number | null>(null);
+const deletingDocumentId = ref<number | null>(null);
+
+const createDocumentForm = useForm({
+    doc_name: '',
+    doc_title: '',
+    description: '',
+    doc_upload: null as File | null,
+    image: null as File | null,
+    category_id: props.category.id,
+});
 
 const editForm = useForm({
     doc_name: '',
@@ -79,6 +92,31 @@ const subcategoryForm = useForm({
     description: '',
     parent_id: null as number | null,
 });
+
+function handleCreateFileUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+        createDocumentForm.doc_upload = input.files[0];
+    }
+}
+
+function handleCreateImageUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+        createDocumentForm.image = input.files[0];
+    }
+}
+
+function submitCreateDocument() {
+    createDocumentForm.post(route('documents.store'), {
+        forceFormData: true,
+        onSuccess: () => {
+            isCreateDocumentOpen.value = false;
+            createDocumentForm.reset();
+            createDocumentForm.category_id = props.category.id;
+        }
+    });
+}
 
 function handleEditFileUpload(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -120,9 +158,18 @@ function submitEdit() {
 }
 
 function deleteDocument(id: number) {
-    if (confirm("តើអ្នកចង់លុបឯកសារនេះមែនទេ?")) {
-        router.delete(route('documents.destroy', id));
-    }
+    deletingDocumentId.value = id
+    isDeleteDocumentOpen.value = true
+}
+
+function confirmDeleteDocument() {
+    if (deletingDocumentId.value === null) return
+    router.delete(route('documents.destroy', deletingDocumentId.value), {
+        onSuccess: () => {
+            isDeleteDocumentOpen.value = false
+            deletingDocumentId.value = null
+        }
+    })
 }
 
 function openSubcategoryDialog() {
@@ -166,7 +213,7 @@ function changeItemsPerPage(perPage: number) {
 
             <div class="mb-6 mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="bg-gradient-to-r from-blue-700 to-indigo-700 p-6 text-white">
-                    <div class="flex items-start gap-4"><div class="rounded-xl bg-white/15 p-3"><FolderTree class="h-6 w-6" /></div><div><p class="text-sm text-blue-100">ព័ត៌មានប្រភេទ</p><h1 class="text-2xl font-bold">{{ category.title }}</h1><p v-if="category.description" class="mt-2 text-sm text-blue-100">{{ category.description }}</p></div></div>
+                    <div class="flex items-start gap-4"><div class="rounded-xl bg-white/15 p-3"><FolderTree class="h-6 w-6" /></div><div><p class="text-sm text-blue-100">ព័ត៌មានប្រភេទ</p><h1 class="text-2xl font-bold">{{ props.category.title }}</h1><p v-if="props.category.description" class="mt-2 text-sm text-blue-100">{{ props.category.description }}</p></div></div>
                 </div>
             </div>
 
@@ -205,6 +252,17 @@ function changeItemsPerPage(perPage: number) {
             </div>
 
             <h3 class="text-lg font-semibold mb-3">ឯកសារក្នុងប្រភេទ</h3>
+
+            <div class="flex items-center justify-between mb-3">
+                <div></div>
+                <button
+                    @click="isCreateDocumentOpen = true"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 transition"
+                >
+                    <Plus class="w-4 h-4" />
+                    បង្កើតឯកសារថ្មី
+                </button>
+            </div>
 
             <DataTable
                 :data="documents"
@@ -398,6 +456,108 @@ function changeItemsPerPage(perPage: number) {
                 </DialogContent>
             </Dialog>
 
+            <!-- Create Document Dialog -->
+            <Dialog v-model:open="isCreateDocumentOpen">
+                <DialogContent class="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>បង្កើតឯកសារថ្មី</DialogTitle>
+                        <DialogDescription>
+                            បញ្ចូលពត៌មានឯកសារថ្មីក្នុងប្រភេទនេះ
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form @submit.prevent="submitCreateDocument" class="space-y-4 mt-4">
+                        <div>
+                            <label class="block text-sm font-medium">ឈ្មោះឯកសារ</label>
+                            <input
+                                type="text"
+                                v-model="createDocumentForm.doc_name"
+                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                                placeholder="ដាក់ឈ្មោះឯកសារ"
+                            />
+                            <p v-if="createDocumentForm.errors.doc_name" class="text-red-500 text-sm mt-1">
+                                {{ createDocumentForm.errors.doc_name }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">ចំណងជើង</label>
+                            <input
+                                type="text"
+                                v-model="createDocumentForm.doc_title"
+                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                                placeholder="ចំណងជើង"
+                            />
+                            <p v-if="createDocumentForm.errors.doc_title" class="text-red-500 text-sm mt-1">
+                                {{ createDocumentForm.errors.doc_title }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">ប្រភេទ</label>
+                            <input
+                                type="text"
+                                :value="props.category.title"
+                                disabled
+                                class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-gray-600"
+                            />
+                            <p v-if="createDocumentForm.errors.category_id" class="text-red-500 text-sm mt-1">
+                                {{ createDocumentForm.errors.category_id }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Upload File</label>
+                            <input
+                                type="file"
+                                @change="handleCreateFileUpload"
+                                class="mt-1 block w-full text-sm border border-gray-300 rounded-md p-2"
+                            />
+                            <p v-if="createDocumentForm.errors.doc_upload" class="text-red-500 text-sm mt-1">
+                                {{ createDocumentForm.errors.doc_upload }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">Image</label>
+                            <input
+                                type="file"
+                                @change="handleCreateImageUpload"
+                                accept="image/*"
+                                class="mt-1 block w-full text-sm border border-gray-300 rounded-md p-2"
+                            />
+                            <p v-if="createDocumentForm.errors.image" class="text-red-500 text-sm mt-1">
+                                {{ createDocumentForm.errors.image }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium">រៀបរាប់</label>
+                            <input
+                                type="text"
+                                v-model="createDocumentForm.description"
+                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+                                placeholder="Optional description"
+                            />
+                            <p v-if="createDocumentForm.errors.description" class="text-red-500 text-sm mt-1">
+                                {{ createDocumentForm.errors.description }}
+                            </p>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose as-child>
+                                <button
+                                    type="button"
+                                    class="px-3 py-2 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+                                >
+                                    បោះបង់
+                                </button>
+                            </DialogClose>
+                            <button
+                                type="submit"
+                                :disabled="createDocumentForm.processing"
+                                class="px-3 py-2 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
+                            >
+                                បង្កើត
+                            </button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <!-- Create Subcategory Dialog -->
             <Dialog v-model:open="isSubcategoryOpen">
                 <DialogContent class="sm:max-w-md">
@@ -452,6 +612,16 @@ function changeItemsPerPage(perPage: number) {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <!-- Delete Document Confirmation -->
+            <ConfirmModal
+                :open="isDeleteDocumentOpen"
+                title="Delete Document"
+                description="Are you sure you want to delete this document? This action cannot be undone."
+                confirm-label="Delete"
+                @confirm="confirmDeleteDocument"
+                @update:open="isDeleteDocumentOpen = $event"
+            />
         </div>
     </AppLayout>
 </template>

@@ -7,6 +7,7 @@ import { type BreadcrumbItem } from '@/types'
 import { computed, ref } from 'vue'
 import { can } from '@/lib/can'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
+import TextContentSearchBar from '@/components/text-contents/TextContentSearchBar.vue'
 
 interface TextContent {
     id: number
@@ -30,18 +31,15 @@ interface Pagination {
     total: number
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'អត្ថបទ',
-        href: '/text-contents',
-    },
-]
-
 interface Quota {
     used: number
     limit: number
     remaining: number
 }
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'អត្ថបទ', href: '/text-contents' },
+]
 
 const props = defineProps<{
     textContents: TextContent[]
@@ -61,6 +59,23 @@ const isAllSelected = computed(() =>
     props.textContents.every((item) => selectedIds.value.includes(item.id))
 )
 
+const quotaPercent = computed(() => {
+    if (!props.quota) return 0
+    return Math.round((props.quota.used / props.quota.limit) * 100)
+})
+
+const quotaColor = computed(() => {
+    if (!props.quota) return 'bg-green-500'
+    if (quotaPercent.value >= 90) return 'bg-red-500'
+    if (quotaPercent.value >= 70) return 'bg-yellow-500'
+    return 'bg-green-500'
+})
+
+const quotaExhausted = computed(() => {
+    if (!props.quota) return false
+    return props.quota.remaining <= 0
+})
+
 function toggleSelectAll() {
     selectedIds.value = isAllSelected.value
         ? []
@@ -71,7 +86,7 @@ function changePage(page: number) {
     if (page < 1 || page > props.pagination.last_page) return
     router.get(route('text-contents.index'), {
         per_page: props.pagination.per_page,
-        page: page,
+        page,
         search: searchQuery.value,
         category_id: selectedCategoryId.value,
     }, { preserveState: true })
@@ -111,25 +126,9 @@ function deleteSelected() {
 
 function truncateText(text: string, max: number = 80): string {
     if (!text) return ''
-    return text.length > max ? text.substring(0, max) + '...' : text
+    const plain = text.replace(/<[^>]*>/g, '')
+    return plain.length > max ? plain.substring(0, max) + '...' : plain
 }
-
-const quotaPercent = computed(() => {
-    if (!props.quota) return 0
-    return Math.round((props.quota.used / props.quota.limit) * 100)
-})
-
-const quotaColor = computed(() => {
-    if (!props.quota) return 'bg-green-500'
-    if (quotaPercent.value >= 90) return 'bg-red-500'
-    if (quotaPercent.value >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
-})
-
-const quotaExhausted = computed(() => {
-    if (!props.quota) return false
-    return props.quota.remaining <= 0
-})
 </script>
 
 <template>
@@ -167,31 +166,12 @@ const quotaExhausted = computed(() => {
                 </div>
 
                 <!-- Search -->
-                <div class="flex items-center gap-2">
-                    <select
-                        v-model="selectedCategoryId"
-                        class="rounded-lg border border-gray-300 px-3 py-2 text-xs"
-                        @change="handleSearch"
-                    >
-                        <option :value="null">All Categories</option>
-                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                            {{ cat.title }}
-                        </option>
-                    </select>
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        placeholder="Search title or body..."
-                        class="rounded-lg border border-gray-300 px-3 py-2 text-xs w-56"
-                        @keyup.enter="handleSearch"
-                    />
-                    <button
-                        @click="handleSearch"
-                        class="px-3 py-2 text-xs font-semibold bg-gray-800 text-white rounded-lg hover:bg-gray-700"
-                    >
-                        Search
-                    </button>
-                </div>
+                <TextContentSearchBar
+                    v-model:searchQuery="searchQuery"
+                    v-model:selectedCategoryId="selectedCategoryId"
+                    :categories="categories"
+                    @search="handleSearch"
+                />
             </div>
 
             <!-- Quota Banner -->
@@ -247,7 +227,7 @@ const quotaExhausted = computed(() => {
 
                 <template #body="{ item }">
                     <span class="text-xs text-gray-600" :title="item.body.replace(/<[^>]*>/g, '')">
-                        {{ truncateText(item.body.replace(/<[^>]*>/g, '')) }}
+                        {{ truncateText(item.body) }}
                     </span>
                 </template>
 

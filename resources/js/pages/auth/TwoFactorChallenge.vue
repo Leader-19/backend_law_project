@@ -59,7 +59,7 @@ const codeValue = computed<string>(() => code.value.join(''));
             <template v-if="!showRecoveryInput">
                 <Form
                     v-bind="store.form()"
-                    class="space-y-4"
+                    class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
                     reset-on-error
                     @error="code = []"
                     #default="{ errors, processing, clearErrors }"
@@ -89,9 +89,7 @@ const codeValue = computed<string>(() => code.value.join(''));
                         </div>
                         <InputError :message="errors.code" />
                     </div>
-                    <Button type="submit" class="w-full" :disabled="processing"
-                        >Continue</Button
-                    >
+                    <Button type="submit" class="w-full h-11 text-base font-semibold" size="lg" :disabled="processing">Continue</Button>
                     <div class="text-center text-sm text-muted-foreground">
                         <span>or you can </span>
                         <button
@@ -108,7 +106,7 @@ const codeValue = computed<string>(() => code.value.join(''));
             <template v-else>
                 <Form
                     v-bind="store.form()"
-                    class="space-y-4"
+                    class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
                     reset-on-error
                     #default="{ errors, processing, clearErrors }"
                 >
@@ -118,11 +116,10 @@ const codeValue = computed<string>(() => code.value.join(''));
                         placeholder="Enter recovery code"
                         :autofocus="showRecoveryInput"
                         required
+                        class="h-11"
                     />
                     <InputError :message="errors.recovery_code" />
-                    <Button type="submit" class="w-full" :disabled="processing"
-                        >Continue</Button
-                    >
+                    <Button type="submit" class="w-full h-11 text-base font-semibold" size="lg" :disabled="processing">Continue</Button>
 
                     <div class="text-center text-sm text-muted-foreground">
                         <span>or you can </span>

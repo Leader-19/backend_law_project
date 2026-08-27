@@ -9,9 +9,28 @@ use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $allCategories = Category::with('documents')->withCount('documents')->orderBy('title')->get();
+        $user = $request->user();
+
+        if ($user && ! $user->hasRole('Admin')) {
+            $viewableIds = $user->getViewableCategoryIds();
+
+            if (empty($viewableIds)) {
+                return response()->json([
+                    'status' => 'success',
+                    'categories' => [],
+                ]);
+            }
+
+            $allCategories = Category::with('documents')->withCount('documents')
+                ->whereIn('id', $viewableIds)
+                ->orderBy('title')
+                ->get();
+        } else {
+            $allCategories = Category::with('documents')->withCount('documents')->orderBy('title')->get();
+        }
+
         $categoriesById = $allCategories->keyBy('id');
 
         $childrenMap = [];
@@ -49,6 +68,34 @@ class CategoryController extends Controller
         return response()->json([
             'status' => 'success',
             'categories' => $rootCategories->map($mapCategory)->all(),
+        ]);
+    }
+
+    public function myCategories(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $viewableIds = $user->getViewableCategoryIds();
+
+        $categories = Category::whereIn('id', $viewableIds)
+            ->orderBy('title')
+            ->get(['id', 'title', 'description', 'parent_id'])
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'description' => $category->description,
+                    'parent_id' => $category->parent_id,
+                ];
+            });
+
+        return response()->json([
+            'status' => 'success',
+            'categories' => $categories,
         ]);
     }
 

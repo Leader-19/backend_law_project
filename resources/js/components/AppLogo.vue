@@ -4,10 +4,11 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 
 <template>
     <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
+        class="flex aspect-square h-14 w-14 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground"
+    >
+        <AppLogoIcon class="h-full w-full fill-current text-white dark:text-black" />
     </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">SPRITUP Organization</span>
+    <div class="ml-2 grid flex-1 text-left text-xl">
+        <span class="mb-0.5 truncate leading-tight font-semibold">SPRITUP</span>
     </div>
 </template>

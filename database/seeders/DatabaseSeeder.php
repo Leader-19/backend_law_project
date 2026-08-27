@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             SubscriptionPlanSeeder::class,
             TextContentSeeder::class,
+            DLmsSeeder::class,
         ]);
     }
 }

@@ -22,11 +22,11 @@ import { Form, Head } from '@inertiajs/vue3';
             v-bind="store.form()"
             :reset-on-success="['password', 'password_confirmation']"
             v-slot="{ errors, processing }"
-            class="flex flex-col gap-6"
+            class="flex flex-col gap-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
         >
-            <div class="grid gap-6">
+            <div class="grid gap-5">
                 <div class="grid gap-2">
-                    <Label for="name">ឈ្មោះ</Label>
+                    <Label for="name" class="text-sm font-semibold text-gray-700 dark:text-gray-300">ឈ្មោះ</Label>
                     <Input
                         id="name"
                         type="text"
@@ -36,12 +36,13 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="name"
                         name="name"
                         placeholder="Full name"
+                        class="h-11"
                     />
                     <InputError :message="errors.name" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="email">អុីម៉ែល</Label>
+                    <Label for="email" class="text-sm font-semibold text-gray-700 dark:text-gray-300">អុីម៉ែល</Label>
                     <Input
                         id="email"
                         type="email"
@@ -50,12 +51,13 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="email"
                         name="email"
                         placeholder="email@example.com"
+                        class="h-11"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password">លេខសម្ងាត់</Label>
+                    <Label for="password" class="text-sm font-semibold text-gray-700 dark:text-gray-300">លេខសម្ងាត់</Label>
                     <Input
                         id="password"
                         type="password"
@@ -64,12 +66,13 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="new-password"
                         name="password"
                         placeholder="Password"
+                        class="h-11"
                     />
                     <InputError :message="errors.password" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password_confirmation">បញ្ជាក់​​ លេខសម្ងាត់</Label>
+                    <Label for="password_confirmation" class="text-sm font-semibold text-gray-700 dark:text-gray-300">បញ្ជាក់​​ លេខសម្ងាត់</Label>
                     <Input
                         id="password_confirmation"
                         type="password"
@@ -78,13 +81,15 @@ import { Form, Head } from '@inertiajs/vue3';
                         autocomplete="new-password"
                         name="password_confirmation"
                         placeholder="Confirm password"
+                        class="h-11"
                     />
                     <InputError :message="errors.password_confirmation" />
                 </div>
 
                 <Button
                     type="submit"
-                    class="mt-2 w-full"
+                    class="mt-2 w-full h-11 text-base font-semibold"
+                    size="lg"
                     tabindex="5"
                     :disabled="processing"
                     data-test="register-user-button"
@@ -98,7 +103,7 @@ import { Form, Head } from '@inertiajs/vue3';
                 មានគណនីយ?
                 <TextLink
                     :href="login()"
-                    class="underline underline-offset-4"
+                    class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                     :tabindex="6"
                     >ចូលទៅកាន់គណនីយ</TextLink
                 >
