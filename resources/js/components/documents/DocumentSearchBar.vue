@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Search, Filter } from 'lucide-vue-next'
 
-const searchQuery = defineModel<string>('searchQuery')
-const searchType = defineModel<string>('searchType')
-const categoryFilterSearch = defineModel<string>('categoryFilterSearch')
-const selectedCategoryIds = defineModel<number[]>('selectedCategoryIds')
+const searchQuery = defineModel<string>('searchQuery', { required: true })
+const searchType = defineModel<string>('searchType', { required: true })
+const categoryFilterSearch = defineModel<string>('categoryFilterSearch', { required: true })
+const selectedCategoryIds = defineModel<number[]>('selectedCategoryIds', { required: true })
 
 defineProps<{
     isCategoryFilterOpen: boolean

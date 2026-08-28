@@ -157,10 +157,26 @@ class DocumentController extends Controller
             }
         }
 
-        $count = $this->service->storeBatch($validated);
+        $result = $this->service->storeBatch($validated);
+        $count = $result['count'];
+        $failures = $result['failures'];
+
+        if ($count === 0 && count($failures) > 0) {
+            $failedNames = collect($failures)->pluck('file')->implode(', ');
+
+            return back()->withErrors([
+                'doc_upload' => "All uploads failed: {$failedNames}",
+            ])->withInput();
+        }
+
+        $flash = "{$count} document(s) imported successfully!";
+        if (count($failures) > 0) {
+            $failedNames = collect($failures)->pluck('file')->implode(', ');
+            $flash .= ' ('.count($failures)." failed: {$failedNames})";
+        }
 
         return redirect()->route('documents.index')
-            ->with('success', "{$count} documents imported successfully!");
+            ->with('success', $flash);
     }
 
     public function batchStoreZip(Request $request)
@@ -180,9 +196,29 @@ class DocumentController extends Controller
             return back()->withErrors(['zip_file' => 'The ZIP file failed to upload. Please try again.'])->withInput();
         }
 
-        $count = $this->service->storeBatchZip($zipFile, $validated['category_id'], $validated['description']);
+        $result = $this->service->storeBatchZip($zipFile, $validated['category_id'], $validated['description']);
+        $count = $result['count'];
+        $failures = $result['failures'];
+        $skipped = $result['skipped'];
+
+        if ($count === 0 && count($failures) > 0) {
+            $failedNames = collect($failures)->pluck('file')->implode(', ');
+
+            return back()->withErrors([
+                'zip_file' => "All uploads failed: {$failedNames}",
+            ])->withInput();
+        }
+
+        $flash = "{$count} document(s) imported from ZIP successfully!";
+        if (count($failures) > 0) {
+            $failedNames = collect($failures)->pluck('file')->implode(', ');
+            $flash .= ' ('.count($failures)." failed: {$failedNames})";
+        }
+        if ($skipped > 0) {
+            $flash .= " ({$skipped} unsupported file(s) skipped)";
+        }
 
         return redirect()->route('documents.index')
-            ->with('success', "{$count} documents imported from ZIP successfully!");
+            ->with('success', $flash);
     }
 }

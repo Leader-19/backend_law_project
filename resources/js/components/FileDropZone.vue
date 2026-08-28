@@ -10,7 +10,7 @@ import {
 } from 'lucide-vue-next'
 
 
-const MAX_FILE_BYTES = 6 * 1024 * 1024
+const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB — matches backend limit
 
 const props = defineProps<{
     modelValue: File[]
@@ -30,6 +30,13 @@ const emit = defineEmits<{
 const folderInput = ref<HTMLInputElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
+function formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B'
+    const units = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i]
+}
+
 function isValidFileType(file: File): boolean {
     const allowedExts = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
     const ext = '.' + file.name.split('.').pop()?.toLowerCase()
@@ -44,6 +51,7 @@ function processFiles(fileList: FileList | null) {
 
     const newFiles: File[] = []
     const skipped: string[] = []
+    const fileErrs: Record<number, string> = {}
 
     Array.from(fileList).forEach((file, idx) => {
         if (!isValidFileType(file)) {
@@ -52,7 +60,7 @@ function processFiles(fileList: FileList | null) {
         }
 
         if (file.size > MAX_FILE_BYTES) {
-            emit('update:fileErrors', { ...props.fileErrors, [idx]: `${file.name} exceeds 6 MB limit` })
+            fileErrs[props.modelValue.length + idx] = `${file.name} exceeds 2 GB limit`
             return
         }
 
@@ -61,6 +69,10 @@ function processFiles(fileList: FileList | null) {
 
     if (skipped.length > 0) {
         emit('update:errors', skipped)
+    }
+
+    if (Object.keys(fileErrs).length > 0) {
+        emit('update:fileErrors', { ...props.fileErrors, ...fileErrs })
     }
 
     const merged = [...props.modelValue, ...newFiles]
@@ -117,7 +129,7 @@ function clearAll() {
                 Click to select a folder, or drag and drop files here
             </p>
             <p class="text-xs text-gray-400">
-                Supported formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (max 6 MB each)
+                Supported formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (max 2 GB each)
             </p>
 
             <input
@@ -177,7 +189,7 @@ function clearAll() {
                             <div>
                                 <p class="text-sm font-medium">{{ file.name }}</p>
                                 <p class="text-xs text-gray-400">
-                                    {{ (file.size / 1024).toFixed(1) }} KB
+                                    {{ formatFileSize(file.size) }}
                                 </p>
                             </div>
                         </div>

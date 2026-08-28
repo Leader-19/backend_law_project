@@ -3,6 +3,7 @@
 namespace App\Services\Documents;
 
 use App\Interfaces\Documents\DocumentsInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class DocumentsService
@@ -113,35 +114,54 @@ class DocumentsService
         return $this->repo->delete($id);
     }
 
-    public function storeBatch($validated): int
+    /**
+     * Batch-store multiple files. Returns [count, failures] where failures
+     * is an array of ['file' => name, 'error' => message] entries.
+     */
+    public function storeBatch($validated): array
     {
         $userId = auth()->id();
         $count = 0;
+        $failures = [];
 
-        foreach ($validated['doc_upload'] as $file) {
-            $filename = safe_filename($file->getClientOriginalName());
-            $path = $file->storeAs('documents', $filename, 'public');
+        DB::transaction(function () use ($validated, $userId, &$count, &$failures) {
+            foreach ($validated['doc_upload'] as $file) {
+                try {
+                    $filename = safe_filename($file->getClientOriginalName());
+                    $path = $file->storeAs('documents', $filename, 'public');
 
-            $this->repo->store([
-                'user_id' => $userId,
-                'category_id' => $validated['category_id'],
-                'doc_name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-                'doc_title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-                'doc_upload' => $path,
-                'image' => null,
-                'description' => $validated['description'] ?: null,
-            ]);
+                    $this->repo->store([
+                        'user_id' => $userId,
+                        'category_id' => $validated['category_id'],
+                        'doc_name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                        'doc_title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                        'doc_upload' => $path,
+                        'image' => null,
+                        'description' => $validated['description'] ?: null,
+                    ]);
 
-            $count++;
-        }
+                    $count++;
+                } catch (\Throwable $e) {
+                    $failures[] = [
+                        'file' => $file->getClientOriginalName(),
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+        });
 
-        return $count;
+        return ['count' => $count, 'failures' => $failures];
     }
 
-    public function storeBatchZip($zipFile, $categoryId, $description = ''): int
+    /**
+     * Batch-store files extracted from a ZIP archive.
+     * Returns [count, failures].
+     */
+    public function storeBatchZip($zipFile, $categoryId, $description = ''): array
     {
         $userId = auth()->id();
         $count = 0;
+        $failures = [];
 
         $zip = new \ZipArchive;
         $tempDir = sys_get_temp_dir().'/doc_import_'.uniqid();
@@ -152,66 +172,79 @@ class DocumentsService
 
         $zipPath = $zipFile->getRealPath();
 
-        if ($zip->open($zipPath) === true) {
-            $files = [];
-
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $stat = $zip->statIndex($i);
-                $name = $stat['name'];
-
-                if ($stat['size'] === 0) {
-                    continue;
-                }
-
-                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                $allowedExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
-
-                if (! in_array($ext, $allowedExts)) {
-                    continue;
-                }
-
-                $content = $zip->getFromIndex($i);
-                if ($content === false) {
-                    continue;
-                }
-
-                $safeName = safe_filename(pathinfo($name, PATHINFO_BASENAME));
-                $destPath = $tempDir.'/'.$safeName;
-
-                file_put_contents($destPath, $content);
-
-                $files[] = [
-                    'path' => $destPath,
-                    'original_name' => pathinfo($name, PATHINFO_FILENAME),
-                ];
-            }
-
-            $zip->close();
-
-            foreach ($files as $fileData) {
-                $path = Storage::disk('public')->putFileAs('documents', $fileData['path'], basename($fileData['path']));
-
-                $this->repo->store([
-                    'user_id' => $userId,
-                    'category_id' => $categoryId,
-                    'doc_name' => $fileData['original_name'],
-                    'doc_title' => $fileData['original_name'],
-                    'doc_upload' => $path,
-                    'image' => null,
-                    'description' => $description ?: null,
-                ]);
-
-                $count++;
-            }
-        } else {
+        if ($zip->open($zipPath) !== true) {
             throw new \RuntimeException('Unable to open the ZIP file.');
         }
 
+        $files = [];
+        $skipped = 0;
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $stat = $zip->statIndex($i);
+            $name = $stat['name'];
+
+            if ($stat['size'] === 0) {
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            $allowedExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
+            if (! in_array($ext, $allowedExts)) {
+                $skipped++;
+                continue;
+            }
+
+            $content = $zip->getFromIndex($i);
+            if ($content === false) {
+                continue;
+            }
+
+            $safeName = safe_filename(pathinfo($name, PATHINFO_BASENAME));
+            $destPath = $tempDir.'/'.$safeName;
+
+            file_put_contents($destPath, $content);
+
+            $files[] = [
+                'path' => $destPath,
+                'original_name' => pathinfo($name, PATHINFO_FILENAME),
+                'display_name' => $name,
+            ];
+        }
+
+        $zip->close();
+
+        DB::transaction(function () use ($files, $userId, $categoryId, $description, &$count, &$failures) {
+            foreach ($files as $fileData) {
+                try {
+                    $path = Storage::disk('public')->putFileAs('documents', $fileData['path'], basename($fileData['path']));
+
+                    $this->repo->store([
+                        'user_id' => $userId,
+                        'category_id' => $categoryId,
+                        'doc_name' => $fileData['original_name'],
+                        'doc_title' => $fileData['original_name'],
+                        'doc_upload' => $path,
+                        'image' => null,
+                        'description' => $description ?: null,
+                    ]);
+
+                    $count++;
+                } catch (\Throwable $e) {
+                    $failures[] = [
+                        'file' => $fileData['display_name'],
+                        'error' => $e->getMessage(),
+                    ];
+                }
+            }
+        });
+
+        // Clean up temp files
         foreach (glob($tempDir.'/*') as $f) {
             @unlink($f);
         }
         @rmdir($tempDir);
 
-        return $count;
+        return ['count' => $count, 'failures' => $failures, 'skipped' => $skipped];
     }
 }

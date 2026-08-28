@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Search } from 'lucide-vue-next'
 
-const searchQuery = defineModel<string>('searchQuery')
-const selectedCategoryId = defineModel<number | null>('selectedCategoryId')
+const searchQuery = defineModel<string>('searchQuery', { required: true })
+const selectedCategoryId = defineModel<number | null>('selectedCategoryId', { required: true })
 
 defineProps<{
     categories: { id: number; title: string }[]

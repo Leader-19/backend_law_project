@@ -11,13 +11,13 @@ interface Category {
     children?: Category[]
 }
 
-const activeTab = defineModel<'files' | 'zip'>('activeTab')
-const selectedFiles = defineModel<File[]>('selectedFiles')
-const errors = defineModel<string[]>('errors')
-const fileErrors = defineModel<Record<number, string>>('fileErrors')
-const isDragging = defineModel<boolean>('isDragging')
-const form = defineModel<any>('form')
-const zipForm = defineModel<any>('zipForm')
+const activeTab = defineModel<'files' | 'zip'>('activeTab', { required: true })
+const selectedFiles = defineModel<File[]>('selectedFiles', { required: true })
+const errors = defineModel<string[]>('errors', { required: true })
+const fileErrors = defineModel<Record<number, string>>('fileErrors', { required: true })
+const isDragging = defineModel<boolean>('isDragging', { required: true })
+const form = defineModel<any>('form', { required: true })
+const zipForm = defineModel<any>('zipForm', { required: true })
 
 defineProps<{
     categories: Category[]

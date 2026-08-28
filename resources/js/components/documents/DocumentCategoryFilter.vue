@@ -5,8 +5,8 @@ interface Category {
     parent_id?: number | null
 }
 
-const selectedCategoryIds = defineModel<number[]>('selectedCategoryIds')
-const categoryFilterSearch = defineModel<string>('categoryFilterSearch')
+const selectedCategoryIds = defineModel<number[]>('selectedCategoryIds', { required: true })
+const categoryFilterSearch = defineModel<string>('categoryFilterSearch', { required: true })
 
 defineProps<{
     categories: Category[]

@@ -121,6 +121,9 @@ export function useChunkUpload() {
     ['initializing', 'uploading', 'reassembling'].includes(progress.value.status),
   )
 
+  // The most recent upload_id (useful for resume after failure)
+  const lastUploadId = ref<string | null>(null)
+
   let abortController: AbortController | null = null
   let speedSamples: number[] = []
 
@@ -188,6 +191,7 @@ export function useChunkUpload() {
       })
 
       const uploadId = initRes.upload_id
+      lastUploadId.value = uploadId
 
       // ── 2. Upload chunks ──
       progress.value.status = 'uploading'
@@ -302,6 +306,166 @@ export function useChunkUpload() {
   }
 
   /**
+   * Resume an interrupted chunked upload.
+   * Checks which chunks are already on the server, then uploads the remaining ones.
+   *
+   * @param uploadId   The upload_id from a previous init() call
+   * @param file       The original File object (must match the one used in init)
+   * @param metadata   Form fields: doc_name, doc_title, category_id, description
+   * @param onProgress Optional callback fired on every chunk with current progress
+   * @returns          The created document record
+   */
+  async function resume(
+    uploadId: string,
+    file: File,
+    metadata: {
+      doc_name: string
+      doc_title: string
+      category_id: string | number
+      description?: string
+    },
+    onProgress?: (p: UploadProgress) => void,
+  ): Promise<Record<string, unknown>> {
+    reset()
+    abortController = new AbortController()
+
+    const totalSize = file.size
+    const chunkSize = DEFAULT_CHUNK_SIZE
+    const totalChunks = Math.ceil(totalSize / chunkSize)
+
+    progress.value.totalBytes = totalSize
+    progress.value.totalChunks = totalChunks
+
+    try {
+      // ── 1. Check existing status ──
+      progress.value.status = 'initializing'
+      onProgress?.(progress.value)
+
+      let status: StatusResponse
+      try {
+        status = await getStatus(uploadId)
+      } catch {
+        throw new Error('Upload session expired. Please restart the upload.')
+      }
+
+      if (status.is_complete) {
+        throw new Error('This upload was already completed.')
+      }
+
+      // Skip to the next un-uploaded chunk
+      const startChunk = status.uploaded_chunks
+      let uploadedBytes = startChunk * chunkSize
+
+      progress.value.uploadedChunks = startChunk
+      progress.value.uploadedBytes = uploadedBytes
+      progress.value.percent = Math.round((uploadedBytes / totalSize) * 100)
+      progress.value.currentChunk = startChunk + 1
+      onProgress?.(progress.value)
+
+      // ── 2. Upload remaining chunks ──
+      progress.value.status = 'uploading'
+      speedSamples = []
+      let lastTime = Date.now()
+
+      for (let i = startChunk; i < totalChunks; i++) {
+        if (abortController.signal.aborted) {
+          await apiFetch(apiUrl(`/upload/${uploadId}/cancel`), {
+            method: 'DELETE',
+          }).catch(() => {})
+          throw new Error('Upload cancelled')
+        }
+
+        const start = i * chunkSize
+        const end = Math.min(start + chunkSize, totalSize)
+        const chunk = file.slice(start, end)
+
+        progress.value.currentChunk = i + 1
+
+        const res = await fetch(apiUrl(`/upload/${uploadId}/chunk`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'X-Chunk-Index': String(i),
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': decodeURIComponent(
+              (document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+            ),
+          },
+          credentials: 'same-origin',
+          body: chunk,
+          signal: abortController.signal,
+        })
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || `Chunk ${i} upload failed (${res.status})`)
+        }
+
+        uploadedBytes += end - start
+        const chunkData: ChunkResponse = await res.json()
+        progress.value.uploadedChunks = chunkData.uploaded_chunks
+
+        // Calculate speed (exponential moving average)
+        const now = Date.now()
+        const elapsed = (now - lastTime) / 1000
+        lastTime = now
+        const chunkSpeed = elapsed > 0 ? (end - start) / elapsed : 0
+        speedSamples.push(chunkSpeed)
+        if (speedSamples.length > 5) speedSamples.shift()
+        const avgSpeed =
+          speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length
+
+        progress.value.uploadedBytes = uploadedBytes
+        progress.value.percent = Math.round((uploadedBytes / totalSize) * 100)
+        progress.value.speed = avgSpeed
+        progress.value.estimatedTimeLeft =
+          avgSpeed > 0 ? (totalSize - uploadedBytes) / avgSpeed : 0
+
+        onProgress?.(progress.value)
+      }
+
+      // ── 3. Complete ──
+      progress.value.status = 'reassembling'
+      onProgress?.(progress.value)
+
+      const completeRes = await apiFetch<CompleteResponse>(
+        apiUrl(`/upload/${uploadId}/complete`),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': decodeURIComponent(
+              (document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+            ),
+            'Accept': 'application/json',
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify(metadata),
+        },
+      )
+
+      progress.value.status = 'completed'
+      progress.value.percent = 100
+      onProgress?.(progress.value)
+
+      return completeRes.document
+    } catch (err: any) {
+      if (err.name === 'AbortError' || progress.value.status === 'cancelled') {
+        progress.value.status = 'cancelled'
+        progress.value.error = 'Upload cancelled by user.'
+      } else {
+        progress.value.status = 'error'
+        progress.value.error = err.message || 'Upload failed'
+      }
+      onProgress?.(progress.value)
+      throw err
+    } finally {
+      abortController = null
+    }
+  }
+
+  /**
    * Cancel an in-progress upload and clean up server-side chunks.
    */
   async function cancelUpload(uploadId: string): Promise<void> {
@@ -314,7 +478,9 @@ export function useChunkUpload() {
   return {
     progress,
     isUploading,
+    lastUploadId,
     upload,
+    resume,
     cancel,
     getStatus,
     cancelUpload,
