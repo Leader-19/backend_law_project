@@ -36,10 +36,12 @@ class SubscriptionPlan extends Model
         return $this->hasMany(UserSubscription::class);
     }
 
-    /** Categories included with this plan for read access. */
+    /** Categories included with this plan. Permission on pivot defaults to 'view'. */
     public function categories(): BelongsToMany
     {
-        return $this->belongsToMany(Category::class)->withTimestamps();
+        return $this->belongsToMany(Category::class)
+            ->withPivot('permission')
+            ->withTimestamps();
     }
 
     /**

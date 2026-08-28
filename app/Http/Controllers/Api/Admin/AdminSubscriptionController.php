@@ -189,9 +189,11 @@ class AdminSubscriptionController extends Controller
 
         $plan = SubscriptionPlan::create($validated);
 
-        // Attach categories if provided
+        // Attach categories if provided (permission defaults to 'view')
         if (! empty($categoryIds)) {
-            $plan->categories()->sync($categoryIds);
+            $plan->categories()->sync(
+                collect($categoryIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all()
+            );
         }
 
         SubscriptionPlan::clearCache();
@@ -231,9 +233,11 @@ class AdminSubscriptionController extends Controller
 
         $subscriptionPlan->update($validated);
 
-        // Sync categories if provided
+        // Sync categories if provided (permission defaults to 'view')
         if ($categoryIds !== null) {
-            $subscriptionPlan->categories()->sync($categoryIds);
+            $subscriptionPlan->categories()->sync(
+                collect($categoryIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all()
+            );
         }
 
         SubscriptionPlan::clearCache();
@@ -284,7 +288,9 @@ class AdminSubscriptionController extends Controller
             'category_ids.*' => ['integer', 'distinct', 'exists:categories,id'],
         ]);
 
-        $subscriptionPlan->categories()->sync($validated['category_ids']);
+        $subscriptionPlan->categories()->sync(
+            collect($validated['category_ids'])->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all()
+        );
 
         SubscriptionPlan::clearCache();
 

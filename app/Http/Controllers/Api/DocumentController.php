@@ -12,6 +12,60 @@ use Smalot\PdfParser\Parser;
 
 class DocumentController extends Controller
 {
+    /**
+     * Public preview: return up to $limit documents per category for guests.
+     * This lets unauthenticated visitors see a sample of each category.
+     */
+    public function preview(Request $request)
+    {
+        $limit = min(max((int) $request->integer('limit', 5), 1), 10);
+
+        $categories = Category::with([
+            'documents' => fn ($q) => $q->latest()->limit($limit),
+            'documents:id,doc_name,doc_title,description,doc_upload,image,category_id,created_at',
+        ])
+            ->withCount('documents')
+            ->orderBy('title')
+            ->get();
+
+        $childrenMap = [];
+        foreach ($categories as $category) {
+            if ($category->parent_id) {
+                $childrenMap[$category->parent_id][] = $category;
+            }
+        }
+
+        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
+            return [
+                'id' => $category->id,
+                'title' => $category->title,
+                'description' => $category->description,
+                'parent_id' => $category->parent_id,
+                'documents_count' => $category->documents_count,
+                'documents' => $category->documents->map(fn ($doc) => [
+                    'id' => $doc->id,
+                    'doc_name' => $doc->doc_name,
+                    'doc_title' => $doc->doc_title,
+                    'description' => $doc->description,
+                    'doc_upload' => $doc->doc_upload,
+                    'image' => $doc->image,
+                ]),
+                'subcategories' => isset($childrenMap[$category->id])
+                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
+                    : [],
+            ];
+        };
+
+        $rootCategories = $categories->whereNull('parent_id');
+
+        return response()->json([
+            'status' => 'success',
+            'categories' => $rootCategories->map($mapCategory)->all(),
+            'is_preview' => true,
+            'preview_limit' => $limit,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
