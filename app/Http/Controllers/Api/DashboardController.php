@@ -26,22 +26,24 @@ class DashboardController extends Controller
 
         $totalUsers = User::count();
 
-        // Get top categories by document count
-        $topCategoriesQuery = Category::withCount('documents')
-            ->orderBy('documents_count', 'desc')
-            ->limit(5);
+        // Get all categories with document counts
+        $categoriesQuery = Category::withCount('documents')
+            ->orderBy('documents_count', 'desc');
 
         if ($user && ! $user->hasRole('Admin')) {
             $viewableIds = $user->getViewableCategoryIds();
-            $topCategoriesQuery->whereIn('id', $viewableIds);
+            $categoriesQuery->whereIn('id', $viewableIds);
         }
 
-        $topCategories = $topCategoriesQuery->get()
+        $allCategories = $categoriesQuery->get()
             ->map(fn ($cat) => [
                 'name' => $cat->title,
                 'count' => $cat->documents_count,
                 'id' => $cat->id,
             ]);
+
+        // Top 5 for the sidebar widget
+        $topCategories = $allCategories->take(5);
 
         // Get recent documents
         $recentDocsQuery = Document::with('category')
@@ -69,6 +71,7 @@ class DashboardController extends Controller
                 'total_documents' => $totalDocuments,
             ],
             'top_categories' => $topCategories,
+            'all_categories' => $allCategories,
             'recent_documents' => $recentDocuments,
         ]);
     }
