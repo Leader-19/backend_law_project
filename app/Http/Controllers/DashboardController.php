@@ -75,6 +75,19 @@ class DashboardController extends Controller
                     'created_at' => $doc->created_at?->diffForHumans(),
                 ])
                 ->all();
+
+            // Categories with document counts for admin overview
+            $categories = Category::withCount('documents')
+                ->orderBy('title')
+                ->get()
+                ->map(fn ($cat) => [
+                    'id' => $cat->id,
+                    'title' => $cat->title,
+                    'description' => $cat->description,
+                    'documents_count' => $cat->documents_count ?? 0,
+                    'parent_id' => $cat->parent_id,
+                ])
+                ->all();
         } else {
             $viewableIds = $user->getViewableCategoryIds();
 

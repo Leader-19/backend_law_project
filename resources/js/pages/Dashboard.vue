@@ -386,6 +386,40 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
             </div>
 
+            <!-- Categories Overview (admin only) -->
+            <div v-if="isAdmin && categories.length" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
+                    <div class="flex items-center gap-2">
+                        <FolderTree class="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">Categories Overview</h2>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">({{ categories.length }} total)</span>
+                    </div>
+                    <Link href="/categories" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                        Manage All <ArrowUpRight class="h-3.5 w-3.5" />
+                    </Link>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <Link
+                        v-for="category in categories"
+                        :key="category.id"
+                        :href="`/categories/${category.id}/dashboard`"
+                        class="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors group"
+                    >
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex-shrink-0">
+                            <FolderTree class="h-5 w-5" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">{{ category.title }}</p>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                <span class="font-bold text-blue-600 dark:text-blue-400">{{ category.documents_count }}</span> items
+                                <span v-if="category.parent_id" class="ml-1 text-slate-400">• sub-category</span>
+                            </p>
+                        </div>
+                        <ArrowUpRight class="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors flex-shrink-0" />
+                    </Link>
+                </div>
+            </div>
+
             <!-- Subscription Plan Card (non-admin only) -->
             <div v-if="!isAdmin" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div class="flex items-center justify-between">
