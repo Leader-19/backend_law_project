@@ -53,7 +53,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'auth' => [
                 'user' => $user,
-                'permissions' => fn () => $user?->getAllPermissions()->pluck('name') ?? [],
+                'permissions' => fn () => $user ? $user->getAllPermissions()->pluck('name')->values()->all() : [],
             ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),

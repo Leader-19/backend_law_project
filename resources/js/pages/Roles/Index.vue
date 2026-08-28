@@ -42,7 +42,7 @@ const filteredRoles = computed(() => {
     const query = searchQuery.value.toLowerCase();
     return props.roles.filter(r =>
         r.name.toLowerCase().includes(query) ||
-        r.permissions.some(p => p.name.toLowerCase().includes(query))
+        (Array.isArray(r.permissions) ? r.permissions : []).some(p => p.name.toLowerCase().includes(query))
     );
 });
 
@@ -167,7 +167,7 @@ function clearSearch() {
                         </div>
                         <div>
                             <div class="font-semibold text-slate-900 dark:text-white">{{ item.name }}</div>
-                            <div class="text-xs text-slate-400">{{ item.permissions.length }} permission(s)</div>
+                            <div class="text-xs text-slate-400">{{ (Array.isArray(item.permissions) ? item.permissions : []).length }} permission(s)</div>
                         </div>
                     </div>
                 </template>
@@ -175,19 +175,19 @@ function clearSearch() {
                 <template #permissions="{ item }">
                     <div class="flex flex-wrap gap-1.5 max-w-lg">
                         <span
-                            v-for="(permission, pIdx) in item.permissions.slice(0, 4)"
+                            v-for="(permission, pIdx) in (Array.isArray(item.permissions) ? item.permissions : []).slice(0, 4)"
                             :key="pIdx"
                             class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                         >
                             {{ permission.name }}
                         </span>
                         <span
-                            v-if="item.permissions.length > 4"
+                            v-if="(Array.isArray(item.permissions) ? item.permissions : []).length > 4"
                             class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                         >
-                            +{{ item.permissions.length - 4 }} more
+                            +{{ (Array.isArray(item.permissions) ? item.permissions : []).length - 4 }} more
                         </span>
-                        <span v-if="!item.permissions.length" class="text-xs text-slate-400 italic">No permissions</span>
+                        <span v-if="!(Array.isArray(item.permissions) ? item.permissions : []).length" class="text-xs text-slate-400 italic">No permissions</span>
                     </div>
                 </template>
 

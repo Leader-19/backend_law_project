@@ -32,7 +32,11 @@ class RoleController extends Controller
         $roles = $query->orderBy('name')->paginate($perPage)->withQueryString();
 
         return Inertia::render('Roles/Index', [
-            'roles' => $roles->items(),
+            'roles' => $roles->getCollection()->map(fn ($role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'permissions' => $role->permissions->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values()->all(),
+            ])->all(),
             'pagination' => [
                 'current_page' => $roles->currentPage(),
                 'last_page' => $roles->lastPage(),
