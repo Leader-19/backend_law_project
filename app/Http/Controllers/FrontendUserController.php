@@ -54,7 +54,8 @@ class FrontendUserController extends Controller
     public function show(Request $request, string $id)
     {
         $user = User::where('registration_source', 'frontend')
-            ->with(['roles', 'categoryPermissions', 'activeSubscription.plan'])
+            ->with(['roles', 'categoryPermissions'])
+            ->with('activeSubscriptions.plan')
             ->findOrFail($id);
 
         $this->authorize('view', $user);
@@ -75,23 +76,23 @@ class FrontendUserController extends Controller
                         'title' => $cat->title,
                         'permission' => $cat->pivot->permission,
                     ]),
-                'subscription' => $user->activeSubscription ? [
-                    'id' => $user->activeSubscription->id,
-                    'status' => $user->activeSubscription->status,
-                    'starts_at' => $user->activeSubscription->starts_at?->format('Y-m-d'),
-                    'ends_at' => $user->activeSubscription->ends_at?->format('Y-m-d'),
-                    'plan' => $user->activeSubscription->plan ? [
-                        'id' => $user->activeSubscription->plan->id,
-                        'name' => $user->activeSubscription->plan->name,
-                        'slug' => $user->activeSubscription->plan->slug,
-                        'price' => $user->activeSubscription->plan->price,
-                        'currency' => $user->activeSubscription->plan->currency,
-                        'max_categories' => $user->activeSubscription->plan->max_categories,
-                        'max_documents' => $user->activeSubscription->plan->max_documents,
-                        'max_text_contents' => $user->activeSubscription->plan->max_text_contents,
-                        'max_storage_mb' => $user->activeSubscription->plan->max_storage_mb,
+                'subscriptions' => $user->activeSubscriptions->map(fn ($sub) => [
+                    'id' => $sub->id,
+                    'status' => $sub->status,
+                    'starts_at' => $sub->starts_at?->format('Y-m-d'),
+                    'ends_at' => $sub->ends_at?->format('Y-m-d'),
+                    'plan' => $sub->plan ? [
+                        'id' => $sub->plan->id,
+                        'name' => $sub->plan->name,
+                        'slug' => $sub->plan->slug,
+                        'price' => $sub->plan->price,
+                        'currency' => $sub->plan->currency,
+                        'max_categories' => $sub->plan->max_categories,
+                        'max_documents' => $sub->plan->max_documents,
+                        'max_text_contents' => $sub->plan->max_text_contents,
+                        'max_storage_mb' => $sub->plan->max_storage_mb,
                     ] : null,
-                ] : null,
+                ]),
                 'created_at' => $user->created_at?->diffForHumans(),
             ],
         ]);
@@ -263,12 +264,6 @@ class FrontendUserController extends Controller
 
         DB::transaction(function () use ($user, $plan, $validated) {
             $status = $validated['status'] ?? 'active';
-
-            if ($status === 'active') {
-                UserSubscription::where('user_id', $user->id)
-                    ->where('status', 'active')
-                    ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-            }
 
             UserSubscription::create([
                 'user_id' => $user->id,

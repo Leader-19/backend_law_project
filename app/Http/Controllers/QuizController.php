@@ -88,6 +88,12 @@ class QuizController extends Controller
             'answers.*.option_id' => 'required|exists:quiz_options,id',
         ]);
 
+        // Group answers by question
+        $answersByQuestion = [];
+        foreach ($request->input('answers') as $answer) {
+            $answersByQuestion[$answer['question_id']][] = $answer['option_id'];
+        }
+
         DB::beginTransaction();
 
         try {
@@ -101,20 +107,29 @@ class QuizController extends Controller
             $correctCount = 0;
             $totalQuestions = $quiz->questions()->count();
 
-            foreach ($request->input('answers') as $answer) {
-                $option = QuizOption::with('question')->find($answer['option_id']);
-                $isCorrect = $option?->is_correct ?? false;
+            foreach ($quiz->questions()->with('options')->get() as $question) {
+                $selectedOptionIds = $answersByQuestion[$question->id] ?? [];
+                $correctOptionIds = $question->options->where('is_correct', true)->pluck('id')->all();
 
-                if ($isCorrect) {
+                // Question is correct if user selected ALL correct options and NO incorrect ones
+                $isQuestionCorrect = ! empty($correctOptionIds)
+                    && empty(array_diff($correctOptionIds, $selectedOptionIds))
+                    && empty(array_diff($selectedOptionIds, $correctOptionIds));
+
+                if ($isQuestionCorrect) {
                     $correctCount++;
                 }
 
-                UserAnswer::create([
-                    'attempt_id' => $attempt->id,
-                    'question_id' => $answer['question_id'],
-                    'option_id' => $answer['option_id'],
-                    'is_correct' => $isCorrect,
-                ]);
+                // Save each selected answer
+                foreach ($selectedOptionIds as $optionId) {
+                    $option = $question->options->firstWhere('id', $optionId);
+                    UserAnswer::create([
+                        'attempt_id' => $attempt->id,
+                        'question_id' => $question->id,
+                        'option_id' => $optionId,
+                        'is_correct' => $option?->is_correct ?? false,
+                    ]);
+                }
             }
 
             $score = $totalQuestions > 0

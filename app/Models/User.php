@@ -131,6 +131,18 @@ class User extends Authenticatable
             ->latest('id');
     }
 
+    /** Get all active subscriptions for this user. */
+    public function activeSubscriptions()
+    {
+        return $this->hasMany(UserSubscription::class)
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->latest('starts_at')
+            ->latest('id');
+    }
+
     public function currentPlan()
     {
         return $this->hasOneThrough(
@@ -149,7 +161,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all active plans, using cache to avoid repeated queries.
+     * Returns a Collection of SubscriptionPlan models.
+     */
+    public function getActivePlans(): \Illuminate\Support\Collection
+    {
+        $subscriptions = $this->activeSubscriptions()->get();
+
+        if ($subscriptions->isEmpty()) {
+            return collect();
+        }
+
+        return $subscriptions->map(fn ($sub) => SubscriptionPlan::getCachedWithCategories($sub->subscription_plan_id))
+            ->filter();
+    }
+
+    /**
      * Get the current plan, using cache to avoid repeated queries.
+     * Returns the latest active plan for backward compatibility.
      */
     public function getCurrentPlanCached(): ?SubscriptionPlan
     {
@@ -162,23 +191,46 @@ class User extends Authenticatable
         return SubscriptionPlan::getCachedWithCategories($activeSubscription->subscription_plan_id);
     }
 
+    /**
+     * Get the combined limit across all active plans (0 means unlimited).
+     */
+    private function getCombinedLimit(string $column): ?int
+    {
+        $plans = $this->getActivePlans();
+
+        if ($plans->isEmpty()) {
+            return null;
+        }
+
+        $total = 0;
+        $hasUnlimited = false;
+
+        foreach ($plans as $plan) {
+            $value = $plan->{$column};
+            if (! $value) {
+                $hasUnlimited = true;
+            } else {
+                $total += $value;
+            }
+        }
+
+        return $hasUnlimited ? null : $total;
+    }
+
     public function canCreateCategory(): bool
     {
         if ($this->hasRole('Admin')) {
             return true;
         }
 
-        $plan = $this->getCurrentPlanCached();
+        $limit = $this->getCombinedLimit('max_categories');
 
-        if (! $plan) {
-            return false;
+        if ($limit === null) {
+            // No plan or unlimited
+            return $this->getActivePlans()->isNotEmpty();
         }
 
-        if (! $plan->max_categories) {
-            return true;
-        }
-
-        return $this->categories()->count() < $plan->max_categories;
+        return $this->categories()->count() < $limit;
     }
 
     public function canCreateDocument(): bool
@@ -187,17 +239,13 @@ class User extends Authenticatable
             return true;
         }
 
-        $plan = $this->getCurrentPlanCached();
+        $limit = $this->getCombinedLimit('max_documents');
 
-        if (! $plan) {
-            return false;
+        if ($limit === null) {
+            return $this->getActivePlans()->isNotEmpty();
         }
 
-        if (! $plan->max_documents) {
-            return true;
-        }
-
-        return $this->documents()->count() < $plan->max_documents;
+        return $this->documents()->count() < $limit;
     }
 
     public function categoryLimit(): ?int
@@ -206,7 +254,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return $this->getCurrentPlanCached()?->max_categories;
+        return $this->getCombinedLimit('max_categories');
     }
 
     public function documentLimit(): ?int
@@ -215,7 +263,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return $this->getCurrentPlanCached()?->max_documents;
+        return $this->getCombinedLimit('max_documents');
     }
 
     public function canCreateTextContent(): bool
@@ -224,17 +272,13 @@ class User extends Authenticatable
             return true;
         }
 
-        $plan = $this->getCurrentPlanCached();
+        $limit = $this->getCombinedLimit('max_text_contents');
 
-        if (! $plan) {
-            return false;
+        if ($limit === null) {
+            return $this->getActivePlans()->isNotEmpty();
         }
 
-        if (! $plan->max_text_contents) {
-            return true;
-        }
-
-        return $this->textContents()->count() < $plan->max_text_contents;
+        return $this->textContents()->count() < $limit;
     }
 
     public function textContentLimit(): ?int
@@ -243,7 +287,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return $this->getCurrentPlanCached()?->max_text_contents;
+        return $this->getCombinedLimit('max_text_contents');
     }
 
     // User library (saved/favorited documents)
@@ -350,10 +394,11 @@ class User extends Authenticatable
             return Category::pluck('id')->all();
         }
 
-        $activeSubscription = $this->activeSubscription()->first();
-        $categoryIds = $activeSubscription
-            ? SubscriptionPlan::getPlanCategoryIds($activeSubscription->subscription_plan_id)
-            : [];
+        $categoryIds = $this->activeSubscriptions()->get()
+            ->flatMap(fn ($sub) => SubscriptionPlan::getPlanCategoryIds($sub->subscription_plan_id))
+            ->unique()
+            ->values()
+            ->all();
 
         $categoryIds = [...$categoryIds, ...$this->categoryPermissions()
             ->where(function ($query) {
@@ -433,13 +478,15 @@ class User extends Authenticatable
 
     private function hasPlanCategoryAccess(Category $category): bool
     {
-        $activeSubscription = $this->activeSubscription()->first();
-        if (! $activeSubscription) {
+        $activeSubscriptions = $this->activeSubscriptions()->get();
+        if ($activeSubscriptions->isEmpty()) {
             return false;
         }
 
-        $planCategoryIds = SubscriptionPlan::getPlanCategoryIds($activeSubscription->subscription_plan_id);
-        $planCategoryIdsSet = array_flip($planCategoryIds);
+        $planCategoryIdsSet = $activeSubscriptions
+            ->flatMap(fn ($sub) => SubscriptionPlan::getPlanCategoryIds($sub->subscription_plan_id))
+            ->unique()
+            ->flip();
 
         if (isset($planCategoryIdsSet[$category->id])) {
             return true;

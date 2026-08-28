@@ -21,12 +21,15 @@ const props = defineProps<{
     open: boolean
     plan?: Plan | null
     currencies: Array<{ code: string; symbol: string; name: string }>
+    categories: Array<{ id: number; title: string; parent_id: number | null }>
 }>()
 
 const emit = defineEmits(['update:open', 'saved'])
 
 const featureInput = ref('')
 const featuresList = ref<string[]>([])
+
+const selectedCategoryIds = ref<number[]>([])
 
 const form = useForm({
     name: '',
@@ -39,6 +42,7 @@ const form = useForm({
     max_documents: null as number | null,
     max_storage_mb: null as number | null,
     is_active: true,
+    category_ids: [] as number[],
 })
 
 watch(() => props.plan, (newPlan) => {
@@ -53,10 +57,13 @@ watch(() => props.plan, (newPlan) => {
         form.max_documents = newPlan.max_documents
         form.max_storage_mb = newPlan.max_storage_mb
         form.is_active = newPlan.is_active
+        // Load assigned category IDs from plan categories relationship
+        selectedCategoryIds.value = (newPlan as any).categories ? (newPlan as any).categories.map((c: any) => c.id) : []
     } else {
         form.reset()
         form.currency = 'USD'
         featuresList.value = []
+        selectedCategoryIds.value = []
     }
 }, { immediate: true })
 
@@ -74,6 +81,7 @@ function removeFeature(index: number) {
 
 function submit() {
     form.features = featuresList.value
+    form.category_ids = selectedCategoryIds.value
     if (props.plan?.id) {
         form.put(`/subscription-plans/${props.plan.id}`, {
             onSuccess: () => {
@@ -153,6 +161,25 @@ function submit() {
                             <button type="button" @click="removeFeature(idx)" class="text-blue-500 hover:text-blue-700 ml-1">×</button>
                         </span>
                     </div>
+                </div>
+
+                <!-- Category Assignment -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Assign Categories</label>
+                    <p class="mt-1 text-xs text-slate-400">Select which categories users on this plan can access.</p>
+                    <div class="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1">
+                        <label v-for="cat in categories" :key="cat.id"
+                            class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                            <input type="checkbox" :value="cat.id" v-model="selectedCategoryIds"
+                                class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                            <span class="text-sm text-slate-700 dark:text-slate-300">{{ cat.title }}</span>
+                            <span v-if="cat.parent_id" class="text-xs text-slate-400">— sub</span>
+                        </label>
+                        <p v-if="!categories?.length" class="text-xs text-slate-400 italic">No categories available.</p>
+                    </div>
+                    <p v-if="selectedCategoryIds.length > 0" class="mt-1 text-xs text-slate-500">
+                        {{ selectedCategoryIds.length }} {{ selectedCategoryIds.length === 1 ? 'category' : 'categories' }} selected
+                    </p>
                 </div>
 
                 <div class="flex items-center gap-2 pt-2">

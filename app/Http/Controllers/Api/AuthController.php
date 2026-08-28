@@ -145,7 +145,7 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
-        $subscription = $user->activeSubscription()->with('plan')->first();
+        $subscriptions = $user->activeSubscriptions()->with('plan')->get();
 
         return [
             'id' => $user->id,
@@ -154,23 +154,23 @@ class AuthController extends Controller
             'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
             'roles' => $user->getRoleNames()->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values(),
-            'subscription' => $subscription ? [
-                'id' => $subscription->id,
-                'status' => $subscription->status,
-                'starts_at' => $subscription->starts_at?->format('Y-m-d'),
-                'ends_at' => $subscription->ends_at?->format('Y-m-d'),
-                'plan' => $subscription->plan ? [
-                    'id' => $subscription->plan->id,
-                    'name' => $subscription->plan->name,
-                    'slug' => $subscription->plan->slug,
-                    'price' => $subscription->plan->price,
-                    'currency' => $subscription->plan->currency,
-                    'max_categories' => $subscription->plan->max_categories,
-                    'max_documents' => $subscription->plan->max_documents,
-                    'max_text_contents' => $subscription->plan->max_text_contents,
-                    'max_storage_mb' => $subscription->plan->max_storage_mb,
+            'subscription' => $subscriptions->map(fn ($sub) => [
+                'id' => $sub->id,
+                'status' => $sub->status,
+                'starts_at' => $sub->starts_at?->format('Y-m-d'),
+                'ends_at' => $sub->ends_at?->format('Y-m-d'),
+                'plan' => $sub->plan ? [
+                    'id' => $sub->plan->id,
+                    'name' => $sub->plan->name,
+                    'slug' => $sub->plan->slug,
+                    'price' => $sub->plan->price,
+                    'currency' => $sub->plan->currency,
+                    'max_categories' => $sub->plan->max_categories,
+                    'max_documents' => $sub->plan->max_documents,
+                    'max_text_contents' => $sub->plan->max_text_contents,
+                    'max_storage_mb' => $sub->plan->max_storage_mb,
                 ] : null,
-            ] : null,
+            ]),
         ];
     }
 }

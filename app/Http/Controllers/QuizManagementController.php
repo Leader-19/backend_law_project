@@ -51,7 +51,7 @@ class QuizManagementController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        Quiz::create([
+        $quiz = Quiz::create([
             ...$validated,
             'created_by' => $request->user()->id,
             'time_limit_minutes' => $validated['time_limit_minutes'] ?? null,
@@ -60,7 +60,8 @@ class QuizManagementController extends Controller
         ]);
 
         return redirect()->route('quizzes-management.index')
-            ->with('success', 'Quiz created successfully.');
+            ->with('success', 'Quiz created successfully.')
+            ->with('quiz_id', $quiz->id);
     }
 
     public function edit(Quiz $quiz): Response

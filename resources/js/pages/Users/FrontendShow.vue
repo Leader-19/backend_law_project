@@ -82,24 +82,28 @@ function deleteUser() {
                         <p class="text-sm font-medium text-slate-900 dark:text-white capitalize">{{ user.registration_source }}</p>
                     </div>
                     <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Category Limit</p>
-                        <p class="text-sm font-medium text-slate-900 dark:text-white">{{ user.subscription?.plan?.max_categories || 'Unlimited' }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Document Limit</p>
-                        <p class="text-sm font-medium text-slate-900 dark:text-white">{{ user.subscription?.plan?.max_documents || 'Unlimited' }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Current Plan</p>
-                        <p class="text-sm font-medium text-slate-900 dark:text-white">{{ user.subscription?.plan?.name || 'No plan' }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Plan Status</p>
-                        <p class="text-sm font-medium text-slate-900 dark:text-white capitalize">{{ user.subscription?.status || 'N/A' }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
                         <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Assigned Categories</p>
                         <p class="text-sm font-medium text-slate-900 dark:text-white">{{ user.categories.length }}</p>
+                    </div>
+
+                    <div v-if="user.subscriptions?.length" class="col-span-full mt-2">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Active Plans</p>
+                        <div class="space-y-2">
+                            <div v-for="sub in user.subscriptions" :key="sub.id" class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-semibold text-emerald-900 dark:text-emerald-100">{{ sub.plan?.name || 'Unknown Plan' }}</p>
+                                        <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
+                                            Categories: {{ sub.plan?.max_categories || 'Unlimited' }} | Documents: {{ sub.plan?.max_documents || 'Unlimited' }}
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">{{ sub.status }}</span>
+                                        <p v-if="sub.ends_at" class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Expires: {{ sub.ends_at }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

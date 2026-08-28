@@ -35,7 +35,7 @@ const props = defineProps<{
     quiz: Quiz
 }>()
 
-const answers = ref<Record<number, number>>({})
+const answers = ref<Record<number, number[]>>({})
 const currentQuestion = ref(0)
 const timeRemaining = ref<number | null>(null)
 const timerInterval = ref<number | null>(null)
@@ -44,10 +44,22 @@ const isSubmitting = ref(false)
 const totalQuestions = computed(() => props.quiz.questions.length)
 const question = computed(() => props.quiz.questions[currentQuestion.value])
 const isLastQuestion = computed(() => currentQuestion.value === totalQuestions.value - 1)
-const allAnswered = computed(() => props.quiz.questions.every(q => answers.value[q.id] !== undefined))
+const allAnswered = computed(() => props.quiz.questions.every(q => answers.value[q.id]?.length > 0))
 
 function selectOption(questionId: number, optionId: number) {
-    answers.value[questionId] = optionId
+    if (!answers.value[questionId]) {
+        answers.value[questionId] = []
+    }
+    const idx = answers.value[questionId].indexOf(optionId)
+    if (idx > -1) {
+        answers.value[questionId].splice(idx, 1)
+    } else {
+        answers.value[questionId].push(optionId)
+    }
+}
+
+function isSelected(questionId: number, optionId: number): boolean {
+    return answers.value[questionId]?.includes(optionId) ?? false
 }
 
 function nextQuestion() {
@@ -86,10 +98,12 @@ function submitQuiz() {
         clearInterval(timerInterval.value)
     }
 
-    const answersArray = Object.entries(answers.value).map(([questionId, optionId]) => ({
-        question_id: parseInt(questionId),
-        option_id: optionId,
-    }))
+    const answersArray = Object.entries(answers.value).flatMap(([questionId, optionIds]) =>
+        optionIds.map(optionId => ({
+            question_id: parseInt(questionId),
+            option_id: optionId,
+        }))
+    )
 
     router.post(route('quizzes.submit', props.quiz.id), {
         answers: answersArray,
@@ -165,8 +179,7 @@ onUnmounted(() => {
                     :class="[
                         'w-8 h-8 rounded-full text-xs font-medium transition',
                         index === currentQuestion
-                            ? 'bg-blue-600 text-white'
-                            : answers[q.id] !== undefined
+                            ? 'bg-blue-600 text-white'                        :answers[q.id]?.length > 0
                                 ? 'bg-green-100 text-green-700 border border-green-300'
                                 : 'bg-gray-100 text-gray-500 border border-gray-300 hover:bg-gray-200'
                     ]"
@@ -178,7 +191,8 @@ onUnmounted(() => {
             <!-- Question -->
             <div v-if="question" class="bg-white border border-gray-200 rounded-lg p-6 mb-4">
                 <h2 class="text-lg font-semibold text-gray-900 mb-1">{{ question.question }}</h2>
-                <p class="text-xs text-gray-400 mb-4 capitalize">{{ question.type.replace('_', ' ') }}</p>
+                <p class="text-xs text-gray-400 mb-1 capitalize">{{ question.type.replace('_', ' ') }}</p>
+                <p class="text-xs text-blue-500 mb-4">Select all that apply</p>
 
                 <div class="space-y-3">
                     <button
@@ -187,7 +201,7 @@ onUnmounted(() => {
                         @click="selectOption(question.id, option.id)"
                         :class="[
                             'w-full text-left p-4 rounded-lg border-2 transition',
-                            answers[question.id] === option.id
+                            isSelected(question.id, option.id)
                                 ? 'border-blue-600 bg-blue-50 text-blue-900'
                                 : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         ]"
@@ -195,14 +209,14 @@ onUnmounted(() => {
                         <div class="flex items-center gap-3">
                             <div
                                 :class="[
-                                    'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                                    answers[question.id] === option.id
+                                    'w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0',
+                                    isSelected(question.id, option.id)
                                         ? 'border-blue-600 bg-blue-600'
                                         : 'border-gray-300'
                                 ]"
                             >
                                 <CheckCircle
-                                    v-if="answers[question.id] === option.id"
+                                    v-if="isSelected(question.id, option.id)"
                                     class="w-3 h-3 text-white"
                                 />
                             </div>

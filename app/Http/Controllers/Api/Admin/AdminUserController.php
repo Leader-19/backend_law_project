@@ -35,7 +35,7 @@ class AdminUserController extends Controller
             ->paginate($perPage)
             ->withQueryString()
             ->through(function ($user) {
-                $subscription = $user->activeSubscription()->with('plan')->first();
+                $subscriptions = $user->activeSubscriptions()->with('plan')->get();
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -43,23 +43,23 @@ class AdminUserController extends Controller
                     'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
                     'registration_source' => $user->registration_source,
                     'roles' => $user->roles->pluck('name'),
-                    'subscription' => $subscription ? [
-                        'id' => $subscription->id,
-                        'status' => $subscription->status,
-                        'starts_at' => $subscription->starts_at?->format('Y-m-d'),
-                        'ends_at' => $subscription->ends_at?->format('Y-m-d'),
-                        'plan' => $subscription->plan ? [
-                            'id' => $subscription->plan->id,
-                            'name' => $subscription->plan->name,
-                            'slug' => $subscription->plan->slug,
-                            'price' => $subscription->plan->price,
-                            'currency' => $subscription->plan->currency,
-                            'max_categories' => $subscription->plan->max_categories,
-                            'max_documents' => $subscription->plan->max_documents,
-                            'max_text_contents' => $subscription->plan->max_text_contents,
-                            'max_storage_mb' => $subscription->plan->max_storage_mb,
+                    'subscriptions' => $subscriptions->map(fn ($sub) => [
+                        'id' => $sub->id,
+                        'status' => $sub->status,
+                        'starts_at' => $sub->starts_at?->format('Y-m-d'),
+                        'ends_at' => $sub->ends_at?->format('Y-m-d'),
+                        'plan' => $sub->plan ? [
+                            'id' => $sub->plan->id,
+                            'name' => $sub->plan->name,
+                            'slug' => $sub->plan->slug,
+                            'price' => $sub->plan->price,
+                            'currency' => $sub->plan->currency,
+                            'max_categories' => $sub->plan->max_categories,
+                            'max_documents' => $sub->plan->max_documents,
+                            'max_text_contents' => $sub->plan->max_text_contents,
+                            'max_storage_mb' => $sub->plan->max_storage_mb,
                         ] : null,
-                    ] : null,
+                    ]),
                     'created_at' => $user->created_at?->format('Y-m-d H:i:s'),
                 ];
             });
@@ -114,7 +114,7 @@ class AdminUserController extends Controller
 
     public function show(string $id)
     {
-        $user = User::with('roles', 'categoryPermissions', 'activeSubscription.plan')->findOrFail($id);
+        $user = User::with('roles', 'categoryPermissions')->with('activeSubscriptions.plan')->findOrFail($id);
 
         return response()->json([
             'status' => 'success',
@@ -133,23 +133,23 @@ class AdminUserController extends Controller
                         'title' => $cat->title,
                         'permission' => $cat->pivot->permission,
                     ]),
-                'subscription' => $user->activeSubscription ? [
-                    'id' => $user->activeSubscription->id,
-                    'status' => $user->activeSubscription->status,
-                    'starts_at' => $user->activeSubscription->starts_at?->format('Y-m-d'),
-                    'ends_at' => $user->activeSubscription->ends_at?->format('Y-m-d'),
-                    'plan' => $user->activeSubscription->plan ? [
-                        'id' => $user->activeSubscription->plan->id,
-                        'name' => $user->activeSubscription->plan->name,
-                        'slug' => $user->activeSubscription->plan->slug,
-                        'price' => $user->activeSubscription->plan->price,
-                        'currency' => $user->activeSubscription->plan->currency,
-                        'max_categories' => $user->activeSubscription->plan->max_categories,
-                        'max_documents' => $user->activeSubscription->plan->max_documents,
-                        'max_text_contents' => $user->activeSubscription->plan->max_text_contents,
-                        'max_storage_mb' => $user->activeSubscription->plan->max_storage_mb,
+                'subscriptions' => $user->activeSubscriptions->map(fn ($sub) => [
+                    'id' => $sub->id,
+                    'status' => $sub->status,
+                    'starts_at' => $sub->starts_at?->format('Y-m-d'),
+                    'ends_at' => $sub->ends_at?->format('Y-m-d'),
+                    'plan' => $sub->plan ? [
+                        'id' => $sub->plan->id,
+                        'name' => $sub->plan->name,
+                        'slug' => $sub->plan->slug,
+                        'price' => $sub->plan->price,
+                        'currency' => $sub->plan->currency,
+                        'max_categories' => $sub->plan->max_categories,
+                        'max_documents' => $sub->plan->max_documents,
+                        'max_text_contents' => $sub->plan->max_text_contents,
+                        'max_storage_mb' => $sub->plan->max_storage_mb,
                     ] : null,
-                ] : null,
+                ]),
                 'created_at' => $user->created_at?->format('Y-m-d H:i:s'),
             ],
         ]);
@@ -283,12 +283,6 @@ class AdminUserController extends Controller
 
         $subscription = DB::transaction(function () use ($user, $plan, $validated) {
             $status = $validated['status'] ?? 'active';
-
-            if ($status === 'active') {
-                UserSubscription::where('user_id', $user->id)
-                    ->where('status', 'active')
-                    ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-            }
 
             $sub = UserSubscription::create([
                 'user_id' => $user->id,

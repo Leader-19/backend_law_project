@@ -104,8 +104,8 @@ function removeOption(index: number) {
     }
 }
 
-function setCorrectOption(index: number) {
-    questionForm.options.forEach((o, i) => { o.is_correct = i === index })
+function toggleCorrectOption(index: number) {
+    questionForm.options[index].is_correct = !questionForm.options[index].is_correct
 }
 
 function submitQuiz() {
@@ -215,10 +215,10 @@ function deleteQuestion(id: number) {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Options (click circle to mark correct)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Options (click circles to mark correct — multiple allowed)</label>
                             <div v-for="(option, index) in questionForm.options" :key="index" class="flex items-center gap-2 mb-2">
-                                <button type="button" @click="setCorrectOption(index)" :class="[
-                                    'w-6 h-6 rounded-full border-2 flex-shrink-0',
+                                <button type="button" @click="toggleCorrectOption(index)" :class="[
+                                    'w-6 h-6 rounded-full border-2 flex-shrink-0 transition-colors',
                                     option.is_correct ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-gray-400'
                                 ]">
                                     <span v-if="option.is_correct" class="text-white text-xs">✓</span>

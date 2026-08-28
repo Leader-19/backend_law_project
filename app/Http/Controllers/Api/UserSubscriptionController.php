@@ -61,10 +61,6 @@ class UserSubscriptionController extends Controller
         }
 
         $subscription = DB::transaction(function () use ($user, $plan) {
-            UserSubscription::where('user_id', $user->id)
-                ->where('status', 'active')
-                ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-
             $sub = UserSubscription::create([
                 'user_id' => $user->id,
                 'subscription_plan_id' => $plan->id,
