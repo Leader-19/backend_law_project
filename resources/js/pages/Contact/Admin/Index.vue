@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { MessageSquare, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-vue-next'
+import DataTable from '@/components/ui/data-table/DataTable.vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface ContactMessage {
@@ -86,69 +87,62 @@ function getStatusColor(status: string): string {
             </div>
 
             <!-- Messages Table -->
-            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500">Subject</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500">User</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500">Message</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500">Status</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500">Date</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <tr v-for="msg in messages.data" :key="msg.id" class="hover:bg-gray-50">
-                            <td class="px-4 py-3 font-medium text-gray-900">{{ msg.subject }}</td>
-                            <td class="px-4 py-3">
-                                <p class="text-sm text-gray-900">{{ msg.user.name }}</p>
-                                <p class="text-xs text-gray-500">{{ msg.user.email }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{{ msg.message }}</td>
-                            <td class="px-4 py-3 text-center">
-                                <span :class="['text-xs font-medium px-2 py-1 rounded-full', getStatusColor(msg.status)]">
-                                    {{ msg.status }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-500">{{ msg.created_at }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex justify-center gap-2">
-                                    <Link
-                                        :href="route('contact-messages.show', msg.id)"
-                                        class="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                                        title="View & Reply"
-                                    >
-                                        <MessageSquare class="w-4 h-4" />
-                                    </Link>
-                                    <button @click="deleteMessage(msg.id)" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
-                                        <Trash2 class="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <DataTable
+                :data="messages.data"
+                :pagination="{ current_page: messages.current_page, last_page: messages.last_page, per_page: messages.per_page || 15, total: messages.total }"
+                :columns="['subject', 'user', 'message', 'status', 'date', 'actions']"
+                @page-change="changePage"
+            >
+                <template #header-subject>Subject</template>
+                <template #header-user>User</template>
+                <template #header-message>Message</template>
+                <template #header-status>Status</template>
+                <template #header-date>Date</template>
+                <template #header-actions>Actions</template>
 
-                <div v-if="messages.data.length === 0" class="text-center py-12">
+                <template #subject="{ item }">
+                    <span class="font-medium text-gray-900">{{ item.subject }}</span>
+                </template>
+
+                <template #user="{ item }">
+                    <p class="text-sm text-gray-900">{{ item.user.name }}</p>
+                    <p class="text-xs text-gray-500">{{ item.user.email }}</p>
+                </template>
+
+                <template #message="{ item }">
+                    <span class="text-sm text-gray-500 max-w-xs truncate block">{{ item.message }}</span>
+                </template>
+
+                <template #status="{ item }">
+                    <span :class="['text-xs font-medium px-2 py-1 rounded-full', getStatusColor(item.status)]">
+                        {{ item.status }}
+                    </span>
+                </template>
+
+                <template #date="{ item }">
+                    <span class="text-sm text-gray-500">{{ item.created_at }}</span>
+                </template>
+
+                <template #actions="{ item }">
+                    <div class="flex justify-center gap-2">
+                        <Link
+                            :href="route('contact-messages.show', item.id)"
+                            class="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                            title="View & Reply"
+                        >
+                            <MessageSquare class="w-4 h-4" />
+                        </Link>
+                        <button @click="deleteMessage(item.id)" class="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                            <Trash2 class="w-4 h-4" />
+                        </button>
+                    </div>
+                </template>
+
+                <template #empty>
                     <MessageSquare class="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p class="text-gray-500">No messages found.</p>
-                </div>
-            </div>
-
-            <div v-if="messages.last_page > 1" class="mt-6 flex justify-center gap-2">
-                <button
-                    v-for="page in messages.last_page"
-                    :key="page"
-                    @click="changePage(page)"
-                    :class="[
-                        'px-3 py-1 rounded text-sm',
-                        page === messages.current_page ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    ]"
-                >
-                    {{ page }}
-                </button>
-            </div>
+                </template>
+            </DataTable>
         </div>
     </AppLayout>
 </template>

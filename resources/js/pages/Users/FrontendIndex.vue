@@ -6,6 +6,7 @@ import { Users as UsersIcon, Trash2, ShieldCheck, Search, X, FolderTree, CreditC
 import { route } from 'ziggy-js';
 import { can } from '@/lib/can';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import DataTable from '@/components/ui/data-table/DataTable.vue';
 import { ref } from 'vue';
 
 interface Role {
@@ -132,114 +133,78 @@ function clearSearch() {
             </section>
 
             <!-- Users Table -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                        <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
-                            <tr>
-                                <th class="px-6 py-3.5">#</th>
-                                <th class="px-6 py-3.5">User Details</th>
-                                <th class="px-6 py-3.5">Assigned Roles</th>
-                                <th class="px-6 py-3.5">Registered</th>
-                                <th class="px-6 py-3.5 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                            <tr v-for="(user, index) in users" :key="user.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4 text-slate-500 font-medium">
-                                    {{ (pagination.current_page - 1) * pagination.per_page + index + 1 }}
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <img
-                                            v-if="user.avatar_url"
-                                            :src="user.avatar_url"
-                                            class="h-10 w-10 rounded-full object-cover shadow-sm"
-                                        />
-                                        <div v-else class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-sm">
-                                            {{ user.name.charAt(0).toUpperCase() }}
-                                        </div>
-                                        <div>
-                                            <div class="font-semibold text-slate-900 dark:text-white">{{ user.name }}</div>
-                                            <div class="text-xs text-slate-400">{{ user.email }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-wrap gap-1.5">
-                                        <span
-                                            v-for="role in user.roles"
-                                            :key="role.id"
-                                            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                        >
-                                            <ShieldCheck v-if="role.name === 'Admin'" class="h-3 w-3" />
-                                            {{ role.name }}
-                                        </span>
-                                        <span v-if="!user.roles?.length" class="text-xs text-slate-400 italic">No roles</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
-                                    {{ user.created_at }}
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <Link :href="`/frontend-users/${user.id}/categories`" class="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 transition-colors" title="Assign Categories">
-                                            <FolderTree class="h-3.5 w-3.5" />
-                                            Categories
-                                        </Link>
-                                        <Link :href="`/frontend-users/${user.id}`" class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors" title="Subscribe to Plan">
-                                            <CreditCard class="h-3.5 w-3.5" />
-                                            Plan
-                                        </Link>
-                                        <button v-if="can('users.delete')" type="button" @click="deleteUser(user.id)" class="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors" title="Delete User">
-                                            <Trash2 class="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="!users.length">
-                                <td colspan="5" class="px-6 py-8 text-center text-sm text-slate-400">
-                                    {{ searchQuery ? 'No matching users found.' : 'No frontend registered users found.' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <DataTable
+                :data="users"
+                :pagination="pagination"
+                :columns="['stt', 'user', 'roles', 'registered', 'actions']"
+                @page-change="goToPage"
+                @per-page-change="changePerPage"
+            >
+                <template #header-stt>#</template>
+                <template #header-user>User Details</template>
+                <template #header-roles>Assigned Roles</template>
+                <template #header-registered>Registered</template>
+                <template #header-actions>Actions</template>
 
-                <!-- Pagination -->
-                <div v-if="pagination.last_page > 1" class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+                <template #stt="{ index }">
+                    {{ (pagination.current_page - 1) * pagination.per_page + index + 1 }}
+                </template>
+
+                <template #user="{ item }">
                     <div class="flex items-center gap-3">
-                        <span class="text-sm text-slate-500">
-                            Page {{ pagination.current_page }} of {{ pagination.last_page }} ({{ pagination.total }} total)
+                        <img
+                            v-if="item.avatar_url"
+                            :src="item.avatar_url"
+                            class="h-10 w-10 rounded-full object-cover shadow-sm"
+                        />
+                        <div v-else class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-sm">
+                            {{ item.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-slate-900 dark:text-white">{{ item.name }}</div>
+                            <div class="text-xs text-slate-400">{{ item.email }}</div>
+                        </div>
+                    </div>
+                </template>
+
+                <template #roles="{ item }">
+                    <div class="flex flex-wrap gap-1.5">
+                        <span
+                            v-for="role in item.roles"
+                            :key="role.id || role"
+                            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                        >
+                            <ShieldCheck v-if="(role.name || role) === 'Admin'" class="h-3 w-3" />
+                            {{ role.name || role }}
                         </span>
-                        <select
-                            :value="pagination.per_page"
-                            @change="changePerPage(Number(($event.target as HTMLSelectElement).value))"
-                            class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 focus:outline-none"
-                        >
-                            <option :value="10">10 / page</option>
-                            <option :value="25">25 / page</option>
-                            <option :value="50">50 / page</option>
-                        </select>
+                        <span v-if="!item.roles?.length" class="text-xs text-slate-400 italic">No roles</span>
                     </div>
-                    <div class="flex gap-2">
-                        <button
-                            :disabled="pagination.current_page <= 1"
-                            @click="goToPage(pagination.current_page - 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Previous
-                        </button>
-                        <button
-                            :disabled="pagination.current_page >= pagination.last_page"
-                            @click="goToPage(pagination.current_page + 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Next
+                </template>
+
+                <template #registered="{ item }">
+                    <span class="text-xs text-slate-500 dark:text-slate-400">{{ item.created_at }}</span>
+                </template>
+
+                <template #actions="{ item }">
+                    <div class="flex items-center justify-end gap-2">
+                        <Link :href="`/frontend-users/${item.id}/categories`" class="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 transition-colors" title="Assign Categories">
+                            <FolderTree class="h-3.5 w-3.5" />
+                            Categories
+                        </Link>
+                        <Link :href="`/frontend-users/${item.id}`" class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors" title="Subscribe to Plan">
+                            <CreditCard class="h-3.5 w-3.5" />
+                            Plan
+                        </Link>
+                        <button v-if="can('users.delete')" type="button" @click="deleteUser(item.id)" class="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors" title="Delete User">
+                            <Trash2 class="h-4 w-4" />
                         </button>
                     </div>
-                </div>
-            </section>
+                </template>
+
+                <template #empty>
+                    {{ searchQuery ? 'No matching users found.' : 'No frontend registered users found.' }}
+                </template>
+            </DataTable>
 
             <!-- Delete User Confirmation Modal -->
             <ConfirmModal

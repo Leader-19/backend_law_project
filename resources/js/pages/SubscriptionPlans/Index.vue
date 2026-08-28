@@ -3,7 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { CreditCard, Plus, Pencil, Trash2, CheckCircle2, ShieldCheck } from 'lucide-vue-next'
+import { CreditCard, Plus, Pencil, Trash2, CheckCircle2, ShieldCheck, XCircle } from 'lucide-vue-next'
+import DataTable from '@/components/ui/data-table/DataTable.vue'
 import FormModal from './FormModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
@@ -41,7 +42,13 @@ const props = defineProps<{
         per_page: number
         total: number
     }
+    categories: Array<{ id: number; title: string; parent_id: number | null }>
     currencies: Array<{ code: string; symbol: string; name: string }>
+    subscriptionStats: {
+        total_active: number
+        multi_plan_users: number
+        active_counts_by_user: Record<number, number>
+    }
 }>()
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -94,9 +101,24 @@ function formatPrice(price: number | string, currency: string) {
     return `${symbol}${numericPrice.toFixed(2)}`
 }
 
+const statusFilter = ref<string>('')
+
+function applyStatusFilter(status: string) {
+    statusFilter.value = status
+    const params: Record<string, string> = {}
+    if (status) params.status = status
+    router.get('/subscription-plans', params, { preserveState: true, preserveScroll: true })
+}
+
 function changeSubscriptionPage(page: number) {
     if (page < 1 || page > props.subscriptions.last_page) return
-    router.get('/subscription-plans', { page }, { preserveState: true, preserveScroll: true })
+    const params: Record<string, string | number> = { page }
+    if (statusFilter.value) params.status = statusFilter.value
+    router.get('/subscription-plans', params, { preserveState: true, preserveScroll: true })
+}
+
+function userPlanCount(userId: number): number {
+    return props.subscriptionStats.active_counts_by_user[userId] ?? 0
 }
 </script>
 
@@ -166,71 +188,101 @@ function changeSubscriptionPage(page: number) {
             <!-- User Subscriptions List -->
             <section class="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
                 <div class="border-b border-slate-100 p-6 dark:border-slate-800">
-                    <h2 class="text-base font-bold text-slate-900 dark:text-white">Active User Subscriptions</h2>
-                    <p class="text-xs text-slate-500">Recent subscriptions registered by public web users.</p>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                        <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
-                            <tr>
-                                <th class="px-6 py-3">User</th>
-                                <th class="px-6 py-3">Plan</th>
-                                <th class="px-6 py-3">Price</th>
-                                <th class="px-6 py-3">Status</th>
-                                <th class="px-6 py-3">Subscribed Date</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                            <tr v-for="sub in subscriptions.data" :key="sub.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <div class="font-medium text-slate-900 dark:text-white">{{ sub.user?.name || 'User #' + sub.id }}</div>
-                                    <div class="text-xs text-slate-400">{{ sub.user?.email }}</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="font-semibold text-slate-900 dark:text-white">{{ sub.plan?.name }}</span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ sub.plan ? formatPrice(sub.plan.price, sub.plan.currency) : '-' }}</span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', sub.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300']">
-                                        {{ sub.status }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-xs text-slate-500">
-                                    {{ new Date(sub.created_at).toLocaleDateString() }}
-                                </td>
-                            </tr>
-                            <tr v-if="!subscriptions.data?.length">
-                                <td colspan="5" class="px-6 py-8 text-center text-sm text-slate-400">No active user subscriptions found yet.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="subscriptions.last_page > 1" class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-4">
-                    <span class="text-sm text-slate-500">
-                        Page {{ subscriptions.current_page }} of {{ subscriptions.last_page }} ({{ subscriptions.total }} total)
-                    </span>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white">User Subscriptions</h2>
+                            <p class="text-xs text-slate-500">Manage and review all user subscription records.</p>
+                        </div>
+                        <!-- Multi-plan stats -->
+                        <div class="flex items-center gap-4 text-xs">
+                            <div class="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 dark:bg-emerald-950/30">
+                                <CheckCircle2 class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                <span class="font-semibold text-emerald-700 dark:text-emerald-300">{{ subscriptionStats.total_active }} active</span>
+                            </div>
+                            <div v-if="subscriptionStats.multi_plan_users > 0" class="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 dark:bg-blue-950/30">
+                                <ShieldCheck class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                <span class="font-semibold text-blue-700 dark:text-blue-300">{{ subscriptionStats.multi_plan_users }} multi-plan user{{ subscriptionStats.multi_plan_users > 1 ? 's' : '' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Status filter -->
+                    <div class="mt-4 flex flex-wrap gap-2">
                         <button
-                            :disabled="subscriptions.current_page <= 1"
-                            @click="changeSubscriptionPage(subscriptions.current_page - 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Previous
+                            @click="applyStatusFilter('')"
+                            :class="['rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors', !statusFilter ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']">
+                            All
                         </button>
                         <button
-                            :disabled="subscriptions.current_page >= subscriptions.last_page"
-                            @click="changeSubscriptionPage(subscriptions.current_page + 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Next
+                            v-for="s in ['active', 'pending', 'cancelled', 'expired']"
+                            :key="s"
+                            @click="applyStatusFilter(s)"
+                            :class="['rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors', statusFilter === s ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']">
+                            {{ s }}
                         </button>
                     </div>
                 </div>
+
+                <DataTable
+                    :data="subscriptions.data || []"
+                    :pagination="{ current_page: subscriptions.current_page, last_page: subscriptions.last_page, per_page: subscriptions.per_page, total: subscriptions.total }"
+                    :columns="['user', 'plan', 'price', 'status', 'date', 'action']"
+                    @page-change="changeSubscriptionPage"
+                >
+                    <template #header-user>User</template>
+                    <template #header-plan>Plan</template>
+                    <template #header-price>Price</template>
+                    <template #header-status>Status</template>
+                    <template #header-date>Subscribed Date</template>
+                    <template #header-action>Action</template>
+
+                    <template #user="{ item }">
+                        <div>
+                            <div class="font-medium text-slate-900 dark:text-white">{{ item.user?.name || 'User #' + item.id }}</div>
+                            <div class="text-xs text-slate-400">{{ item.user?.email }}</div>
+                            <span
+                                v-if="userPlanCount(item.user?.id) > 1"
+                                class="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                {{ userPlanCount(item.user?.id) }} plans
+                            </span>
+                        </div>
+                    </template>
+
+                    <template #plan="{ item }">
+                        <span class="font-semibold text-slate-900 dark:text-white">{{ item.plan?.name }}</span>
+                    </template>
+
+                    <template #price="{ item }">
+                        <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ item.plan ? formatPrice(item.plan.price, item.plan.currency) : '-' }}</span>
+                    </template>
+
+                    <template #status="{ item }">
+                        <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', item.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300']">
+                            {{ item.status }}
+                        </span>
+                    </template>
+
+                    <template #date="{ item }">
+                        <span class="text-xs text-slate-500">{{ new Date(item.created_at).toLocaleDateString() }}</span>
+                    </template>
+
+                    <template #action="{ item }">
+                        <div v-if="item.status === 'pending'" class="flex justify-end gap-2">
+                            <button
+                                @click="router.post(`/payments/${item.id}/approve`, {}, { preserveScroll: true })"
+                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
+                                <CheckCircle2 class="h-3.5 w-3.5" /> Approve
+                            </button>
+                            <button
+                                @click="router.post(`/payments/${item.id}/reject`, {}, { preserveScroll: true })"
+                                class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
+                                <XCircle class="h-3.5 w-3.5" /> Reject
+                            </button>
+                        </div>
+                        <span v-else class="block text-right text-xs text-slate-400">No action</span>
+                    </template>
+
+                    <template #empty>No active user subscriptions found yet.</template>
+                </DataTable>
             </section>
 
             <!-- Modals -->
@@ -238,6 +290,7 @@ function changeSubscriptionPage(page: number) {
                 :open="isModalOpen"
                 :plan="selectedPlan"
                 :currencies="currencies"
+                :categories="categories"
                 @update:open="isModalOpen = $event"
             />
 

@@ -4,6 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
 import { Trash2, Search, Filter, X, AlertTriangle, AlertCircle, Info, CheckCircle, Database, RefreshCw } from 'lucide-vue-next';
+import DataTable from '@/components/ui/data-table/DataTable.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -266,154 +267,122 @@ function isIssueLog(log: any) {
             </div>
 
             <!-- Table -->
-            <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                        <tr>
-                            <th class="px-4 py-3 w-10">
-                                <input
-                                    type="checkbox"
-                                    :checked="isAllSelected"
-                                    @change="toggleSelectAll"
-                                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                />
-                            </th>
-                            <th class="px-4 py-3">#</th>
-                            <th class="px-4 py-3">Action</th>
-                            <th class="px-4 py-3">Description</th>
-                            <th class="px-4 py-3">User</th>
-                            <th class="px-4 py-3">IP</th>
-                            <th class="px-4 py-3">Details</th>
-                            <th class="px-4 py-3">Date</th>
-                            <th class="px-4 py-3 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr
-                            v-for="log in logs"
-                            :key="log.id"
-                            class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                            :class="{ 'bg-orange-50/30 dark:bg-orange-950/10': log.action === 'issue' }"
-                        >
-                            <td class="px-4 py-3">
-                                <input
-                                    v-model="selectedIds"
-                                    type="checkbox"
-                                    :value="log.id"
-                                    class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                />
-                            </td>
-                            <td class="px-4 py-3 text-gray-500">{{ log.id }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="rounded px-2 py-1 text-xs font-medium"
-                                        :class="actionClass[log.action] ?? 'bg-gray-100 text-gray-700'"
-                                    >
-                                        {{ actionLabel[log.action] ?? log.action }}
-                                    </span>
-                                    <span
-                                        v-if="log.severity"
-                                        class="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold uppercase"
-                                        :class="severityConfig[log.severity]?.class ?? 'bg-gray-100 text-gray-600'"
-                                    >
-                                        <component :is="severityConfig[log.severity]?.icon ?? AlertCircle" class="h-3 w-3" />
-                                        {{ log.severity }}
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 max-w-xs truncate">
-                                <div class="flex items-center gap-2">
-                                    <Database v-if="isIssueLog(log)" class="h-4 w-4 text-orange-500 flex-shrink-0" />
-                                    <span>{{ log.description }}</span>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="font-medium">{{ log.causer?.name ?? 'System' }}</span>
-                            </td>
-                            <td class="px-4 py-3 text-gray-500 text-xs">{{ log.ip_address }}</td>
-                            <td class="px-4 py-3">
-                                <div v-if="log.new_data && isIssueLog(log)" class="space-y-1 max-w-xs">
-                                    <div v-for="(value, key) in log.new_data" :key="'d-' + key" class="text-xs">
-                                        <span class="font-medium text-slate-600 dark:text-slate-400">{{ key }}:</span>
-                                        <span class="text-orange-600 dark:text-orange-400 ml-1">{{ formatValue(value) }}</span>
-                                    </div>
-                                </div>
-                                <div v-else-if="log.new_data" class="space-y-1 max-w-xs">
-                                    <div v-for="(value, key) in log.new_data" :key="'n-' + key" class="text-xs">
-                                        <span class="font-medium">{{ key }}</span>:
-                                        <span class="text-green-600">{{ formatValue(value) }}</span>
-                                        <span
-                                            v-if="log.old_data && key in log.old_data"
-                                            class="text-gray-400"
-                                        >
-                                            (was {{ formatValue(log.old_data[key]) }})
-                                        </span>
-                                    </div>
-                                </div>
-                                <div v-else-if="log.old_data" class="space-y-1 max-w-xs">
-                                    <div v-for="(value, key) in log.old_data" :key="'o-' + key" class="text-xs">
-                                        <span class="font-medium">{{ key }}</span>:
-                                        <span class="text-red-600 line-through">{{ formatValue(value) }}</span>
-                                    </div>
-                                </div>
-                                <span v-else class="text-gray-400">—</span>
-                            </td>
-                            <td class="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{{ log.created_at }}</td>
-                            <td class="px-4 py-3 text-center">
-                                <button
-                                    @click="deleteSingle(log.id)"
-                                    class="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors dark:hover:bg-red-950"
-                                    title="Delete log"
-                                >
-                                    <Trash2 class="h-4 w-4" />
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="logs.length === 0">
-                            <td colspan="9" class="px-4 py-8 text-center text-gray-400">
-                                No activity logs found.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <DataTable
+                :data="logs"
+                :pagination="pagination"
+                :columns="['select', 'id', 'action', 'description', 'user', 'ip', 'details', 'date', 'actions']"
+                @page-change="changePage"
+                @per-page-change="changePerPage"
+            >
+                <template #header-select>
+                    <input
+                        type="checkbox"
+                        :checked="isAllSelected"
+                        @change="toggleSelectAll"
+                        class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                </template>
+                <template #select="{ item }">
+                    <input
+                        v-model="selectedIds"
+                        type="checkbox"
+                        :value="item.id"
+                        class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                </template>
+                <template #header-id>#</template>
+                <template #header-action>Action</template>
+                <template #header-description>Description</template>
+                <template #header-user>User</template>
+                <template #header-ip>IP</template>
+                <template #header-details>Details</template>
+                <template #header-date>Date</template>
+                <template #header-actions>Actions</template>
 
-            <!-- Pagination -->
-            <div class="flex items-center justify-between text-sm text-gray-500">
-                <div class="flex items-center gap-3">
-                    <span>
-                        Page {{ pagination.current_page }} of {{ pagination.last_page }}
-                        ({{ pagination.total }} total)
-                    </span>
-                    <select
-                        :value="pagination.per_page"
-                        @change="changePerPage(Number(($event.target as HTMLSelectElement).value))"
-                        class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900"
-                    >
-                        <option :value="10">10 / page</option>
-                        <option :value="25">25 / page</option>
-                        <option :value="50">50 / page</option>
-                        <option :value="100">100 / page</option>
-                    </select>
-                </div>
-                <div class="flex gap-2">
+                <template #id="{ item }">
+                    <span class="text-gray-500">{{ item.id }}</span>
+                </template>
+
+                <template #action="{ item }">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="rounded px-2 py-1 text-xs font-medium"
+                            :class="actionClass[item.action] ?? 'bg-gray-100 text-gray-700'"
+                        >
+                            {{ actionLabel[item.action] ?? item.action }}
+                        </span>
+                        <span
+                            v-if="item.severity"
+                            class="inline-flex items-center gap-1 rounded px-2 py-1 text-[10px] font-bold uppercase"
+                            :class="severityConfig[item.severity]?.class ?? 'bg-gray-100 text-gray-600'"
+                        >
+                            <component :is="severityConfig[item.severity]?.icon ?? AlertCircle" class="h-3 w-3" />
+                            {{ item.severity }}
+                        </span>
+                    </div>
+                </template>
+
+                <template #description="{ item }">
+                    <div class="max-w-xs truncate">
+                        <div class="flex items-center gap-2">
+                            <Database v-if="isIssueLog(item)" class="h-4 w-4 text-orange-500 flex-shrink-0" />
+                            <span>{{ item.description }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template #user="{ item }">
+                    <span class="font-medium">{{ item.causer?.name ?? 'System' }}</span>
+                </template>
+
+                <template #ip="{ item }">
+                    <span class="text-gray-500 text-xs">{{ item.ip_address }}</span>
+                </template>
+
+                <template #details="{ item }">
+                    <div v-if="item.new_data && isIssueLog(item)" class="space-y-1 max-w-xs">
+                        <div v-for="(value, key) in item.new_data" :key="'d-' + key" class="text-xs">
+                            <span class="font-medium text-slate-600 dark:text-slate-400">{{ key }}:</span>
+                            <span class="text-orange-600 dark:text-orange-400 ml-1">{{ formatValue(value) }}</span>
+                        </div>
+                    </div>
+                    <div v-else-if="item.new_data" class="space-y-1 max-w-xs">
+                        <div v-for="(value, key) in item.new_data" :key="'n-' + key" class="text-xs">
+                            <span class="font-medium">{{ key }}</span>:
+                            <span class="text-green-600">{{ formatValue(value) }}</span>
+                            <span
+                                v-if="item.old_data && key in item.old_data"
+                                class="text-gray-400"
+                            >
+                                (was {{ formatValue(item.old_data[key]) }})
+                            </span>
+                        </div>
+                    </div>
+                    <div v-else-if="item.old_data" class="space-y-1 max-w-xs">
+                        <div v-for="(value, key) in item.old_data" :key="'o-' + key" class="text-xs">
+                            <span class="font-medium">{{ key }}</span>:
+                            <span class="text-red-600 line-through">{{ formatValue(value) }}</span>
+                        </div>
+                    </div>
+                    <span v-else class="text-gray-400">—</span>
+                </template>
+
+                <template #date="{ item }">
+                    <span class="text-gray-500 text-xs whitespace-nowrap">{{ item.created_at }}</span>
+                </template>
+
+                <template #actions="{ item }">
                     <button
-                        :disabled="pagination.current_page <= 1"
-                        @click="changePage(pagination.current_page - 1)"
-                        class="rounded-lg border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                        @click="deleteSingle(item.id)"
+                        class="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors dark:hover:bg-red-950"
+                        title="Delete log"
                     >
-                        Previous
+                        <Trash2 class="h-4 w-4" />
                     </button>
-                    <button
-                        :disabled="pagination.current_page >= pagination.last_page"
-                        @click="changePage(pagination.current_page + 1)"
-                        class="rounded-lg border border-gray-300 px-3 py-1 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
-                    >
-                        Next
-                    </button>
-                </div>
-            </div>
+                </template>
+
+                <template #empty>No activity logs found.</template>
+            </DataTable>
 
             <!-- Delete Confirmation Modal -->
             <ConfirmModal

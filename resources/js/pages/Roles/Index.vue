@@ -6,6 +6,7 @@ import { Notebook, Plus, Pencil, Trash2, Eye, ShieldCheck, Search, X } from 'luc
 import { route } from 'ziggy-js';
 import { can } from '@/lib/can';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import DataTable from '@/components/ui/data-table/DataTable.vue';
 import { ref, computed } from 'vue';
 
 interface Permission {
@@ -143,108 +144,71 @@ function clearSearch() {
             </section>
 
             <!-- Roles Table -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                        <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
-                            <tr>
-                                <th class="px-6 py-3.5">#</th>
-                                <th class="px-6 py-3.5">Role Name</th>
-                                <th class="px-6 py-3.5">Permissions</th>
-                                <th class="px-6 py-3.5 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                            <tr v-for="(role, index) in filteredRoles" :key="role.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4 text-slate-500 font-medium">
-                                    {{ (pagination.current_page - 1) * pagination.per_page + index + 1 }}
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-sm shadow-sm">
-                                            {{ role.name.charAt(0).toUpperCase() }}
-                                        </div>
-                                        <div>
-                                            <div class="font-semibold text-slate-900 dark:text-white">{{ role.name }}</div>
-                                            <div class="text-xs text-slate-400">{{ role.permissions.length }} permission(s)</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-wrap gap-1.5 max-w-lg">
-                                        <span
-                                            v-for="(permission, pIdx) in role.permissions.slice(0, 4)"
-                                            :key="pIdx"
-                                            class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                        >
-                                            {{ permission.name }}
-                                        </span>
-                                        <span
-                                            v-if="role.permissions.length > 4"
-                                            class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                                        >
-                                            +{{ role.permissions.length - 4 }} more
-                                        </span>
-                                        <span v-if="!role.permissions.length" class="text-xs text-slate-400 italic">No permissions</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <Link :href="route('roles.show', role.id)" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 transition-colors" title="View Role">
-                                            <Eye class="h-4 w-4" />
-                                        </Link>
-                                        <Link v-if="can('roles.edit')" :href="route('roles.edit', role.id)" class="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors" title="Edit Role">
-                                            <Pencil class="h-4 w-4" />
-                                        </Link>
-                                        <button v-if="can('roles.delete')" type="button" @click="deleteRole(role.id, role.name)" class="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors" title="Delete Role">
-                                            <Trash2 class="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="!filteredRoles.length">
-                                <td colspan="4" class="px-6 py-8 text-center text-sm text-slate-400">
-                                    {{ searchQuery ? 'No matching roles found.' : 'No roles created yet.' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <DataTable
+                :data="filteredRoles"
+                :pagination="pagination"
+                :columns="['stt', 'role', 'permissions', 'actions']"
+                @page-change="changePage"
+                @per-page-change="changePerPage"
+            >
+                <template #header-stt>#</template>
+                <template #header-role>Role Name</template>
+                <template #header-permissions>Permissions</template>
+                <template #header-actions>Actions</template>
 
-                <!-- Pagination -->
-                <div v-if="pagination.last_page > 1" class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+                <template #stt="{ index }">
+                    {{ (pagination.current_page - 1) * pagination.per_page + index + 1 }}
+                </template>
+
+                <template #role="{ item }">
                     <div class="flex items-center gap-3">
-                        <span class="text-sm text-slate-500">
-                            Page {{ pagination.current_page }} of {{ pagination.last_page }} ({{ pagination.total }} total)
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-sm shadow-sm">
+                            {{ item.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-slate-900 dark:text-white">{{ item.name }}</div>
+                            <div class="text-xs text-slate-400">{{ item.permissions.length }} permission(s)</div>
+                        </div>
+                    </div>
+                </template>
+
+                <template #permissions="{ item }">
+                    <div class="flex flex-wrap gap-1.5 max-w-lg">
+                        <span
+                            v-for="(permission, pIdx) in item.permissions.slice(0, 4)"
+                            :key="pIdx"
+                            class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                        >
+                            {{ permission.name }}
                         </span>
-                        <select
-                            :value="pagination.per_page"
-                            @change="changePerPage(Number(($event.target as HTMLSelectElement).value))"
-                            class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 focus:outline-none"
+                        <span
+                            v-if="item.permissions.length > 4"
+                            class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                         >
-                            <option :value="10">10 / page</option>
-                            <option :value="25">25 / page</option>
-                            <option :value="50">50 / page</option>
-                        </select>
+                            +{{ item.permissions.length - 4 }} more
+                        </span>
+                        <span v-if="!item.permissions.length" class="text-xs text-slate-400 italic">No permissions</span>
                     </div>
-                    <div class="flex gap-2">
-                        <button
-                            :disabled="pagination.current_page <= 1"
-                            @click="changePage(pagination.current_page - 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Previous
-                        </button>
-                        <button
-                            :disabled="pagination.current_page >= pagination.last_page"
-                            @click="changePage(pagination.current_page + 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Next
+                </template>
+
+                <template #actions="{ item }">
+                    <div class="flex items-center justify-end gap-2">
+                        <Link :href="route('roles.show', item.id)" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 transition-colors" title="View Role">
+                            <Eye class="h-4 w-4" />
+                        </Link>
+                        <Link v-if="can('roles.edit')" :href="route('roles.edit', item.id)" class="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors" title="Edit Role">
+                            <Pencil class="h-4 w-4" />
+                        </Link>
+                        <button v-if="can('roles.delete')" type="button" @click="deleteRole(item.id, item.name)" class="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors" title="Delete Role">
+                            <Trash2 class="h-4 w-4" />
                         </button>
                     </div>
-                </div>
-            </section>
+                </template>
+
+                <template #empty>
+                    {{ searchQuery ? 'No matching roles found.' : 'No roles created yet.' }}
+                </template>
+            </DataTable>
 
             <!-- Delete Role Confirmation Modal -->
             <ConfirmModal
