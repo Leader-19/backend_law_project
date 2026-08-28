@@ -2,6 +2,7 @@
 import CategoryPicker from '@/components/CategoryPicker.vue'
 import { ref } from 'vue'
 import { type Form } from '@inertiajs/vue3'
+import { CHUNK_UPLOAD_THRESHOLD } from '@/composables/useChunkUpload'
 
 interface Category {
     id: number
@@ -17,25 +18,35 @@ defineProps<{
     isEdit?: boolean
 }>()
 
-const MAX_DOC_BYTES = 6 * 1024 * 1024
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_DOC_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB hard limit
 
 const docError = ref<string | null>(null)
 const imageError = ref<string | null>(null)
 const imagePreview = ref<string | null>(null)
+const isLargeFile = ref(false)
+
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+}
 
 function handleFileUpload(e: Event) {
     const target = e.target as HTMLInputElement
     if (target.files && target.files.length > 0) {
         const file = target.files[0]
         if (file.size > MAX_DOC_BYTES) {
-            docError.value = `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 6 MB.`
+            docError.value = `File is too large (${formatFileSize(file.size)}). Maximum allowed is 2 GB.`
             form.doc_upload = null
             target.value = ''
+            isLargeFile.value = false
             return
         }
         docError.value = null
         form.doc_upload = file
+        isLargeFile.value = file.size > CHUNK_UPLOAD_THRESHOLD
     }
 }
 
@@ -97,6 +108,9 @@ function handleImageUpload(e: Event) {
                 class="mt-1 block w-full text-sm border border-gray-300 rounded-md p-2"
             />
             <p v-if="docError" class="text-red-500 text-sm mt-1">{{ docError }}</p>
+            <p v-else-if="isLargeFile" class="text-blue-600 dark:text-blue-400 text-sm mt-1">
+                ⚡ Large file detected — upload uses chunked transfer for reliability.
+            </p>
             <p v-else-if="form.errors.doc_upload" class="text-red-500 text-sm mt-1">{{ form.errors.doc_upload }}</p>
         </div>
 

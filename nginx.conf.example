@@ -1,0 +1,55 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name admin.spritup.site;
+
+    # ── Large upload support (up to 2 GB) ──
+    client_max_body_size 2G;
+
+    # Prevent timeouts during long uploads
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+    fastcgi_read_timeout 3600s;
+    fastcgi_send_timeout 3600s;
+
+    root /var/www/admin.spritup.site/public;
+    index index.php index.html;
+
+    # ── Laravel routing ──
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # ── PHP-FPM ──
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+
+        # Match upload limits in PHP
+        fastcgi_read_timeout 3600s;
+        fastcgi_send_timeout 3600s;
+
+        # Buffers for large requests
+        fastcgi_buffer_size 128k;
+        fastcgi_buffers 4 256k;
+        fastcgi_busy_buffers_size 256k;
+    }
+
+    # ── Static assets / storage ──
+    location ~* \.(css|js|ico|gif|jpeg|jpg|png|woff|woff2|ttf|svg|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # ── Block access to hidden files ──
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+
+    # ── Chunked upload temp directory ──
+    # Nginx buffers uploads to /var/lib/nginx/body by default.
+    # Ensure enough disk space for concurrent 2 GB uploads.
+    client_body_temp_path /var/lib/nginx/body 1 2;
+    client_body_buffer_size 128k;
+}

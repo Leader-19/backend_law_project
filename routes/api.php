@@ -80,6 +80,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Contact Messages API
     Route::get('/contact', [\App\Http\Controllers\ContactController::class, 'index'])->middleware('throttle:30,1');
     Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->middleware('throttle:10,1');
+
+    // Chunked Upload API (large file uploads)
+    Route::post('/upload/init', [\App\Http\Controllers\Api\ChunkedUploadController::class, 'init'])->middleware('throttle:30,1');
+    Route::post('/upload/{uploadId}/chunk', [\App\Http\Controllers\Api\ChunkedUploadController::class, 'chunk'])->middleware('throttle:120,1');
+    Route::post('/upload/{uploadId}/complete', [\App\Http\Controllers\Api\ChunkedUploadController::class, 'complete'])->middleware('throttle:10,1');
+    Route::get('/upload/{uploadId}/status', [\App\Http\Controllers\Api\ChunkedUploadController::class, 'status'])->middleware('throttle:30,1');
+    Route::delete('/upload/{uploadId}/cancel', [\App\Http\Controllers\Api\ChunkedUploadController::class, 'cancel'])->middleware('throttle:30,1');
 });
 
 // Admin user management API. Read and write actions intentionally use separate

@@ -143,7 +143,7 @@ class DocumentController extends Controller
     {
         $validated = $request->validate([
             'doc_upload' => ['required', 'array', 'min:1'],
-            'doc_upload.*' => ['file', 'max:6291456'],
+            'doc_upload.*' => ['file', 'max:2097152'], // 2 GB max (bytes) — large files should use chunked upload API
             'category_id' => ['required', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:500'],
         ]);

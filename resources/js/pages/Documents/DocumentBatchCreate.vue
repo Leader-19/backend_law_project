@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import { ArrowLeft } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 import DocumentBatchForm from '@/components/documents/DocumentBatchForm.vue'
 import DocumentBatchActions from '@/components/documents/DocumentBatchActions.vue'
+import UploadProgressBar from '@/components/documents/UploadProgressBar.vue'
+import { useChunkUpload, CHUNK_UPLOAD_THRESHOLD } from '@/composables/useChunkUpload'
+import type { UploadProgress } from '@/composables/useChunkUpload'
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -36,12 +39,111 @@ const fileErrors = ref<Record<number, string>>({})
 const isDragging = ref(false)
 const activeTab = ref<'files' | 'zip'>('files')
 
-function submitFiles() {
+// Chunked upload state
+const { progress, isUploading, upload, cancel, reset } = useChunkUpload()
+const batchProgress = ref<UploadProgress | null>(null)
+const batchStatus = ref('')
+const batchTotalFiles = ref(0)
+const batchUploadedFiles = ref(0)
+
+function hasLargeFiles(files: File[]): boolean {
+    return files.some((f) => f.size > CHUNK_UPLOAD_THRESHOLD)
+}
+
+async function submitFiles() {
     if (selectedFiles.value.length === 0) {
         errors.value = ['Please select at least one file.']
         return
     }
 
+    // If any file is large, use chunked upload for each
+    if (hasLargeFiles(selectedFiles.value)) {
+        const filesToUpload = selectedFiles.value
+        batchTotalFiles.value = filesToUpload.length
+        batchUploadedFiles.value = 0
+        errors.value = []
+
+        for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i]
+            batchStatus.value = `Uploading file ${i + 1} of ${filesToUpload.length}: ${file.name}`
+
+            try {
+                if (file.size > CHUNK_UPLOAD_THRESHOLD) {
+                    // Use chunked upload for large files
+                    await upload(
+                        file,
+                        {
+                            doc_name: file.name.replace(/\.[^/.]+$/, ''),
+                            doc_title: file.name.replace(/\.[^/.]+$/, ''),
+                            category_id: form.category_id,
+                            description: form.description || undefined,
+                        },
+                        (p) => {
+                            batchProgress.value = { ...p }
+                        },
+                    )
+                } else {
+                    // Use normal upload for small files
+                    const smallForm = new FormData()
+                    smallForm.append('doc_upload', file)
+                    smallForm.append('doc_name', file.name.replace(/\.[^/.]+$/, ''))
+                    smallForm.append('doc_title', file.name.replace(/\.[^/.]+$/, ''))
+                    smallForm.append('category_id', form.category_id)
+                    if (form.description) smallForm.append('description', form.description)
+
+                    const res = await fetch(route('documents.store'), {
+                        method: 'POST',
+                        body: smallForm,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-XSRF-TOKEN': decodeURIComponent(
+                                (document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+                            ),
+                        },
+                        credentials: 'same-origin',
+                    })
+
+                    if (!res.ok) {
+                        throw new Error(`Failed to upload ${file.name}`)
+                    }
+
+                    batchProgress.value = {
+                        uploadedBytes: file.size,
+                        totalBytes: file.size,
+                        percent: 100,
+                        uploadedChunks: 0,
+                        totalChunks: 0,
+                        currentChunk: 0,
+                        status: 'uploading',
+                        error: null,
+                        speed: 0,
+                        estimatedTimeLeft: 0,
+                    }
+                }
+
+                batchUploadedFiles.value++
+            } catch (err: any) {
+                if (progress.value.status === 'cancelled') break
+                fileErrors.value[i] = err.message || `Failed to upload ${file.name}`
+            }
+        }
+
+        batchStatus.value = `Upload complete! ${batchUploadedFiles.value} of ${batchTotalFiles.value} files uploaded.`
+        batchProgress.value = null
+        reset()
+
+        // Redirect to documents index
+        router.visit(route('documents.index'), {
+            only: [],
+            onFinish: () => {
+                selectedFiles.value = []
+                form.reset()
+            },
+        })
+        return
+n    }
+
+    // All files are small — use the normal batch upload
     form.doc_upload = selectedFiles.value
 
     form.post(route('documents.batch.store'), {
@@ -62,6 +164,12 @@ function submitZip() {
             zipForm.reset()
         },
     })
+}
+
+const handleCancel = () => {
+    cancel()
+    batchProgress.value = null
+    batchStatus.value = 'Upload cancelled.'
 }
 </script>
 
@@ -94,9 +202,24 @@ function submitZip() {
                 v-model:is-dragging="isDragging"
             />
 
+            <!-- Batch upload progress -->
+            <div v-if="batchStatus" class="mb-4">
+                <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    {{ batchStatus }}
+                    <span v-if="batchTotalFiles > 1">
+                        ({{ batchUploadedFiles }}/{{ batchTotalFiles }})
+                    </span>
+                </div>
+                <UploadProgressBar
+                    v-if="batchProgress"
+                    :progress="batchProgress"
+                    @cancel="handleCancel"
+                />
+            </div>
+
             <DocumentBatchActions
                 :active-tab="activeTab"
-                :form-processing="form.processing"
+                :form-processing="form.processing || isUploading"
                 :zip-form-processing="zipForm.processing"
                 :selected-files-count="selectedFiles.length"
                 :zip-form-has-file="!!zipForm.zip_file"
