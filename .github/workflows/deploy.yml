@@ -1,0 +1,135 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+# Only one deploy at a time — cancel in-progress if a new push arrives
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+jobs:
+  # ── Run checks before deploying ──────────────────────────────
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+          npm ci
+
+      - name: Copy env and generate key
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Run Pint
+        run: vendor/bin/pint --test
+
+      - name: Run tests
+        run: vendor/bin/pest
+
+  # ── Deploy to production ─────────────────────────────────────
+  deploy:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd /var/www/backend_law_project
+
+            echo "▸ Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "▸ Installing dependencies..."
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            echo "▸ Running migrations..."
+            php artisan migrate --force
+
+            echo "▸ Clearing caches..."
+            php artisan optimize:clear
+
+            echo "▸ Rebuilding caches..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "▸ Fixing permissions..."
+            chmod -R 775 storage bootstrap/cache
+            chown -R www-data:www-data storage bootstrap/cache
+
+            echo "▸ Building frontend assets..."
+            cd /var/www/backend_law_project
+            npm ci --prefer-offline 2>/dev/null || npm install --prefer-offline
+            npm run build
+
+            echo "▸ Restarting services..."
+            php artisan queue:restart 2>/dev/null || true
+            php artisan horizon:terminate 2>/dev/null || true
+
+            # Restart PHP-FPM
+            for v in 8.3 8.2 8.1; do
+              if systemctl is-active --quiet "php${v}-fpm" 2>/dev/null; then
+                sudo systemctl restart "php${v}-fpm"
+                echo "  ✓ PHP-FPM ${v} restarted"
+                break
+              fi
+            done
+
+            # Reload Nginx
+            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null || true
+
+            echo "▸ Deploy complete!"
+
+      - name: Verify deployment (health check)
+        uses: appleboy/http-action@master
+        with:
+          url: ${{ vars.PRODUCTION_URL }}/api/health
+          method: GET
+          timeout: 30
+          retry: 5
+          retry_delay: 5
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Actor** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **URL** | ${{ vars.PRODUCTION_URL }} |" >> $GITHUB_STEP_SUMMARY

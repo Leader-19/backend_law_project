@@ -173,7 +173,7 @@ const permissionBadgeClass: Record<string, string> = {
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-8 max-w-7xl mx-auto w-full">
+        <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-8 max-w-8xl mx-auto w-full">
             <!-- Hero Welcome Card -->
             <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-500/10">
                 <div class="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
@@ -188,7 +188,7 @@ const permissionBadgeClass: Record<string, string> = {
                         <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
                             Welcome back, {{ user?.name || 'Administrator' }}! 👋
                         </h1>
-                        <p class="mt-2 text-sm text-blue-100/90 max-w-2xl leading-relaxed">
+                        <p class="mt-2 text-sm text-blue-100/90 max-w-8xl leading-relaxed">
                             {{ isAdmin
                                 ? 'Full administrative access active. All roles and categories auto-assigned. Manage users, categories, documents, and multi-currency subscriptions seamlessly.'
                                 : 'Access your assigned category dashboards, manage documents, and review recent activity.'

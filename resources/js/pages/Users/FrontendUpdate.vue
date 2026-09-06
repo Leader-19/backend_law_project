@@ -42,7 +42,7 @@ function submit() {
 <template>
     <Head title="Edit Frontend User" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <h1 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Edit Frontend User</h1>
                 <form @submit.prevent="submit" class="space-y-5">

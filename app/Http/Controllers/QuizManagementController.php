@@ -39,7 +39,7 @@ class QuizManagementController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -58,6 +58,14 @@ class QuizManagementController extends Controller
             'max_attempts' => $validated['max_attempts'] ?? 0,
             'is_active' => $validated['is_active'] ?? true,
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Quiz created successfully.',
+                'quiz' => $quiz->load('category:id,title'),
+            ], 201);
+        }
 
         return redirect()->route('quizzes-management.index')
             ->with('success', 'Quiz created successfully.')
@@ -106,7 +114,7 @@ class QuizManagementController extends Controller
             ->with('success', 'Quiz deleted successfully.');
     }
 
-    public function storeQuestion(Request $request, Quiz $quiz): RedirectResponse
+    public function storeQuestion(Request $request, Quiz $quiz): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string|max:1000',
@@ -139,15 +147,29 @@ class QuizManagementController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Question added successfully.',
+                    'question' => $question->load('options'),
+                ], 201);
+            }
+
             return back()->with('success', 'Question added successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to add question.',
+                ], 422);
+            }
             return back()->with('error', 'Failed to add question.');
         }
     }
 
-    public function updateQuestion(Request $request, Quiz $quiz, QuizQuestion $question): RedirectResponse
+    public function updateQuestion(Request $request, Quiz $quiz, QuizQuestion $question): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string|max:1000',
@@ -168,7 +190,6 @@ class QuizManagementController extends Controller
                 'type' => $validated['type'],
             ]);
 
-            // Delete existing options and recreate
             $question->options()->delete();
 
             foreach ($validated['options'] as $index => $option) {
@@ -182,10 +203,24 @@ class QuizManagementController extends Controller
 
             DB::commit();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Question updated successfully.',
+                    'question' => $question->load('options'),
+                ]);
+            }
+
             return back()->with('success', 'Question updated successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to update question.',
+                ], 422);
+            }
             return back()->with('error', 'Failed to update question.');
         }
     }

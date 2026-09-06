@@ -22,7 +22,7 @@ class DocumentsService
 
     public function getPaginated($perPage = 10, $page = 1, $search = '', $categoryIds = [], $searchType = 'all')
     {
-        return $this->repo->getPaginated($perPage, $page, $search, $categoryIds, $searchType);
+        return $this->repo->getPaginated($perPage, $page, (string) ($search ?? ''), $categoryIds, $searchType);
     }
 
     public function store($request)

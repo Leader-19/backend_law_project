@@ -45,7 +45,7 @@ function changePage(page: number) {
     <Head title="My Quiz Attempts" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3 max-w-4xl mx-auto">
+        <div class="p-3 max-w-8xl mx-auto">
             <Link :href="route('quizzes.index')" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-4">
                 <ArrowLeft class="w-4 h-4" /> Back to Quizzes
             </Link>

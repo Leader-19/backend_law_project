@@ -101,7 +101,7 @@ function clearSearch() {
     <Head title="Frontend Registered Users" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header section -->
             <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div>

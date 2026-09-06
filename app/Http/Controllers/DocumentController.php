@@ -22,7 +22,7 @@ class DocumentController extends Controller
     {
         $perPage = $request->get('per_page', 10);
         $page = $request->get('page', 1);
-        $search = $request->get('search', '');
+        $search = (string) $request->input('search', '');
         $categoryIds = $request->input('category_ids', []);
         $categoryIds = is_array($categoryIds) ? $categoryIds : [];
 

@@ -72,7 +72,7 @@ function confirmRemoveCategory() {
 <template>
     <Head title="User Categories" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>

@@ -49,7 +49,7 @@ function formatDate(value: string | null) {
 <template>
     <Head title="Payments" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div class="flex items-center gap-3">
                     <div class="rounded-xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-950 dark:text-blue-300"><ReceiptText class="h-6 w-6" /></div>

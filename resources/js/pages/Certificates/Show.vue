@@ -38,7 +38,7 @@ function printCertificate() {
     <Head :title="`Certificate: ${certificate.certificate_number}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3 max-w-3xl mx-auto">
+        <div class="p-3 max-w-8xl mx-auto">
             <Link :href="route('certificates.index')" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-4">
                 <ArrowLeft class="w-4 h-4" /> Back to Certificates
             </Link>

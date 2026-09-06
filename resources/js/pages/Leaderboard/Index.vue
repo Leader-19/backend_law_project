@@ -43,7 +43,7 @@ function getRankIcon(rank: number) {
     <Head title="Leaderboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3 max-w-4xl mx-auto">
+        <div class="p-3 max-w-8xl mx-auto">
             <div class="flex items-center gap-3 mb-6">
                 <Trophy class="w-6 h-6 text-yellow-500" />
                 <h1 class="text-2xl font-bold text-gray-900">Leaderboard</h1>

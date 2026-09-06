@@ -89,7 +89,7 @@ function clearSearch() {
 <template>
     <Head :title="`${plan.name} Categories`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header Section -->
             <section class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
                 <div>

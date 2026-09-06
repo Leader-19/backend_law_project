@@ -14,7 +14,7 @@ const form = useForm({ name: '', permissions: [] as string[] })
 <template>
     <Head title="Create Role" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-5xl p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl p-4 sm:p-6">
             <Link :href="route('roles.index')" class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 dark:text-slate-300">
                 <ArrowLeft class="h-4 w-4" /> Back to roles
             </Link>

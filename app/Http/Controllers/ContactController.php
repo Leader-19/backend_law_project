@@ -23,20 +23,32 @@ class ContactController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
             'message' => 'required|string|max:5000',
+            'guest_name' => 'nullable|string|max:255',
+            'guest_email' => 'nullable|email|max:255',
         ]);
 
         $user = $request->user();
 
         ContactMessage::create([
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
+            'guest_name' => $user ? null : $validated['guest_name'],
+            'guest_email' => $user ? null : $validated['guest_email'],
             'subject' => $validated['subject'],
             'message' => $validated['message'],
+            'status' => 'open',
         ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Message sent successfully. We will get back to you soon.',
+            ], 201);
+        }
 
         return back()->with('success', 'Message sent successfully. We will get back to you soon.');
     }

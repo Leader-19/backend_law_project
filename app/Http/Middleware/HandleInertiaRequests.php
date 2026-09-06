@@ -52,8 +52,12 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'auth' => [
-                'user' => $user,
-                'permissions' => fn () => $user ? $user->getAllPermissions()->pluck('name')->values()->all() : [],
+                'user' => $user ? $user->only([
+                    'id', 'name', 'email', 'status', 'avatar',
+                    'registration_source', 'approved_at', 'rejection_reason',
+                    'email_verified_at', 'created_at', 'updated_at',
+                ]) : null,
+                'permissions' => fn () => $user ? array_values($user->getAllPermissions()->pluck('name')->values()->all()) : [],
             ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),

@@ -141,24 +141,41 @@ class BackupController extends Controller
             $createSql = $create[0]->{'Create Table'} ?? $create[0]->{'create table'} ?? '';
             $output .= $createSql.";\n\n";
 
-            $rows = DB::table($tableName)->get();
-            foreach ($rows as $row) {
-                $columns = [];
-                $values = [];
+            // Stream through rows to avoid memory exhaustion on large tables
+            $cursor = DB::table($tableName)->cursor();
+            $columns = [];
+            $valueRows = [];
+            $rowCount = 0;
 
-                foreach ($row as $col => $val) {
-                    $columns[] = "`{$col}`";
-                    if ($val === null) {
-                        $values[] = 'NULL';
-                    } elseif (is_numeric($val)) {
-                        $values[] = (string) $val;
-                    } else {
-                        // Use prepared statement binding for safe escaping
-                        $values[] = ':val_'.count($values);
+            foreach ($cursor as $row) {
+                $rowValues = [];
+                if (! $columns) {
+                    foreach ($row as $col => $val) {
+                        $columns[] = "`{$col}`";
                     }
                 }
+                foreach ($row as $col => $val) {
+                    if ($val === null) {
+                        $rowValues[] = 'NULL';
+                    } elseif (is_numeric($val)) {
+                        $rowValues[] = (string) $val;
+                    } else {
+                        $rowValues[] = "'".addslashes((string) $val)."'";
+                    }
+                }
+                $valueRows[] = '('.implode(', ', $rowValues).')';
+                $rowCount++;
 
-                $output .= "INSERT INTO `{$tableName}` (".implode(', ', $columns).') VALUES ('.implode(', ', $values).");\n";
+                // Flush every 500 rows to keep memory bounded
+                if ($rowCount % 500 === 0) {
+                    $output .= "INSERT INTO `{$tableName}` (".implode(', ', $columns).') VALUES '.implode(', ', $valueRows).";\n";
+                    $valueRows = [];
+                }
+            }
+
+            // Flush remaining rows
+            if ($columns && $valueRows) {
+                $output .= "INSERT INTO `{$tableName}` (".implode(', ', $columns).') VALUES '.implode(', ', $valueRows).";\n";
             }
 
             $output .= "\n";
@@ -169,11 +186,13 @@ class BackupController extends Controller
 
     private function sanitizeDirName(string $name): string
     {
-        return preg_replace('/[^a-zA-Z0-9_\-\s]/', '_', $name);
+        $safe = preg_replace('/[^a-zA-Z0-9_\-\s]/', '_', $name);
+        return mb_substr($safe, 0, 80);
     }
 
     private function sanitizeFileName(string $name): string
     {
-        return preg_replace('/[^a-zA-Z0-9_\-\s]/', '_', $name);
+        $safe = preg_replace('/[^a-zA-Z0-9_\-\s]/', '_', $name);
+        return mb_substr($safe, 0, 80);
     }
 }

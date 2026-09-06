@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, Plus, Trash2, X } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { ArrowLeft } from 'lucide-vue-next'
+import { ref, onMounted, computed } from 'vue'
 import { type BreadcrumbItem } from '@/types'
+import QuizSettingsForm from './components/QuizSettingsForm.vue'
+import QuestionForm from './components/QuestionForm.vue'
+import QuestionsList from './components/QuestionsList.vue'
 
 interface Category {
     id: number
@@ -13,8 +16,90 @@ interface Category {
 }
 
 interface QuizOption {
+    id?: number
     option_text: string
     is_correct: boolean
+}
+
+interface QuizQuestion {
+    id: number
+    question: string
+    type: string
+    sort_order: number
+    options: QuizOption[]
+}
+
+interface Quiz {
+    id: number
+    title: string
+    description: string | null
+    passing_score: number
+    time_limit_minutes: number | null
+    max_attempts: number
+    is_active: boolean
+    category_id: number
+    questions: QuizQuestion[]
+}
+
+function getCsrfToken(): string {
+    return decodeURIComponent(
+        (document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''),
+    )
+}
+
+async function apiPost(url: string, data: any) {
+    const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': getCsrfToken(),
+        },
+        body: JSON.stringify(data),
+    })
+    const text = await res.text()
+    let payload
+    try { payload = JSON.parse(text) } catch { payload = text }
+    if (!res.ok) throw new Error(typeof payload === 'object' ? (payload.message || JSON.stringify(payload)) : String(payload))
+    return typeof payload === 'object' ? payload : JSON.parse(payload)
+}
+
+async function apiPut(url: string, data: any) {
+    const res = await fetch(url, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': getCsrfToken(),
+        },
+        body: JSON.stringify(data),
+    })
+    const text = await res.text()
+    let payload
+    try { payload = JSON.parse(text) } catch { payload = text }
+    if (!res.ok) throw new Error(typeof payload === 'object' ? (payload.message || JSON.stringify(payload)) : String(payload))
+    return typeof payload === 'object' ? payload : JSON.parse(payload)
+}
+
+async function apiDelete(url: string) {
+    const res = await fetch(url, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': getCsrfToken(),
+        },
+    })
+    const text = await res.text()
+    let payload
+    try { payload = JSON.parse(text) } catch { payload = text }
+    if (!res.ok) throw new Error(typeof payload === 'object' ? (payload.message || JSON.stringify(payload)) : String(payload))
+    return typeof payload === 'object' ? payload : JSON.parse(payload)
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -26,18 +111,13 @@ const props = defineProps<{
     categories: Category[]
 }>()
 
-const form = useForm({
-    title: '',
-    description: '',
-    category_id: '',
-    passing_score: 70,
-    time_limit_minutes: '',
-    max_attempts: 0,
-    is_active: true,
-})
+const draftQuiz = ref<Quiz | null>(null)
+const draftLoading = ref(true)
+const draftError = ref('')
 
-// Question form
+const questions = ref<QuizQuestion[]>([])
 const showQuestionForm = ref(false)
+const editingQuestionId = ref<number | null>(null)
 const questionForm = ref<{
     question: string
     type: string
@@ -51,10 +131,94 @@ const questionForm = ref<{
     ],
 })
 
-const savedQuizId = ref<number | null>(null)
-const quizSaved = ref(false)
+const settingsForm = computed({
+    get: () => draftQuiz.value ? {
+        title: draftQuiz.value.title,
+        description: draftQuiz.value.description || '',
+        category_id: String(draftQuiz.value.category_id),
+        passing_score: draftQuiz.value.passing_score,
+        time_limit_minutes: draftQuiz.value.time_limit_minutes ?? '',
+        max_attempts: draftQuiz.value.max_attempts,
+        is_active: draftQuiz.value.is_active,
+    } : {
+        title: '',
+        description: '',
+        category_id: '',
+        passing_score: 70,
+        time_limit_minutes: '',
+        max_attempts: 0,
+        is_active: true,
+    },
+    set: (val) => {
+        if (!draftQuiz.value) return
+        draftQuiz.value.title = val.title
+        draftQuiz.value.description = val.description
+        draftQuiz.value.category_id = Number(val.category_id)
+        draftQuiz.value.passing_score = val.passing_score
+        draftQuiz.value.time_limit_minutes = val.time_limit_minutes ? Number(val.time_limit_minutes) : null
+        draftQuiz.value.max_attempts = val.max_attempts
+        draftQuiz.value.is_active = val.is_active
+    },
+})
+
+const savingSettings = ref(false)
+const submittingQuestion = ref(false)
+
+async function createDraftQuiz() {
+    draftLoading.value = true
+    draftError.value = ''
+    try {
+        const data = await apiPost(route('quizzes-management.store'), {
+            title: 'Untitled Quiz',
+            description: '',
+            category_id: props.categories[0]?.id || '',
+            passing_score: 70,
+            time_limit_minutes: null,
+            max_attempts: 0,
+            is_active: false,
+        })
+
+        draftQuiz.value = data.quiz
+    } catch (err) {
+        draftError.value = typeof err === 'string' ? err : (err.message || 'Could not start a new quiz. Please try again.')
+        console.error(err)
+    } finally {
+        draftLoading.value = false
+    }
+}
+
+async function updateSettings() {
+    if (!draftQuiz.value) return
+    savingSettings.value = true
+    try {
+        const data = await apiPut(route('quizzes-management.update', draftQuiz.value.id), {
+            title: settingsForm.value.title,
+            description: settingsForm.value.description,
+            category_id: Number(settingsForm.value.category_id),
+            passing_score: settingsForm.value.passing_score,
+            time_limit_minutes: settingsForm.value.time_limit_minutes ? Number(settingsForm.value.time_limit_minutes) : null,
+            max_attempts: settingsForm.value.max_attempts,
+            is_active: settingsForm.value.is_active,
+        })
+
+        if (draftQuiz.value) {
+            draftQuiz.value.title = data.quiz?.title ?? draftQuiz.value.title
+            draftQuiz.value.description = data.quiz?.description ?? draftQuiz.value.description
+            draftQuiz.value.category_id = data.quiz?.category_id ?? draftQuiz.value.category_id
+            draftQuiz.value.passing_score = data.quiz?.passing_score ?? draftQuiz.value.passing_score
+            draftQuiz.value.time_limit_minutes = data.quiz?.time_limit_minutes ?? draftQuiz.value.time_limit_minutes
+            draftQuiz.value.max_attempts = data.quiz?.max_attempts ?? draftQuiz.value.max_attempts
+            draftQuiz.value.is_active = data.quiz?.is_active ?? draftQuiz.value.is_active
+        }
+    } catch (err) {
+        console.error(err)
+    } finally {
+        savingSettings.value = false
+    }
+}
 
 function openNewQuestion() {
+    editingQuestionId.value = null
     questionForm.value = {
         question: '',
         type: 'multiple_choice',
@@ -66,227 +230,160 @@ function openNewQuestion() {
     showQuestionForm.value = true
 }
 
-function addOption() {
-    questionForm.value.options.push({ option_text: '', is_correct: false })
+function openEditQuestion(q: QuizQuestion) {
+    editingQuestionId.value = q.id
+    questionForm.value = {
+        question: q.question,
+        type: q.type,
+        options: q.options.map(o => ({
+            id: o.id,
+            option_text: o.option_text,
+            is_correct: o.is_correct,
+        })),
+    }
+    showQuestionForm.value = true
 }
 
-function removeOption(index: number) {
-    if (questionForm.value.options.length > 2) {
-        questionForm.value.options.splice(index, 1)
+async function submitQuestion() {
+    if (!draftQuiz.value) return
+    if (!questionForm.value.question.trim() || questionForm.value.options.some(o => !o.option_text.trim())) return
+
+    submittingQuestion.value = true
+    try {
+        const url = editingQuestionId.value
+            ? route('quizzes-management.questions.update', [draftQuiz.value.id, editingQuestionId.value])
+            : route('quizzes-management.questions.store', draftQuiz.value.id)
+
+        const data = editingQuestionId.value
+            ? await apiPut(url, {
+                question: questionForm.value.question,
+                type: questionForm.value.type,
+                options: questionForm.value.options,
+            })
+            : await apiPost(url, {
+                question: questionForm.value.question,
+                type: questionForm.value.type,
+                options: questionForm.value.options,
+            })
+
+        if (editingQuestionId.value) {
+            const idx = questions.value.findIndex(q => q.id === editingQuestionId.value)
+            if (idx !== -1) {
+                questions.value[idx] = data.question
+            }
+        } else {
+            questions.value.push(data.question)
+        }
+
+        showQuestionForm.value = false
+        editingQuestionId.value = null
+        questionForm.value = {
+            question: '',
+            type: 'multiple_choice',
+            options: [
+                { option_text: '', is_correct: false },
+                { option_text: '', is_correct: false },
+            ],
+        }
+    } catch (err) {
+        console.error(err)
+        alert('Failed to save question. Please try again.')
+    } finally {
+        submittingQuestion.value = false
     }
 }
 
-function toggleCorrectOption(index: number) {
-    questionForm.value.options[index].is_correct = !questionForm.value.options[index].is_correct
+async function deleteQuestion(questionId: number) {
+    if (!confirm('Delete this question?')) return
+    if (!draftQuiz.value) return
+
+    try {
+        await apiDelete(route('quizzes-management.questions.destroy', [draftQuiz.value.id, questionId]))
+        questions.value = questions.value.filter(q => q.id !== questionId)
+    } catch (err) {
+        console.error(err)
+        alert('Failed to delete question.')
+    }
 }
 
-function submit() {
-    form.post(route('quizzes-management.store'), {
-        onSuccess: (page) => {
-            // After quiz is created, we need the quiz ID to add questions
-            // The redirect goes to index, so we store the ID from flash
-            const flash = (page.props as any).flash
-            if (flash?.quiz_id) {
-                savedQuizId.value = flash.quiz_id
-                quizSaved.value = true
-            }
-        },
-    })
+function finishQuiz() {
+    if (!draftQuiz.value) return
+    window.location.href = route('quizzes-management.index')
 }
 
-function submitQuestion() {
-    if (!savedQuizId.value) return
-
-    useForm({
-        question: questionForm.value.question,
-        type: questionForm.value.type,
-        options: questionForm.value.options,
-    }).post(route('quizzes-management.questions.store', savedQuizId.value), {
-        onSuccess: () => {
-            showQuestionForm.value = false
-            // Reload to get updated questions
-            window.location.reload()
-        },
-    })
-}
+onMounted(async () => {
+    await createDraftQuiz()
+})
 </script>
 
 <template>
     <Head title="Create Quiz" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3 max-w-3xl mx-auto">
+        <div class="p-3 max-w-8xl mx-auto">
             <Link :href="route('quizzes-management.index')" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-4">
                 <ArrowLeft class="w-4 h-4" /> Back to Quizzes
             </Link>
 
-            <!-- Quiz Settings -->
-            <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                <h1 class="text-xl font-bold text-gray-900 mb-4">Create New Quiz</h1>
-
-                <form @submit.prevent="submit" class="space-y-5">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                        <input
-                            v-model="form.title"
-                            type="text"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Quiz title..."
-                        />
-                        <p v-if="form.errors.title" class="text-red-500 text-xs mt-1">{{ form.errors.title }}</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea
-                            v-model="form.description"
-                            rows="3"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Quiz description..."
-                        ></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-                        <select
-                            v-model="form.category_id"
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            <option value="">Select category</option>
-                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.title }}</option>
-                        </select>
-                        <p v-if="form.errors.category_id" class="text-red-500 text-xs mt-1">{{ form.errors.category_id }}</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Passing Score (%) *</label>
-                            <input
-                                v-model.number="form.passing_score"
-                                type="number"
-                                min="0"
-                                max="100"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Time Limit (minutes)</label>
-                            <input
-                                v-model="form.time_limit_minutes"
-                                type="number"
-                                min="1"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="No limit"
-                            />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Attempts (0 = unlimited)</label>
-                            <input
-                                v-model.number="form.max_attempts"
-                                type="number"
-                                min="0"
-                                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div class="flex items-center gap-2 pt-6">
-                            <input
-                                v-model="form.is_active"
-                                type="checkbox"
-                                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label class="text-sm text-gray-700">Active</label>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
-                    >
-                        {{ form.processing ? 'Creating...' : 'Create Quiz' }}
-                    </button>
-                </form>
+            <!-- Draft Loading / Error -->
+            <div v-if="draftLoading" class="flex items-center justify-center py-20">
+                <div class="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+            <div v-else-if="draftError" class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 mb-6">
+                {{ draftError }}
+                <button @click="createDraftQuiz" class="ml-2 underline">Retry</button>
             </div>
 
-            <!-- Questions Section (shown after quiz is saved) -->
-            <div v-if="quizSaved" class="bg-white border border-gray-200 rounded-lg p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900">Add Questions</h2>
-                    <button @click="openNewQuestion" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700">
-                        <Plus class="w-4 h-4" /> Add Question
-                    </button>
-                </div>
+            <template v-else-if="draftQuiz">
+                <!-- Quiz Settings -->
+                <QuizSettingsForm
+                    :form="settingsForm"
+                    :categories="categories"
+                    :saving="savingSettings"
+                    @submit="updateSettings"
+                />
 
-                <!-- Question Form -->
-                <div v-if="showQuestionForm" class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-semibold text-gray-900">New Question</h3>
-                        <button @click="showQuestionForm = false" class="text-gray-400 hover:text-gray-600">
-                            <X class="w-5 h-5" />
+                <!-- Questions Section -->
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">
+                            Questions ({{ questions.length }})
+                        </h2>
+                        <button @click="openNewQuestion" class="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Question
                         </button>
                     </div>
 
-                    <form @submit.prevent="submitQuestion" class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Question *</label>
-                            <textarea v-model="questionForm.question" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Enter question..." required></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                            <select v-model="questionForm.type" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                                <option value="multiple_choice">Multiple Choice</option>
-                                <option value="true_false">True/False</option>
-                            </select>
-                        </div>
+                    <QuestionForm
+                        v-if="showQuestionForm"
+                        v-model:questionForm="questionForm"
+                        :editing="editingQuestionId !== null"
+                        :submitting="submittingQuestion"
+                        @submit="submitQuestion"
+                        @cancel="showQuestionForm = false"
+                    />
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Options (click circles to mark correct — multiple allowed)</label>
-                            <div v-for="(option, index) in questionForm.options" :key="index" class="flex items-center gap-2 mb-2">
-                                <button type="button" @click="toggleCorrectOption(index)" :class="[
-                                    'w-6 h-6 rounded-full border-2 flex-shrink-0 transition-colors',
-                                    option.is_correct ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-gray-400'
-                                ]">
-                                    <span v-if="option.is_correct" class="text-white text-xs">✓</span>
-                                </button>
-                                <input
-                                    v-model="option.option_text"
-                                    type="text"
-                                    class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                                    :placeholder="`Option ${index + 1}`"
-                                    required
-                                />
-                                <button type="button" @click="removeOption(index)" v-if="questionForm.options.length > 2" class="text-red-400 hover:text-red-600">
-                                    <Trash2 class="w-4 h-4" />
-                                </button>
-                            </div>
-                            <button type="button" @click="addOption" class="text-sm text-blue-600 hover:underline">
-                                + Add Option
-                            </button>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <button type="submit" :disabled="!questionForm.question.trim() || questionForm.options.some(o => !o.option_text.trim())" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-                                Add Question
-                            </button>
-                            <button type="button" @click="showQuestionForm = false" class="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
+                    <QuestionsList
+                        :questions="questions"
+                        :show-form="showQuestionForm"
+                        @edit="openEditQuestion"
+                        @delete="deleteQuestion"
+                    />
                 </div>
 
-                <div v-if="!showQuestionForm" class="text-center py-6 text-gray-400 text-sm">
-                    Click "Add Question" to start adding questions to this quiz.
+                <!-- Finish -->
+                <div class="mt-6 flex justify-end">
+                    <button
+                        @click="finishQuiz"
+                        class="px-6 py-2.5 text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors"
+                    >
+                        Finish & View Quizzes
+                    </button>
                 </div>
-            </div>
-
-            <!-- Pre-save hint -->
-            <div v-if="!quizSaved" class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-                💡 Save the quiz settings first, then you can add questions and answers.
-            </div>
+            </template>
         </div>
     </AppLayout>
 </template>

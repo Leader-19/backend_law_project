@@ -206,7 +206,7 @@ function changeItemsPerPage(perPage: number) {
     <Head title="ព័ត៌មានប្រភេទ" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-6xl p-4 sm:p-6">
+        <div class="mx-auto max-w-8xl p-4 sm:p-6">
             <Link :href="route('categories.index')" class="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300">
                 ត្រឡប់ក្រោយ
             </Link>

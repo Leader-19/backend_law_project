@@ -14,11 +14,12 @@ class DocumentsRepository implements DocumentsInterface
         return Document::with('category')->get();
     }
 
-    public function getPaginated(int $perPage = 10, int $page = 1, string $search = '', array $categoryIds = [], string $searchType = 'all'): LengthAwarePaginator
+    public function getPaginated(int $perPage = 10, int $page = 1, ?string $search = '', array $categoryIds = [], string $searchType = 'all'): LengthAwarePaginator
     {
+        $search = (string) ($search ?? '');
         $query = Document::with('category')->orderBy('created_at', 'desc');
 
-        if ($search) {
+        if ($search !== '') {
             $query->where(function ($q) use ($search, $searchType) {
                 if ($searchType === 'name') {
                     $q->where('doc_name', 'like', "%{$search}%");

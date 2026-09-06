@@ -142,7 +142,7 @@ onUnmounted(() => {
     <Head :title="`Take Quiz: ${quiz.title}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3 max-w-3xl mx-auto">
+        <div class="p-3 max-w-8xl mx-auto">
             <!-- Header -->
             <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4 flex items-center justify-between">
                 <button @click="handleBack" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">

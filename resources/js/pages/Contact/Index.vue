@@ -64,7 +64,7 @@ function changePage(page: number) {
     <Head title="Contact Admin" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3 max-w-4xl mx-auto">
+        <div class="p-3 max-w-8xl mx-auto">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
                     <MessageSquare class="w-6 h-6 text-blue-600" />

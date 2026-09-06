@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Middleware\EncryptRouteParameters;
 use App\Http\Middleware\EnforceSubscriptionLimits;
 use App\Http\Middleware\EnsureAccountIsApproved;
 use App\Http\Middleware\EnsureUserHasCategoryPermission;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RouteSecurity;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleRequests;
 use Illuminate\Foundation\Application;
@@ -32,6 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'category.permission' => EnsureUserHasCategoryPermission::class,
             'throttle.api' => ThrottleRequests::class,
             'subscription.limit' => EnforceSubscriptionLimits::class,
+            'route.security' => RouteSecurity::class,
+            'route.encrypt' => EncryptRouteParameters::class,
         ]);
 
         $middleware->web(append: [

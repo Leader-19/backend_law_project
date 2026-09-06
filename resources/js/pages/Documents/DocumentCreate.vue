@@ -84,7 +84,7 @@ const handleCancel = () => {
     <Head title="Create Document" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="max-w-3xl mx-auto p-4 sm:p-6">
+        <div class="max-w-8xl mx-auto p-4 sm:p-6">
             <!-- Header -->
             <div class="flex items-center gap-3 mb-6">
                 <Link

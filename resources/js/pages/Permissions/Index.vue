@@ -54,7 +54,7 @@ function scanRoutes() {
 <template>
     <Head title="Permissions" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header Section -->
             <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div>

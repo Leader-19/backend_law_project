@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\SubscriptionRequest;
 use App\Models\Category;
 use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
@@ -26,13 +27,10 @@ class UserSubscriptionController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(SubscriptionRequest $request)
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'subscription_plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
-        ]);
+        $validated = $request->validated();
 
         $plan = SubscriptionPlan::findOrFail($validated['subscription_plan_id']);
 
@@ -69,7 +67,6 @@ class UserSubscriptionController extends Controller
                 'ends_at' => $plan->duration_days ? now()->addDays($plan->duration_days) : null,
             ]);
 
-            // Auto-assign plan's default categories to the user
             foreach ($plan->categories as $category) {
                 $existing = $category->users()
                     ->where('user_id', $user->id)

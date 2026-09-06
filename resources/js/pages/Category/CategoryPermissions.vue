@@ -129,7 +129,7 @@ function parsePermissions(permissionStr: string | undefined): string[] {
 <template>
     <Head :title="`Category access – ${props.category.title}`" />
     <AppLayout :breadcrumbs="[{ title: 'Categories', href: '/categories' }, { title: 'Access', href: '#' }]">
-        <main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                 <h1 class="text-xl font-bold">Category access: {{ props.category.title }}</h1>
                 <p class="mt-1 text-sm text-slate-500">Assign an individual or a team (role). Members only see categories assigned to them or their team.</p>

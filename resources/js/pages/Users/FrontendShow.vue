@@ -54,7 +54,7 @@ function deleteUser() {
 <template>
     <Head :title="`User: ${user.name}`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <section class="flex items-center gap-4">
                 <Link href="/frontend-users" class="text-sm text-blue-600 hover:text-blue-700">&larr; Back to Frontend Users</Link>
             </section>

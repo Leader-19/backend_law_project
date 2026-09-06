@@ -35,7 +35,7 @@ class RoleController extends Controller
             'roles' => $roles->getCollection()->map(fn ($role) => [
                 'id' => $role->id,
                 'name' => $role->name,
-                'permissions' => $role->permissions->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values()->all(),
+                'permissions' => array_values($role->permissions->map(fn ($p) => ['id' => $p->id, 'name' => $p->name])->values()->all()),
             ])->all(),
             'pagination' => [
                 'current_page' => $roles->currentPage(),

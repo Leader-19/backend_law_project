@@ -340,7 +340,7 @@ const handleCancel = () => {
     <Head title="Batch Create Documents" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow">
+        <div class="max-w-8xl mx-auto p-6 bg-white rounded-lg shadow">
 
             <div class="mb-6">
                 <Link

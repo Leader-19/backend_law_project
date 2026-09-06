@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -145,20 +145,10 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(CategoryRequest $request)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:500'],
-            'parent_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('categories', 'id'),
-            ],
-        ]);
-
         $category = Category::create([
-            ...$validated,
+            ...$request->validated(),
             'user_id' => $request->user()->id,
         ]);
 
@@ -169,22 +159,10 @@ class CategoryController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, string $id)
+    public function update(CategoryRequest $request, string $id)
     {
         $category = Category::findOrFail($id);
-
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:500'],
-            'parent_id' => [
-                'nullable',
-                'integer',
-                Rule::notIn($this->categoryAndDescendantIds($category->id)),
-                Rule::exists('categories', 'id'),
-            ],
-        ]);
-
-        $category->update($validated);
+        $category->update($request->validated());
 
         return response()->json([
             'status' => 'success',
@@ -199,23 +177,5 @@ class CategoryController extends Controller
         $category->delete();
 
         return response()->noContent();
-    }
-
-    /**
-     * Return a category and every nested child, to prevent circular trees.
-     *
-     * @return array<int>
-     */
-    private function categoryAndDescendantIds(int $categoryId): array
-    {
-        $ids = [$categoryId];
-        $pending = [$categoryId];
-
-        while ($pending !== []) {
-            $pending = Category::whereIn('parent_id', $pending)->pluck('id')->all();
-            $ids = [...$ids, ...$pending];
-        }
-
-        return $ids;
     }
 }

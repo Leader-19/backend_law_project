@@ -10,7 +10,7 @@ interface DocumentsInterface
 {
     public function getAll(): Collection;
 
-    public function getPaginated(int $perPage = 10, int $page = 1, string $search = '', array $categoryIds = [], string $searchType = 'all'): LengthAwarePaginator;
+    public function getPaginated(int $perPage = 10, int $page = 1, ?string $search = '', array $categoryIds = [], string $searchType = 'all'): LengthAwarePaginator;
 
     public function store(array $data): Model;
 

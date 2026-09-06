@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import { Plus, X } from 'lucide-vue-next'
+import { Plus, X, Search } from 'lucide-vue-next'
 
 interface Plan {
     id?: number
@@ -30,6 +30,15 @@ const featureInput = ref('')
 const featuresList = ref<string[]>([])
 
 const selectedCategoryIds = ref<number[]>([])
+const categorySearch = ref('')
+
+const filteredCategories = computed(() => {
+    if (!categorySearch.value.trim()) return props.categories
+    const query = categorySearch.value.toLowerCase()
+    return props.categories.filter(c =>
+        c.title.toLowerCase().includes(query)
+    )
+})
 
 const form = useForm({
     name: '',
@@ -57,7 +66,6 @@ watch(() => props.plan, (newPlan) => {
         form.max_documents = newPlan.max_documents
         form.max_storage_mb = newPlan.max_storage_mb
         form.is_active = newPlan.is_active
-        // Load assigned category IDs from plan categories relationship
         selectedCategoryIds.value = (newPlan as any).categories ? (newPlan as any).categories.map((c: any) => c.id) : []
     } else {
         form.reset()
@@ -65,6 +73,7 @@ watch(() => props.plan, (newPlan) => {
         featuresList.value = []
         selectedCategoryIds.value = []
     }
+    categorySearch.value = ''
 }, { immediate: true })
 
 function addFeature() {
@@ -167,15 +176,33 @@ function submit() {
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Assign Categories</label>
                     <p class="mt-1 text-xs text-slate-400">Select which categories users on this plan can access.</p>
-                    <div class="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1">
-                        <label v-for="cat in categories" :key="cat.id"
-                            class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
-                            <input type="checkbox" :value="cat.id" v-model="selectedCategoryIds"
-                                class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                            <span class="text-sm text-slate-700 dark:text-slate-300">{{ cat.title }}</span>
-                            <span v-if="cat.parent_id" class="text-xs text-slate-400">— sub</span>
-                        </label>
-                        <p v-if="!categories?.length" class="text-xs text-slate-400 italic">No categories available.</p>
+                    <div class="mt-2">
+                        <div class="relative mb-2">
+                            <Search class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            <input
+                                v-model="categorySearch"
+                                type="text"
+                                placeholder="Search categories..."
+                                class="w-full rounded-lg border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white"
+                            />
+                            <button
+                                v-if="categorySearch"
+                                @click="categorySearch = ''"
+                                class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                            >
+                                <X class="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div class="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1">
+                            <label v-for="cat in filteredCategories" :key="cat.id"
+                                class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors">
+                                <input type="checkbox" :value="cat.id" v-model="selectedCategoryIds"
+                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                                <span class="text-sm text-slate-700 dark:text-slate-300">{{ cat.title }}</span>
+                                <span v-if="cat.parent_id" class="text-xs text-slate-400">— sub</span>
+                            </label>
+                            <p v-if="!filteredCategories.length" class="text-xs text-slate-400 italic py-2">No categories match your search.</p>
+                        </div>
                     </div>
                     <p v-if="selectedCategoryIds.length > 0" class="mt-1 text-xs text-slate-500">
                         {{ selectedCategoryIds.length }} {{ selectedCategoryIds.length === 1 ? 'category' : 'categories' }} selected
