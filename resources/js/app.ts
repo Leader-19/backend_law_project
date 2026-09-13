@@ -62,6 +62,8 @@ initializeTheme();
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/build/sw.js').catch(() => {})
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
+            console.error('Service Worker registration failed:', err);
+        })
     })
 }

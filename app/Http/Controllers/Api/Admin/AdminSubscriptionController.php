@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Controller;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
@@ -101,7 +102,7 @@ class AdminSubscriptionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Payment approved and subscription activated.',
+            'message' => $this->actorMessage('approved', 'payment and activated subscription'),
             'subscription' => $subscription->fresh()->load(['user:id,name,email', 'plan']),
         ]);
     }
@@ -120,7 +121,7 @@ class AdminSubscriptionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Payment request rejected.',
+            'message' => $this->actorMessage('rejected', 'payment request'),
         ]);
     }
 
@@ -200,7 +201,7 @@ class AdminSubscriptionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Plan created successfully.',
+            'message' => $this->actorMessage('created', 'plan'),
             'plan' => $plan->load('categories:id,title'),
         ], 201);
     }
@@ -244,7 +245,7 @@ class AdminSubscriptionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Plan updated successfully.',
+            'message' => $this->actorMessage('updated', 'plan'),
             'plan' => $subscriptionPlan->fresh()->load('categories:id,title'),
         ]);
     }
@@ -260,7 +261,7 @@ class AdminSubscriptionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Plan deleted successfully.',
+            'message' => $this->actorMessage('deleted', 'plan'),
         ]);
     }
 
@@ -288,16 +289,29 @@ class AdminSubscriptionController extends Controller
             'category_ids.*' => ['integer', 'distinct', 'exists:categories,id'],
         ]);
 
-        $subscriptionPlan->categories()->sync(
-            collect($validated['category_ids'])->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all()
-        );
+        $changes = DB::transaction(function () use ($subscriptionPlan, $validated) {
+            $changes = $subscriptionPlan->categories()->sync(
+                collect($validated['category_ids'])
+                    ->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])
+                    ->all(),
+            );
 
-        SubscriptionPlan::clearCache();
+            SubscriptionPlan::clearCache();
+
+            ActivityLog::record('plan_categories_synced', 'Categories updated for plan '.$subscriptionPlan->name, $subscriptionPlan, [
+                'attached' => $changes['attached'],
+                'detached' => $changes['detached'],
+                'updated' => $changes['updated'],
+            ]);
+
+            return $changes;
+        });
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Plan categories updated successfully.',
+            'message' => $this->actorMessage('updated', 'plan categories'),
             'plan' => $subscriptionPlan->fresh()->load('categories:id,title'),
+            'changes' => $changes,
         ]);
     }
 }

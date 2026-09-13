@@ -88,6 +88,14 @@ function removeFeature(index: number) {
     featuresList.value.splice(index, 1)
 }
 
+function selectAllCategories() {
+    selectedCategoryIds.value = props.categories.map(c => c.id)
+}
+
+function deselectAllCategories() {
+    selectedCategoryIds.value = []
+}
+
 function submit() {
     form.features = featuresList.value
     form.category_ids = selectedCategoryIds.value
@@ -176,6 +184,15 @@ function submit() {
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Assign Categories</label>
                     <p class="mt-1 text-xs text-slate-400">Select which categories users on this plan can access.</p>
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Assign Categories</label>
+                        <div class="flex items-center gap-1.5 text-xs">
+                            <button type="button" @click="selectAllCategories" class="font-semibold text-blue-600 hover:text-blue-700">Select All</button>
+                            <span class="text-slate-300 dark:text-slate-600">|</span>
+                            <button type="button" @click="deselectAllCategories" class="text-slate-400 hover:text-slate-600">Deselect All</button>
+                        </div>
+                    </div>
+                    <p class="mt-0.5 text-xs text-slate-400">Select which categories users on this plan can access.</p>
                     <div class="mt-2">
                         <div class="relative mb-2">
                             <Search class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />

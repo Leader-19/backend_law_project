@@ -15,6 +15,7 @@ class UserSubscriptionController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        app(\App\Services\SubscriptionService::class)->expireEndedSubscriptions();
 
         $subscriptions = UserSubscription::where('user_id', $user->id)
             ->with('plan:id,name,slug,description,price,currency,duration_days,features')
@@ -66,16 +67,6 @@ class UserSubscriptionController extends Controller
                 'starts_at' => now(),
                 'ends_at' => $plan->duration_days ? now()->addDays($plan->duration_days) : null,
             ]);
-
-            foreach ($plan->categories as $category) {
-                $existing = $category->users()
-                    ->where('user_id', $user->id)
-                    ->first();
-
-                if (! $existing) {
-                    $category->users()->attach($user->id, ['permission' => 'view']);
-                }
-            }
 
             return $sub;
         });

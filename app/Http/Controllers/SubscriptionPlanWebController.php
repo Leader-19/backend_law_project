@@ -18,7 +18,7 @@ class SubscriptionPlanWebController extends Controller
 
         // Filter subscriptions by status if provided
         $statusFilter = $request->query('status');
-        $subscriptionQuery = UserSubscription::with(['user', 'plan'])
+        $subscriptionQuery = UserSubscription::with(['user', 'plan', 'payments:id,user_subscription_id,receipt_path,status'])
             ->when($statusFilter && in_array($statusFilter, ['active', 'pending', 'cancelled', 'expired']),
                 fn ($q) => $q->where('status', $statusFilter))
             ->latest();
@@ -156,6 +156,7 @@ class SubscriptionPlanWebController extends Controller
         return Inertia::render('SubscriptionPlans/Categories', [
             'plan' => $subscriptionPlan->load('categories:id,title,parent_id'),
             'categories' => $paginated->items(),
+            'all_category_ids' => Category::pluck('id')->all(),
             'pagination' => [
                 'current_page' => $paginated->currentPage(),
                 'last_page' => $paginated->lastPage(),

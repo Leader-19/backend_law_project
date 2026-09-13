@@ -28,6 +28,7 @@ const props = defineProps<{
 
 const selectedCategories = ref<number[]>([]);
 const isDownloading = ref(false);
+const includeDatabase = ref(false);
 
 function toggleCategory(categoryId: number) {
     const index = selectedCategories.value.indexOf(categoryId);
@@ -70,6 +71,7 @@ function downloadBackup() {
 
     const params = new URLSearchParams();
     selectedCategories.value.forEach(id => params.append('category_ids[]', String(id)));
+    if (includeDatabase.value) params.set('include_database', '1');
 
     window.location.href = `/backup/download?${params.toString()}`;
 
@@ -154,6 +156,16 @@ function downloadBackup() {
                         Select at least one category to backup
                     </span>
                 </div>
+
+                <label class="mt-4 flex items-start gap-2 text-sm cursor-pointer">
+                    <input v-model="includeDatabase" type="checkbox" class="mt-0.5 rounded border-gray-300" />
+                    <span>
+                        Include full database dump
+                        <span class="block text-xs text-amber-600 dark:text-amber-400">
+                            This includes all application records, not only the selected categories. Store the archive securely.
+                        </span>
+                    </span>
+                </label>
             </div>
         </div>
     </AppLayout>

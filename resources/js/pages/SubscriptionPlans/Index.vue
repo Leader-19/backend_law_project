@@ -225,12 +225,13 @@ function userPlanCount(userId: number): number {
                 <DataTable
                     :data="subscriptions.data || []"
                     :pagination="{ current_page: subscriptions.current_page, last_page: subscriptions.last_page, per_page: subscriptions.per_page, total: subscriptions.total }"
-                    :columns="['user', 'plan', 'price', 'status', 'date', 'action']"
+                    :columns="['user', 'plan', 'price', 'receipt', 'status', 'date', 'action']"
                     @page-change="changeSubscriptionPage"
                 >
                     <template #header-user>User</template>
                     <template #header-plan>Plan</template>
                     <template #header-price>Price</template>
+                    <template #header-receipt>Receipt</template>
                     <template #header-status>Status</template>
                     <template #header-date>Subscribed Date</template>
                     <template #header-action>Action</template>
@@ -255,6 +256,10 @@ function userPlanCount(userId: number): number {
                         <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ item.plan ? formatPrice(item.plan.price, item.plan.currency) : '-' }}</span>
                     </template>
 
+                    <template #receipt="{ item }">
+                        <a v-if="item.payments?.[0]?.receipt_path" :href="`/storage/${item.payments[0].receipt_path}`" target="_blank"><img :src="`/storage/${item.payments[0].receipt_path}`" alt="Payment receipt" class="h-12 w-12 rounded-md border object-cover transition hover:scale-150 hover:shadow-lg" /></a><span v-else>—</span>
+                    </template>
+
                     <template #status="{ item }">
                         <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', item.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300']">
                             {{ item.status }}
@@ -268,12 +273,12 @@ function userPlanCount(userId: number): number {
                     <template #action="{ item }">
                         <div v-if="item.status === 'pending'" class="flex justify-end gap-2">
                             <button
-                                @click="router.post(`/payments/${item.id}/approve`, {}, { preserveScroll: true })"
+                                @click="router.post(`/subscription-payments/${item.id}/approve`, {}, { preserveScroll: true })"
                                 class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
                                 <CheckCircle2 class="h-3.5 w-3.5" /> Approve
                             </button>
                             <button
-                                @click="router.post(`/payments/${item.id}/reject`, {}, { preserveScroll: true })"
+                                @click="router.post(`/subscription-payments/${item.id}/reject`, {}, { preserveScroll: true })"
                                 class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
                                 <XCircle class="h-3.5 w-3.5" /> Reject
                             </button>

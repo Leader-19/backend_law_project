@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Database health check - runs every 30 minutes
 Schedule::command('health:database')->everyThirtyMinutes()->withoutOverlapping();
+Schedule::call(function () {
+    app(\App\Services\SubscriptionService::class)->expireEndedSubscriptions();
+})->hourly()->name('subscriptions:expire')->withoutOverlapping();

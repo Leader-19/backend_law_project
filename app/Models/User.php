@@ -95,7 +95,10 @@ class User extends Authenticatable
 
     public function canLogin(): bool
     {
-        return $this->isApproved();
+        // Public registration does not require an administrator approval step.
+        // Keep explicit rejected/inactive accounts blocked, but allow legacy
+        // pending users to sign in as well.
+        return ! $this->isRejected() && ! $this->isInactive();
     }
 
     // User can upload many Documents
@@ -118,6 +121,11 @@ class User extends Authenticatable
     public function subscriptions()
     {
         return $this->hasMany(UserSubscription::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function activeSubscription()
@@ -388,10 +396,21 @@ class User extends Authenticatable
     }
 
     // Get all category IDs this user can view (including inherited)
+    // Get all category IDs this user can view (including ancestors & descendants)
     public function getViewableCategoryIds(): array
     {
         if ($this->hasRole('Admin')) {
             return Category::pluck('id')->all();
+        }
+
+        $activePlans = $this->getActivePlans();
+
+        // If user has any active plan with unlimited categories (max_categories === null)
+        // and no specific restrictive categories assigned, grant all categories
+        foreach ($activePlans as $plan) {
+            if ($plan->max_categories === null && $plan->categories->isEmpty()) {
+                return Category::pluck('id')->all();
+            }
         }
 
         $categoryIds = $this->activeSubscriptions()->get()
@@ -399,6 +418,12 @@ class User extends Authenticatable
             ->unique()
             ->values()
             ->all();
+
+        // If the user has an active subscription but the plan has no explicit categories assigned yet,
+        // fall back to all categories so documents remain accessible
+        if (empty($categoryIds) && $activePlans->isNotEmpty()) {
+            $categoryIds = Category::pluck('id')->all();
+        }
 
         $categoryIds = [...$categoryIds, ...$this->categoryPermissions()
             ->where(function ($query) {
@@ -425,19 +450,20 @@ class User extends Authenticatable
             $categoryIds = [...$categoryIds, ...$teamCategoryIds];
         }
 
-        // Find all ancestors of viewable categories using batch iterative approach
         if ($categoryIds !== []) {
             $categoryIdsSet = array_flip($categoryIds);
+
+            // 1. Find all ancestors (parents) of viewable categories
             $allAncestorIds = [];
             $allAncestorIdsSet = [];
-            $pending = Category::whereIn('id', $categoryIds)
+            $pendingAncestors = Category::whereIn('id', $categoryIds)
                 ->pluck('parent_id')
                 ->filter()
                 ->values()
                 ->all();
 
-            while (! empty($pending)) {
-                $found = Category::whereIn('id', $pending)
+            while (! empty($pendingAncestors)) {
+                $found = Category::whereIn('id', $pendingAncestors)
                     ->select('id', 'parent_id')
                     ->get();
 
@@ -448,17 +474,46 @@ class User extends Authenticatable
                     }
                 }
 
-                $pending = $found->pluck('parent_id')
+                $pendingAncestors = $found->pluck('parent_id')
                     ->filter()
                     ->reject(fn ($id) => isset($allAncestorIdsSet[$id]) || isset($categoryIdsSet[$id]))
                     ->values()
                     ->all();
             }
 
-            $categoryIds = [...$categoryIds, ...$allAncestorIds];
+            // 2. Find all descendants (children, grandchildren) of viewable categories
+            $allDescendantIds = [];
+            $allDescendantIdsSet = [];
+            $pendingDescendants = Category::whereIn('parent_id', $categoryIds)
+                ->pluck('id')
+                ->values()
+                ->all();
+
+            while (! empty($pendingDescendants)) {
+                $newDescendants = [];
+                foreach ($pendingDescendants as $dId) {
+                    if (! isset($allDescendantIdsSet[$dId]) && ! isset($categoryIdsSet[$dId])) {
+                        $allDescendantIds[] = $dId;
+                        $allDescendantIdsSet[$dId] = true;
+                        $newDescendants[] = $dId;
+                    }
+                }
+
+                if (empty($newDescendants)) {
+                    break;
+                }
+
+                $pendingDescendants = Category::whereIn('parent_id', $newDescendants)
+                    ->pluck('id')
+                    ->reject(fn ($id) => isset($allDescendantIdsSet[$id]) || isset($categoryIdsSet[$id]))
+                    ->values()
+                    ->all();
+            }
+
+            $categoryIds = [...$categoryIds, ...$allAncestorIds, ...$allDescendantIds];
         }
 
-        return array_unique($categoryIds);
+        return array_values(array_unique($categoryIds));
     }
 
     private function hasTeamCategoryPermission(string $permission, array $candidateIds): bool

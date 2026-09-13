@@ -93,14 +93,13 @@ class ActivityLogController extends Controller
             'details' => ['nullable', 'array'],
         ]);
 
-        ActivityLog::create([
-            'action' => 'issue',
-            'severity' => $validated['severity'],
-            'description' => $validated['description'],
-            'new_data' => $validated['details'] ?? null,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        $log = ActivityLog::record(
+            'issue',
+            $validated['description'],
+            null,
+            $validated['details'] ?? null,
+        );
+        $log->update(['severity' => $validated['severity']]);
 
         return response()->json(['message' => 'System issue logged successfully.'], 201);
     }
@@ -185,31 +184,24 @@ class ActivityLogController extends Controller
 
         // Log any issues found
         foreach ($issues as $issue) {
-            ActivityLog::create([
-                'action' => 'issue',
-                'severity' => $issue['severity'],
-                'description' => $issue['description'],
-                'new_data' => $issue['details'],
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
+            $log = ActivityLog::record('issue', $issue['description'], null, $issue['details']);
+            $log->update(['severity' => $issue['severity']]);
         }
 
         // If no issues, log a success check
         if (empty($issues)) {
             // Optionally log healthy status (set action to 'health_check')
-            ActivityLog::create([
-                'action' => 'health_check',
-                'severity' => 'info',
-                'description' => 'Database health check passed. All systems operational.',
-                'new_data' => [
+            $log = ActivityLog::record(
+                'health_check',
+                'Database health check passed. All systems operational.',
+                null,
+                [
                     'driver' => config('database.default'),
                     'status' => 'healthy',
                     'checked_at' => now()->toIso8601String(),
                 ],
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
+            );
+            $log->update(['severity' => 'info']);
         }
 
         return response()->json([

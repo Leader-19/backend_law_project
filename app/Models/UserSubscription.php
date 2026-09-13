@@ -11,8 +11,14 @@ class UserSubscription extends Model
         'user_id',
         'subscription_plan_id',
         'status',
+        'provider',
+        'provider_subscription_id',
+        'provider_customer_id',
+        'billing_interval',
         'starts_at',
         'ends_at',
+        'current_period_ends_at',
+        'cancel_at_period_end',
         'cancelled_at',
     ];
 
@@ -20,6 +26,8 @@ class UserSubscription extends Model
         'starts_at' => 'datetime',
         'ends_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'current_period_ends_at' => 'datetime',
+        'cancel_at_period_end' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -30,6 +38,11 @@ class UserSubscription extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 
     public function isActive(): bool

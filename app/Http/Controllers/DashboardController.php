@@ -12,6 +12,8 @@ use App\Models\QuizAttempt;
 use App\Models\TextContent;
 use App\Models\User;
 use App\Models\UserSubscription;
+use App\Services\DocumentLimitService;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,6 +22,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        if (! $user->hasRole('Admin')) app(SubscriptionService::class)->ensureFreeSubscription($user);
         $activitySearch = trim((string) $request->query('activity_search', ''));
         $activityLimit = min(max((int) $request->integer('activity_limit', 5), 1), 20);
 
@@ -58,7 +61,7 @@ class DashboardController extends Controller
                     'action' => $log->action,
                     'severity' => $log->severity,
                     'description' => $log->description,
-                    'causer_name' => $log->causer?->name ?? 'System',
+                    'causer_name' => $log->causer?->name ?? 'Automated task',
                     'created_at' => $log->created_at?->diffForHumans(),
                 ])
                 ->all();
@@ -131,7 +134,7 @@ class DashboardController extends Controller
                     'action' => $log->action,
                     'severity' => $log->severity,
                     'description' => $log->description,
-                    'causer_name' => $log->causer?->name ?? 'System',
+                    'causer_name' => $log->causer?->name ?? 'Automated task',
                     'created_at' => $log->created_at?->diffForHumans(),
                 ])
                 ->all();
@@ -199,6 +202,7 @@ class DashboardController extends Controller
                     'max_storage_mb' => $subscription->plan->max_storage_mb,
                 ] : null,
             ] : null,
+            'document_usage' => $user->hasRole('Admin') ? null : app(DocumentLimitService::class)->usage($user),
         ]);
     }
 }

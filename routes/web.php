@@ -26,6 +26,9 @@ use App\Http\Controllers\UserApprovalController;
 use App\Http\Controllers\UserController;
 use App\Models\Category;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\GoogleAuthController;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
@@ -43,6 +46,9 @@ Route::get('/', function () {
 Route::get('verify/{certificateNumber}', [CertificateController::class, 'verify'])
     ->middleware('throttle:30,1')
     ->name('certificates.verify');
+
+Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->middleware('throttle:10,1')->name('google.redirect');
+Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:10,1')->name('google.callback');
 
 Route::get('contact', [ContactController::class, 'index'])
     ->middleware('throttle:60,1')
@@ -69,6 +75,13 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
         ->middleware(['permission:dashboard.view', 'throttle:60,1'])
         ->name('dashboard');
 
+    Route::get('pricing', [BillingController::class, 'pricing'])->middleware('throttle:60,1')->name('billing.pricing');
+    Route::get('subscription', [BillingController::class, 'subscription'])->middleware('throttle:60,1')->name('billing.subscription');
+    Route::get('payment/receipt', [BillingController::class, 'receipt'])->middleware('throttle:30,1')->name('billing.receipt');
+    Route::post('payment/receipt', [BillingController::class, 'storeReceipt'])->middleware('throttle:5,1')->name('billing.receipt.store');
+    Route::post('billing/checkout', [BillingController::class, 'checkout'])->middleware('throttle:10,1')->name('billing.checkout');
+    Route::post('billing/portal', [BillingController::class, 'portal'])->middleware('throttle:10,1')->name('billing.portal');
+
     Route::get('log-viewer', function () {
         return Inertia::render('LogViewer');
     })->middleware('throttle:30,1')->name('log-viewer');
@@ -79,22 +92,22 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::get('activity-logs', [ActivityLogController::class, 'index'])
-        ->middleware(['throttle:30,1'])
+        ->middleware(['permission:activity.view', 'throttle:30,1'])
         ->name('activity-logs.index');
-    Route::delete('activity-logs/{activityLog}', [ActivityLogController::class, 'destroy'])
-        ->middleware(['throttle:10,1'])
-        ->name('activity-logs.destroy');
     Route::delete('activity-logs/bulk', [ActivityLogController::class, 'bulkDestroy'])
-        ->middleware(['throttle:10,1'])
+        ->middleware(['permission:activity.delete', 'throttle:10,1'])
         ->name('activity-logs.bulk-destroy');
     Route::delete('activity-logs/clear', [ActivityLogController::class, 'clearAll'])
-        ->middleware(['throttle:5,1'])
+        ->middleware(['permission:activity.delete', 'throttle:5,1'])
         ->name('activity-logs.clear');
+    Route::delete('activity-logs/{activityLog}', [ActivityLogController::class, 'destroy'])
+        ->middleware(['permission:activity.delete', 'throttle:10,1'])
+        ->name('activity-logs.destroy');
     Route::post('activity-logs/issue', [ActivityLogController::class, 'logIssue'])
-        ->middleware(['throttle:10,1'])
+        ->middleware(['permission:activity.view', 'throttle:10,1'])
         ->name('activity-logs.issue');
     Route::get('activity-logs/health-check', [ActivityLogController::class, 'checkDatabaseHealth'])
-        ->middleware(['throttle:30,1'])
+        ->middleware(['permission:activity.view', 'throttle:30,1'])
         ->name('activity-logs.health-check');
 
     /*
@@ -264,8 +277,8 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     */
     Route::middleware('permission:document.create')->prefix('documents')->name('documents.')->group(function () {
         Route::get('/batch/create', [DocumentController::class, 'batchCreate'])->middleware('throttle:30,1')->name('batch.create');
-        Route::post('/batch', [DocumentController::class, 'batchStore'])->middleware('throttle:10,1')->name('batch.store');
-        Route::post('/batch/zip', [DocumentController::class, 'batchStoreZip'])->middleware('throttle:5,1')->name('batch.zip');
+        Route::post('/batch', [DocumentController::class, 'batchStore'])->middleware(['throttle:10,1', 'subscription.limit:document'])->name('batch.store');
+        Route::post('/batch/zip', [DocumentController::class, 'batchStoreZip'])->middleware(['throttle:5,1', 'subscription.limit:document'])->name('batch.zip');
         Route::get('/create', [DocumentController::class, 'create'])->middleware(['throttle:30,1', 'subscription.limit:document'])->name('create');
         Route::post('/', [DocumentController::class, 'store'])->middleware(['throttle:30,1', 'subscription.limit:document'])->name('store');
     });
@@ -334,12 +347,18 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     Route::get('payments', [PaymentController::class, 'index'])
         ->middleware(['permission:payments.view', 'throttle:60,1'])
         ->name('payments.index');
-    Route::post('payments/{subscription}/approve', [PaymentController::class, 'approve'])
+    Route::post('payments/{payment}/approve', [PaymentController::class, 'approve'])
         ->middleware(['permission:payments.approve', 'throttle:30,1'])
         ->name('payments.approve');
-    Route::post('payments/{subscription}/reject', [PaymentController::class, 'reject'])
+    Route::post('payments/{payment}/reject', [PaymentController::class, 'reject'])
         ->middleware(['permission:payments.reject', 'throttle:30,1'])
         ->name('payments.reject');
+    Route::post('subscription-payments/{subscription}/approve', [PaymentController::class, 'approveSubscription'])
+        ->middleware(['permission:payments.approve', 'throttle:30,1'])->name('subscription-payments.approve');
+    Route::post('subscription-payments/{subscription}/reject', [PaymentController::class, 'rejectSubscription'])
+        ->middleware(['permission:payments.reject', 'throttle:30,1'])->name('subscription-payments.reject');
+    Route::put('payments/{payment}', [PaymentController::class, 'update'])->middleware(['permission:payments.edit', 'throttle:30,1'])->name('payments.update');
+    Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])->middleware(['permission:payments.delete', 'throttle:10,1'])->name('payments.destroy');
 
     /*
     |--------------------------------------------------------------------------

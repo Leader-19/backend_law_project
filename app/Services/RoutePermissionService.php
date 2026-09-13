@@ -57,7 +57,7 @@ class RoutePermissionService
             'activity.view', 'activity.delete',
             'backup.view', 'backup.download',
             'plans.view', 'plans.edit',
-            'payments.view', 'payments.approve', 'payments.reject',
+            'payments.view', 'payments.approve', 'payments.reject', 'payments.edit', 'payments.delete',
             'users.view', 'users.create', 'users.edit', 'users.delete',
 
             // D-LMS feature permissions

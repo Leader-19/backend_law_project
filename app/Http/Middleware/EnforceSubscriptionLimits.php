@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use App\Services\DocumentLimitService;
+use App\Services\SubscriptionService;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,15 +16,8 @@ class EnforceSubscriptionLimits
         $user = Auth::user();
 
         if ($user && ! $user->hasRole('Admin')) {
-            $activePlans = $user->activeSubscriptions()->with('plan')->get()
-                ->pluck('plan')
-                ->filter();
-
-            if ($activePlans->isEmpty()) {
-                return response()->json([
-                    'message' => 'An active subscription is required for this action.',
-                ], 403);
-            }
+            // Guarantees a Free subscription for legacy as well as newly registered users.
+            app(SubscriptionService::class)->ensureFreeSubscription($user);
 
             // Aggregate limits across all active plans (0 means unlimited)
             $limitColumn = match ($type) {
@@ -32,39 +27,18 @@ class EnforceSubscriptionLimits
                 default => null,
             };
 
-            if ($limitColumn) {
-                $totalLimit = 0;
-                $hasUnlimited = false;
-                foreach ($activePlans as $plan) {
-                    $val = $plan->{$limitColumn};
-                    if (! $val) {
-                        $hasUnlimited = true;
-                    } else {
-                        $totalLimit += $val;
-                    }
+            if ($type === 'document') {
+                try {
+                    app(DocumentLimitService::class)->ensureCanCreate($user);
+                } catch (\Illuminate\Auth\Access\AuthorizationException $exception) {
+                    if ($request->expectsJson()) return response()->json(['message' => $exception->getMessage(), 'usage' => app(DocumentLimitService::class)->usage($user)], 403);
+                    return redirect()->route('billing.pricing')->with('error', $exception->getMessage());
                 }
-
-                if (! $hasUnlimited && $totalLimit > 0) {
-                    $currentCount = match ($type) {
-                        'category' => $user->categories()->count(),
-                        'document' => $user->documents()->count(),
-                        'text_content' => $user->textContents()->count(),
-                        default => 0,
-                    };
-                    $label = match ($type) {
-                        'category' => 'category',
-                        'document' => 'document',
-                        'text_content' => 'text content',
-                        default => $type,
-                    };
-                    if ($currentCount >= $totalLimit) {
-                        return response()->json([
-                            'message' => "You have reached your plan's {$label} limit of {$totalLimit}.",
-                            'limit' => $totalLimit,
-                            'current' => $currentCount,
-                        ], 403);
-                    }
-                }
+            } elseif ($limitColumn) {
+                // Existing category/text-content limits remain server-enforced.
+                $limit = $user->{$type === 'category' ? 'categoryLimit' : 'textContentLimit'}();
+                $count = $type === 'category' ? $user->categories()->count() : $user->textContents()->count();
+                if ($limit !== null && $count >= $limit) return response()->json(['message' => "You have reached your plan's {$type} limit."], 403);
             }
         }
 

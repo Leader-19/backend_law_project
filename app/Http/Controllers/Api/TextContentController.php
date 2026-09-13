@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\TextContent\TextContentRequest;
 use App\Models\Category;
 use App\Models\TextContent;

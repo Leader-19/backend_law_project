@@ -82,6 +82,13 @@ interface DashboardProps {
             max_storage_mb: number | null;
         } | null;
     };
+    document_usage?: {
+        used: number;
+        limit: number | null;
+        remaining: number | null;
+        percentage: number;
+        at_limit: boolean;
+    } | null;
 }
 
 const props = withDefaults(defineProps<DashboardProps & { activity_search?: string }>(), {
@@ -101,6 +108,7 @@ const props = withDefaults(defineProps<DashboardProps & { activity_search?: stri
     recent_documents: () => [],
     categories: () => [],
     subscription: null,
+    document_usage: null,
     activity_search: '',
 });
 
@@ -432,24 +440,26 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ subscriptionPlan ? subscriptionPlan.name : 'No Active Plan' }}
                             </h3>
                             <p class="text-sm text-slate-500 dark:text-slate-400">
-                                {{ isSubscriptionActive ? 'Active subscription' : 'Choose a plan to get started' }}
+                                {{ isSubscriptionActive ? 'Active subscription' : 'Free plan included' }}
                             </p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <div v-if="subscriptionPlan" class="text-right">
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Limits</p>
-                            <p class="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                {{ subscriptionPlan.max_categories || '∞' }} categories • {{ subscriptionPlan.max_documents || '∞' }} docs • {{ subscriptionPlan.max_text_contents || '∞' }} texts
-                            </p>
+                        <div v-if="document_usage" class="hidden text-right sm:block">
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Document usage</p>
+                            <p class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ document_usage.used }} / {{ document_usage.limit ?? '∞' }} documents</p>
                         </div>
                         <Link
-                            href="/subscription-plans"
+                            href="/subscription"
                             class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
                         >
-                            {{ subscriptionPlan ? 'Change Plan' : 'View Plans' }}
+                            {{ document_usage?.at_limit ? 'Upgrade Plan' : 'Manage Plan' }}
                         </Link>
                     </div>
+                </div>
+                <div v-if="document_usage" class="mt-5">
+                    <div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full transition-all" :class="document_usage.at_limit ? 'bg-rose-500' : 'bg-blue-600'" :style="{ width: `${document_usage.percentage}%` }"></div></div>
+                    <p class="mt-2 text-xs" :class="document_usage.at_limit ? 'font-semibold text-rose-600' : 'text-slate-500 dark:text-slate-400'">{{ document_usage.at_limit ? "You've reached your document limit. Upgrade your plan to add more." : document_usage.remaining === null ? 'Unlimited documents available.' : `${document_usage.remaining} documents remaining` }}</p>
                 </div>
             </div>
 

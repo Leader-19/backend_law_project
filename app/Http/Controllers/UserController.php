@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
@@ -240,19 +242,33 @@ class UserController extends Controller
     {
         $this->authorize('assignCategories', User::class);
         $validated = $request->validate([
-            'assignments' => ['required', 'array'],
+            'assignments' => ['required', 'array', 'min:1', 'max:100'],
             'assignments.*.user_id' => ['required', 'integer', 'exists:users,id'],
             'assignments.*.category_id' => ['required', 'integer', 'exists:categories,id'],
-            'assignments.*.permissions' => ['required', 'array'],
-            'assignments.*.permissions.*' => ['required', 'string', 'in:view,create,edit,delete,manage'],
+            'assignments.*.permissions' => ['required', 'array', 'min:1'],
+            'assignments.*.permissions.*' => ['required', 'string', 'distinct', 'in:view,create,edit,delete,manage'],
         ]);
 
-        foreach ($validated['assignments'] as $assignment) {
-            $user = User::findOrFail($assignment['user_id']);
-            $category = Category::findOrFail($assignment['category_id']);
-            $permission = implode(',', $assignment['permissions']);
-            $category->users()->syncWithoutDetaching([$user->id => ['permission' => $permission]]);
+        if (! $request->user()->hasRole('Admin')) {
+            abort_if(
+                collect($validated['assignments'])->pluck('permissions')->flatten()->contains(fn ($permission) => $permission !== 'view'),
+                403,
+                'Only administrators can grant elevated category permissions.',
+            );
         }
+
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['assignments'] as $assignment) {
+                $category = Category::findOrFail($assignment['category_id']);
+                $category->users()->syncWithoutDetaching([
+                    $assignment['user_id'] => ['permission' => implode(',', $assignment['permissions'])],
+                ]);
+            }
+
+            ActivityLog::record('category_assignments_updated', 'User category assignments updated', null, [
+                'assignment_count' => count($validated['assignments']),
+            ]);
+        });
 
         return back()->with('success', 'Category assignments updated successfully!');
     }

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentsService
 {
+    private const MAX_ZIP_FILES = 100;
+    private const MAX_ZIP_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024;
     protected $repo;
 
     public function __construct(DocumentsInterface $repo)
@@ -179,6 +181,7 @@ class DocumentsService
         $files = [];
         $skipped = 0;
 
+        $uncompressedBytes = 0;
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $stat = $zip->statIndex($i);
             $name = $stat['name'];
@@ -195,15 +198,33 @@ class DocumentsService
                 continue;
             }
 
-            $content = $zip->getFromIndex($i);
-            if ($content === false) {
+            if (count($files) >= self::MAX_ZIP_FILES || $uncompressedBytes + $stat['size'] > self::MAX_ZIP_UNCOMPRESSED_BYTES) {
+                $failures[] = [
+                    'file' => $name,
+                    'error' => 'ZIP import limit exceeded.',
+                ];
+                continue;
+            }
+
+            $source = $zip->getStream($name);
+            if ($source === false) {
+                $failures[] = ['file' => $name, 'error' => 'Unable to read ZIP entry.'];
                 continue;
             }
 
             $safeName = safe_filename(pathinfo($name, PATHINFO_BASENAME));
             $destPath = $tempDir.'/'.$safeName;
 
-            file_put_contents($destPath, $content);
+            $destination = fopen($destPath, 'wb');
+            if ($destination === false) {
+                fclose($source);
+                $failures[] = ['file' => $name, 'error' => 'Unable to create temporary file.'];
+                continue;
+            }
+            stream_copy_to_stream($source, $destination);
+            fclose($source);
+            fclose($destination);
+            $uncompressedBytes += $stat['size'];
 
             $files[] = [
                 'path' => $destPath,

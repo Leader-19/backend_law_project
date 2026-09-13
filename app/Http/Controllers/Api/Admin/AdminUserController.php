@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\UserSubscription;
@@ -96,6 +97,7 @@ class AdminUserController extends Controller
         ]);
 
         if (!empty($validated['roles'])) {
+            $this->ensureAdministratorCanManageRoles($request);
             $roles = $validated['roles'];
             if (in_array('Admin', $roles) || in_array('admin', $roles) || in_array('Super Admin', $roles)) {
                 $roles = \Spatie\Permission\Models\Role::pluck('name')->all();
@@ -177,6 +179,7 @@ class AdminUserController extends Controller
         $user->save();
 
         if (isset($validated['roles'])) {
+            $this->ensureAdministratorCanManageRoles($request);
             $roles = $validated['roles'];
             if (in_array('Admin', $roles) || in_array('admin', $roles) || in_array('Super Admin', $roles)) {
                 $roles = \Spatie\Permission\Models\Role::pluck('name')->all();
@@ -191,9 +194,10 @@ class AdminUserController extends Controller
         ]);
     }
 
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $user = User::findOrFail($id);
+        abort_if($request->user()->is($user), 403, 'You cannot delete your own account.');
         $user->delete();
 
         return response()->json([
@@ -207,17 +211,49 @@ class AdminUserController extends Controller
         $user = User::findOrFail($id);
 
         $validated = $request->validate([
-            'assignments' => ['required', 'array'],
-            'assignments.*.category_id' => ['required', 'integer', 'exists:categories,id'],
-            'assignments.*.permissions' => ['required', 'array'],
-            'assignments.*.permissions.*' => ['required', 'string', 'in:view,create,edit,delete,manage'],
+            'assignments' => ['required', 'array', 'min:1', 'max:100'],
+            'assignments.*.category_id' => ['required', 'integer', 'distinct', 'exists:categories,id'],
+            'assignments.*.permissions' => ['required', 'array', 'min:1'],
+            'assignments.*.permissions.*' => ['required', 'string', 'distinct', 'in:view,create,edit,delete,manage'],
         ]);
 
-        foreach ($validated['assignments'] as $assignment) {
-            $category = Category::findOrFail($assignment['category_id']);
-            $permission = implode(',', $assignment['permissions']);
-            $category->users()->syncWithoutDetaching([$user->id => ['permission' => $permission]]);
+        if (! $request->user()->hasRole('Admin')) {
+            $hasElevatedPermission = collect($validated['assignments'])
+                ->pluck('permissions')
+                ->flatten()
+                ->contains(fn (string $permission) => $permission !== 'view');
+            abort_if($hasElevatedPermission, 403, 'Only administrators can grant elevated category permissions.');
         }
+
+        DB::transaction(function () use ($user, $validated) {
+            foreach ($validated['assignments'] as $assignment) {
+                $assignmentQuery = DB::table('category_user')
+                    ->where('user_id', $user->id)
+                    ->where('category_id', $assignment['category_id']);
+
+                $updated = $assignmentQuery->update([
+                        'permission' => implode(',', $assignment['permissions']),
+                        'updated_at' => now(),
+                    ]);
+
+                if (! $updated) {
+                    DB::table('category_user')->insert([
+                        'user_id' => $user->id,
+                        'category_id' => $assignment['category_id'],
+                        'permission' => implode(',', $assignment['permissions']),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            ActivityLog::record('categories_assigned', 'Categories assigned to '.$user->name, $user, [
+                'assignments' => collect($validated['assignments'])->map(fn (array $assignment) => [
+                    'category_id' => $assignment['category_id'],
+                    'permissions' => $assignment['permissions'],
+                ])->values()->all(),
+            ]);
+        });
 
         return response()->json([
             'status' => 'success',
@@ -229,7 +265,17 @@ class AdminUserController extends Controller
     {
         $user = User::findOrFail($userId);
         $category = Category::findOrFail($categoryId);
-        $category->users()->detach($user->id);
+        $deleted = DB::table('category_user')
+            ->where('user_id', $user->id)
+            ->where('category_id', $category->id)
+            ->delete();
+
+        abort_unless($deleted, 404, 'This category is not assigned to the user.');
+
+        ActivityLog::record('category_removed', 'Category removed from '.$user->name, $user, [
+            'category_id' => $category->id,
+            'category_title' => $category->title,
+        ]);
 
         return response()->json([
             'status' => 'success',
@@ -379,5 +425,10 @@ class AdminUserController extends Controller
             'roles' => $user->getRoleNames()->values(),
             'registration_source' => $user->registration_source,
         ];
+    }
+
+    private function ensureAdministratorCanManageRoles(Request $request): void
+    {
+        abort_unless($request->user()->hasRole('Admin'), 403, 'Only administrators can manage user roles.');
     }
 }

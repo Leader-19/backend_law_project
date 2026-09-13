@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Document;
 use App\Models\User;
+use App\Services\DocumentLimitService;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -13,6 +15,13 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+
+        $subscription = null;
+        $documentUsage = null;
+        if ($user && ! $user->hasRole('Admin')) {
+            $subscription = app(SubscriptionService::class)->currentSubscriptionFor($user);
+            $documentUsage = app(DocumentLimitService::class)->usage($user);
+        }
 
         if ($user && ! $user->hasRole('Admin')) {
             $viewableIds = $user->getViewableCategoryIds();
@@ -24,7 +33,8 @@ class DashboardController extends Controller
             $totalDocuments = Document::count();
         }
 
-        $totalUsers = User::count();
+        // A normal user's dashboard must not disclose the size of the user base.
+        $totalUsers = $user?->hasRole('Admin') ? User::count() : null;
 
         // Get all categories with document counts
         $categoriesQuery = Category::withCount('documents')
@@ -73,6 +83,8 @@ class DashboardController extends Controller
             'top_categories' => $topCategories,
             'all_categories' => $allCategories,
             'recent_documents' => $recentDocuments,
+            'subscription' => $subscription?->loadMissing('plan'),
+            'document_usage' => $documentUsage,
         ]);
     }
 }

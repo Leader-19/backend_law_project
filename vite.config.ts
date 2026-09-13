@@ -38,6 +38,15 @@ export default defineConfig({
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'logo.jpg'],
+            workbox: {
+                // Laravel renders each Inertia page on the server. There is no
+                // static index.html to use as a navigation fallback, so caching
+                // navigations would break authenticated pages while offline.
+                navigateFallback: null,
+                // Never let the worker handle API responses or downloads. Both
+                // can contain user-specific or sensitive data.
+                navigateFallbackDenylist: [/^\/api\//, /^\/backup\//, /^\/storage\//],
+            },
             manifest: {
                 name: 'SPRITUP',
                 short_name: 'SPRITUP',
@@ -50,19 +59,9 @@ export default defineConfig({
                 icons: [
                     {
                         src: '/logo.jpg',
-                        sizes: '192x192',
+                        sizes: '1024x1024',
                         type: 'image/jpeg',
-                    },
-                    {
-                        src: '/logo.jpg',
-                        sizes: '512x512',
-                        type: 'image/jpeg',
-                    },
-                    {
-                        src: '/logo.jpg',
-                        sizes: '512x512',
-                        type: 'image/jpeg',
-                        purpose: 'maskable',
+                        purpose: 'any maskable',
                     },
                 ],
             },

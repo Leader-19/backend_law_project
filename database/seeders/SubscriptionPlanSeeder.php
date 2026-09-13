@@ -19,9 +19,41 @@ class SubscriptionPlanSeeder extends Seeder
                 'duration_days' => null,
                 'features' => ['Basic category access', 'Limited documents'],
                 'max_categories' => 3,
-                'max_documents' => 50,
+                'max_documents' => 5,
                 'max_text_contents' => 20,
                 'max_storage_mb' => 100,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Pro',
+                'slug' => 'pro',
+                'description' => 'For professionals who need more document capacity.',
+                'price' => 9.99,
+                'monthly_price_cents' => 999,
+                'yearly_price_cents' => 9990,
+                'currency' => 'USD',
+                'duration_days' => 30,
+                'features' => ['100 documents', 'Priority support'],
+                'max_categories' => 20,
+                'max_documents' => 100,
+                'max_text_contents' => 100,
+                'max_storage_mb' => 2048,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Business',
+                'slug' => 'business',
+                'description' => 'For teams with high-volume document management.',
+                'price' => 29.99,
+                'monthly_price_cents' => 2999,
+                'yearly_price_cents' => 29990,
+                'currency' => 'USD',
+                'duration_days' => 30,
+                'features' => ['1,000 documents', 'Priority support', 'Team-ready'],
+                'max_categories' => null,
+                'max_documents' => 1000,
+                'max_text_contents' => null,
+                'max_storage_mb' => 10240,
                 'is_active' => true,
             ],
             [
@@ -98,6 +130,16 @@ class SubscriptionPlanSeeder extends Seeder
 
         foreach ($plans as $plan) {
             SubscriptionPlan::updateOrCreate(['slug' => $plan['slug']], $plan);
+        $allCategoryIds = \App\Models\Category::pluck('id')->all();
+        $pivotData = collect($allCategoryIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all();
+
+        foreach ($plans as $planData) {
+            $plan = SubscriptionPlan::updateOrCreate(['slug' => $planData['slug']], $planData);
+            if (! empty($pivotData) && $plan->categories()->count() === 0) {
+                $plan->categories()->sync($pivotData);
+            }
         }
+
+        SubscriptionPlan::clearCache();
     }
 }

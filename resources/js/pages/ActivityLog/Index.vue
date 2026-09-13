@@ -332,7 +332,7 @@ function isIssueLog(log: any) {
                 </template>
 
                 <template #user="{ item }">
-                    <span class="font-medium">{{ item.causer?.name ?? 'System' }}</span>
+                    <span class="font-medium">{{ item.causer?.name ?? 'Automated task' }}</span>
                 </template>
 
                 <template #ip="{ item }">

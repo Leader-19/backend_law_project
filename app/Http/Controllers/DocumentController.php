@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Doc\DocumentRequest;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Document;
 use App\Services\Documents\DocumentsService;
+use App\Services\DocumentLimitService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Validation\ValidationException;
 
 class DocumentController extends Controller
 {
@@ -65,6 +68,7 @@ class DocumentController extends Controller
     {
         $category = Category::findOrFail($request->category_id);
         $this->authorize('create', [Document::class, $category]);
+        app(DocumentLimitService::class)->ensureCanCreate($request->user());
 
         $this->service->store($request);
 
@@ -142,14 +146,16 @@ class DocumentController extends Controller
     public function batchStore(Request $request)
     {
         $validated = $request->validate([
-            'doc_upload' => ['required', 'array', 'min:1'],
-            'doc_upload.*' => ['file', 'max:2097152'], // 2 GB max (bytes) — large files should use chunked upload API
+            'doc_upload' => ['required', 'array', 'min:1', 'max:50'],
+            'doc_upload.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:2097152'], // 2 GB max (KB)
             'category_id' => ['required', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:500'],
         ]);
 
         $category = Category::findOrFail($validated['category_id']);
         $this->authorize('create', [Document::class, $category]);
+        app(DocumentLimitService::class)->ensureCanCreate($request->user(), count($validated['doc_upload']));
+        $this->ensureBatchDocumentCapacity(count($validated['doc_upload']));
 
         foreach ($validated['doc_upload'] as $file) {
             if ($file->getError() !== UPLOAD_ERR_OK) {
@@ -175,6 +181,12 @@ class DocumentController extends Controller
             $flash .= ' ('.count($failures)." failed: {$failedNames})";
         }
 
+        ActivityLog::record('documents_batch_imported', "{$count} documents imported", $category, [
+            'requested_count' => count($validated['doc_upload']),
+            'imported_count' => $count,
+            'failed_count' => count($failures),
+        ]);
+
         return redirect()->route('documents.index')
             ->with('success', $flash);
     }
@@ -182,13 +194,14 @@ class DocumentController extends Controller
     public function batchStoreZip(Request $request)
     {
         $validated = $request->validate([
-            'zip_file' => ['required', 'file', 'mimetypes:application/zip,application/x-zip-compressed,application/x-zip,multipart/x-zip', 'max:10240'],
+            'zip_file' => ['required', 'file', 'mimetypes:application/zip,application/x-zip-compressed,application/x-zip,multipart/x-zip', 'max:524288'],
             'category_id' => ['required', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:500'],
         ]);
 
         $category = Category::findOrFail($validated['category_id']);
         $this->authorize('create', [Document::class, $category]);
+        $this->ensureBatchDocumentCapacity($this->countImportableZipFiles($validated['zip_file']));
 
         $zipFile = $validated['zip_file'];
 
@@ -218,7 +231,66 @@ class DocumentController extends Controller
             $flash .= " ({$skipped} unsupported file(s) skipped)";
         }
 
+        ActivityLog::record('documents_zip_imported', "{$count} documents imported from ZIP", $category, [
+            'imported_count' => $count,
+            'failed_count' => count($failures),
+            'skipped_count' => $skipped,
+        ]);
+
         return redirect()->route('documents.index')
             ->with('success', $flash);
+    }
+
+    private function ensureBatchDocumentCapacity(int $incomingCount): void
+    {
+        $user = request()->user();
+
+        if (! $user || $user->hasRole('Admin')) {
+            return;
+        }
+
+        $plans = $user->activeSubscriptions()->with('plan')->get()->pluck('plan')->filter();
+        if ($plans->isEmpty()) {
+            throw ValidationException::withMessages([
+                'doc_upload' => ['An active subscription is required to import documents.'],
+            ]);
+        }
+
+        $hasUnlimitedPlan = $plans->contains(fn ($plan) => ! $plan->max_documents);
+        $limit = $plans->sum('max_documents');
+        $currentCount = $user->documents()->count();
+
+        if (! $hasUnlimitedPlan && $currentCount + $incomingCount > $limit) {
+            throw ValidationException::withMessages([
+                'doc_upload' => ["This batch would exceed your document limit of {$limit}. You currently have {$currentCount} document(s)."],
+            ]);
+        }
+    }
+
+    private function countImportableZipFiles($zipFile): int
+    {
+        $zip = new \ZipArchive;
+        if ($zip->open($zipFile->getRealPath()) !== true) {
+            throw ValidationException::withMessages(['zip_file' => ['Unable to open the ZIP file.']]);
+        }
+
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+        $count = 0;
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entry = $zip->statIndex($index);
+            if ($entry && $entry['size'] > 0 && in_array(strtolower(pathinfo($entry['name'], PATHINFO_EXTENSION)), $allowedExtensions, true)) {
+                $count++;
+            }
+        }
+        $zip->close();
+
+        if ($count === 0) {
+            throw ValidationException::withMessages(['zip_file' => ['The ZIP file contains no supported documents.']]);
+        }
+        if ($count > 100) {
+            throw ValidationException::withMessages(['zip_file' => ['A ZIP import may contain at most 100 supported documents.']]);
+        }
+
+        return $count;
     }
 }

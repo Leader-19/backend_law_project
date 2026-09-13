@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -14,6 +15,7 @@ class ChunkedUploadController extends Controller
 {
     private const CHUNK_DIR = 'chunks';
     private const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk
+    private const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 * 1024; // 2GB total
 
     /**
      * Initialize a chunked upload session.
@@ -23,8 +25,8 @@ class ChunkedUploadController extends Controller
     {
         $validated = $request->validate([
             'filename'   => 'required|string|max:255',
-            'total_size' => 'required|integer|min:1',
-            'total_chunks' => 'required|integer|min:1',
+            'total_size' => ['required', 'integer', 'min:1', 'max:'.self::MAX_UPLOAD_SIZE],
+            'total_chunks' => ['required', 'integer', 'min:1', 'max:4096'],
         ]);
 
         $uploadId = Str::uuid()->toString();
@@ -39,6 +41,7 @@ class ChunkedUploadController extends Controller
                 'filename'    => $validated['filename'],
                 'total_size'  => $validated['total_size'],
                 'total_chunks'=> $validated['total_chunks'],
+                'user_id'     => $request->user()->id,
                 'created_at'  => now()->toIso8601String(),
             ])
         );
@@ -67,6 +70,7 @@ class ChunkedUploadController extends Controller
         }
 
         $meta = json_decode(File::get($metaPath), true);
+        $this->ensureUploadOwner($request, $meta);
 
         $validated = $request->validate([
             'chunk_index' => 'required|integer|min:0',
@@ -94,6 +98,9 @@ class ChunkedUploadController extends Controller
         $content = file_get_contents('php://input');
         if ($content === false || strlen($content) === 0) {
             return response()->json(['error' => 'Empty chunk data.'], 400);
+        }
+        if (strlen($content) > self::MAX_CHUNK_SIZE) {
+            return response()->json(['error' => 'Chunk exceeds the 5 MB limit.'], 413);
         }
 
         File::put($chunkFile, $content);
@@ -125,6 +132,7 @@ class ChunkedUploadController extends Controller
         }
 
         $meta = json_decode(File::get($metaPath), true);
+        $this->ensureUploadOwner($request, $meta);
 
         // Validate that all chunks are present
         $uploadedChunks = $this->getUploadedChunks($chunkDir, $meta['total_chunks']);
@@ -175,6 +183,12 @@ class ChunkedUploadController extends Controller
             'description'  => 'nullable|string|max:500',
         ]);
 
+        $category = Category::findOrFail($validated['category_id']);
+        $this->authorize('create', [Document::class, $category]);
+        if (! $request->user()->canCreateDocument()) {
+            return response()->json(['error' => 'Your subscription does not allow more documents.'], 403);
+        }
+
         $relativePath = 'documents/' . $filename;
 
         $document = Document::create([
@@ -209,6 +223,7 @@ class ChunkedUploadController extends Controller
         }
 
         $meta = json_decode(File::get($metaPath), true);
+        $this->ensureUploadOwner(request(), $meta);
         $uploadedChunks = $this->getUploadedChunks($chunkDir, $meta['total_chunks']);
 
         return response()->json([
@@ -229,6 +244,10 @@ class ChunkedUploadController extends Controller
         $chunkDir = $this->getChunkDir($uploadId);
 
         if (File::isDirectory($chunkDir)) {
+            $metaPath = $chunkDir . '/meta.json';
+            if (File::exists($metaPath)) {
+                $this->ensureUploadOwner(request(), json_decode(File::get($metaPath), true));
+            }
             File::deleteDirectory($chunkDir);
         }
 
@@ -251,5 +270,14 @@ class ChunkedUploadController extends Controller
             }
         }
         return $count;
+    }
+
+    private function ensureUploadOwner(Request $request, array $meta): void
+    {
+        abort_unless(
+            isset($meta['user_id']) && (int) $meta['user_id'] === (int) $request->user()?->id,
+            403,
+            'You do not have access to this upload session.',
+        );
     }
 }

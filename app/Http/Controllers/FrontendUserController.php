@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Http\Request;
@@ -201,17 +202,32 @@ class FrontendUserController extends Controller
         $this->authorize('assignCategories', $user);
 
         $validated = $request->validate([
-            'assignments' => ['required', 'array'],
-            'assignments.*.category_id' => ['required', 'integer', 'exists:categories,id'],
-            'assignments.*.permissions' => ['required', 'array'],
-            'assignments.*.permissions.*' => ['required', 'string', 'in:view,create,edit,delete,manage'],
+            'assignments' => ['required', 'array', 'min:1', 'max:100'],
+            'assignments.*.category_id' => ['required', 'integer', 'distinct', 'exists:categories,id'],
+            'assignments.*.permissions' => ['required', 'array', 'min:1'],
+            'assignments.*.permissions.*' => ['required', 'string', 'distinct', 'in:view,create,edit,delete,manage'],
         ]);
 
-        foreach ($validated['assignments'] as $assignment) {
-            $category = Category::findOrFail($assignment['category_id']);
-            $permission = implode(',', $assignment['permissions']);
-            $category->users()->syncWithoutDetaching([$user->id => ['permission' => $permission]]);
+        if (! $request->user()->hasRole('Admin')) {
+            abort_if(
+                collect($validated['assignments'])->pluck('permissions')->flatten()->contains(fn ($permission) => $permission !== 'view'),
+                403,
+                'Only administrators can grant elevated category permissions.',
+            );
         }
+
+        DB::transaction(function () use ($user, $validated) {
+            foreach ($validated['assignments'] as $assignment) {
+                $category = Category::findOrFail($assignment['category_id']);
+                $category->users()->syncWithoutDetaching([
+                    $user->id => ['permission' => implode(',', $assignment['permissions'])],
+                ]);
+            }
+
+            ActivityLog::record('categories_assigned', 'Categories assigned to '.$user->name, $user, [
+                'assignment_count' => count($validated['assignments']),
+            ]);
+        });
 
         return to_route('frontend-users.categories', $user->id)
             ->with('success', 'Categories assigned successfully!');

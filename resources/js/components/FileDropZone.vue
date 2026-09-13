@@ -11,6 +11,7 @@ import {
 
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB — matches backend limit
+const MAX_FILES = 50
 
 const props = defineProps<{
     modelValue: File[]
@@ -75,7 +76,15 @@ function processFiles(fileList: FileList | null) {
         emit('update:fileErrors', { ...props.fileErrors, ...fileErrs })
     }
 
-    const merged = [...props.modelValue, ...newFiles]
+    const remainingSlots = Math.max(0, MAX_FILES - props.modelValue.length)
+    if (newFiles.length > remainingSlots) {
+        emit('update:errors', [
+            ...skipped,
+            `${newFiles.length - remainingSlots} file(s) skipped; a batch can contain at most ${MAX_FILES} files.`,
+        ])
+    }
+
+    const merged = [...props.modelValue, ...newFiles.slice(0, remainingSlots)]
     emit('update:modelValue', merged)
 }
 
@@ -129,7 +138,7 @@ function clearAll() {
                 Click to select a folder, or drag and drop files here
             </p>
             <p class="text-xs text-gray-400">
-                Supported formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (max 2 GB each)
+                Supported formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX (max 2 GB each; 50 files per batch)
             </p>
 
             <input

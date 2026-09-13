@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\ActivityLog;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Arr;
 
 trait LogsActivity
 {
@@ -15,7 +16,7 @@ trait LogsActivity
     public static function bootLogsActivity(): void
     {
         static::created(function ($model) {
-            $model->writeActivityLog('created', null, $model->getAttributes());
+            $model->writeActivityLog('created', null, $model->activityLogAttributes($model->getAttributes()));
         });
 
         static::updated(function ($model) {
@@ -31,11 +32,15 @@ trait LogsActivity
                 $old[$key] = $model->getOriginal($key);
             }
 
-            $model->writeActivityLog('updated', $old, $dirty);
+            $model->writeActivityLog(
+                'updated',
+                $model->activityLogAttributes($old),
+                $model->activityLogAttributes($dirty),
+            );
         });
 
         static::deleted(function ($model) {
-            $model->writeActivityLog('deleted', $model->getAttributes(), null);
+            $model->writeActivityLog('deleted', $model->activityLogAttributes($model->getAttributes()), null);
         });
     }
 
@@ -52,6 +57,17 @@ trait LogsActivity
             'new_data' => $newData,
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
+        ]);
+    }
+
+    /** Never store credentials or authentication secrets in an audit record. */
+    protected function activityLogAttributes(array $attributes): array
+    {
+        return Arr::except($attributes, [
+            'password',
+            'remember_token',
+            'two_factor_secret',
+            'two_factor_recovery_codes',
         ]);
     }
 }

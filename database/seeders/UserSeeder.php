@@ -23,6 +23,8 @@ class UserSeeder extends Seeder
                 'name' => 'Admin',
                 'password' => Hash::make('admin@12345'),
                 'email_verified_at' => now(),
+                'status' => User::STATUS_APPROVED,
+                'approved_at' => now(),
             ]
         );
 

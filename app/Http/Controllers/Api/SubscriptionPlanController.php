@@ -16,16 +16,20 @@ class SubscriptionPlanController extends Controller
         // plan query from DB
         $plans = SubscriptionPlan::where('is_active', true)
             ->orderBy('price')
-            ->get(['id', 'name', 'slug', 'description', 'price', 'currency', 'duration_days', 'features', 'max_categories', 'max_documents', 'max_text_contents', 'max_storage_mb'])
+            ->get(['id', 'name', 'slug', 'description', 'price', 'monthly_price_cents', 'yearly_price_cents', 'currency', 'duration_days', 'features', 'max_categories', 'max_documents', 'max_text_contents', 'max_storage_mb'])
             ->map(function ($plan) use ($symbolMap) {
                 $symbol = $symbolMap[$plan->currency] ?? $plan->currency;
                 $formattedPrice = $plan->currency === 'KHR'
                     ? number_format($plan->price).' '.$symbol
                     : $symbol.number_format($plan->price, 2);
 
+                $yearlyCents = $plan->yearly_price_cents ?? ((int) round(((float) $plan->price) * 1200));
+                $yearlyPrice = $yearlyCents / 100;
+                $formattedYearlyPrice = $plan->currency === 'KHR' ? number_format($yearlyPrice).' '.$symbol : $symbol.number_format($yearlyPrice, 2);
                 return array_merge($plan->toArray(), [
                     'currency_symbol' => $symbol,
                     'formatted_price' => $formattedPrice,
+                    'formatted_yearly_price' => $formattedYearlyPrice,
                 ]);
             });
 

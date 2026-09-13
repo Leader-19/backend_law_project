@@ -24,7 +24,7 @@ class ThrottleRequests
         return $this->addHeaders(
             $response,
             $maxAttempts,
-            RateLimiter::remaining($key, $decaySeconds),
+            RateLimiter::remaining($key, $maxAttempts),
             $decaySeconds
         );
     }

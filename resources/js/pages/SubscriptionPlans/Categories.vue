@@ -17,11 +17,24 @@ interface Pagination {
 const props = defineProps<{
     plan: Plan
     categories: Category[]
+    all_category_ids?: number[]
     pagination: Pagination
     filters: { search: string }
 }>()
 
 const selectedIds = ref<number[]>(props.plan.categories.map(category => category.id))
+
+function selectAll() {
+    if (props.all_category_ids?.length) {
+        selectedIds.value = [...props.all_category_ids]
+    } else {
+        selectedIds.value = props.categories.map(category => category.id)
+    }
+}
+
+function deselectAll() {
+    selectedIds.value = []
+}
 const saving = ref(false)
 const searchQuery = ref(props.filters.search ?? '')
 const categoriesById = computed(() => {
@@ -123,6 +136,25 @@ function clearSearch() {
                 <div class="border-b border-slate-100 dark:border-slate-800 px-6 py-4">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <p class="text-sm text-slate-500">{{ pagination.total }} categories available. Check boxes to assign to plan.</p>
+                        <div class="flex items-center gap-3">
+                            <p class="text-sm text-slate-500">{{ pagination.total }} categories available.</p>
+                            <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-3">
+                                <button
+                                    type="button"
+                                    @click="selectAll"
+                                    class="rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 px-2.5 py-1 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition-colors"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="deselectAll"
+                                    class="rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-colors"
+                                >
+                                    Deselect All
+                                </button>
+                            </div>
+                        </div>
                         <div class="relative w-full sm:w-64">
                             <Search class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                             <input

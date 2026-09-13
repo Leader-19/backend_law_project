@@ -2,53 +2,68 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Payment;
 use App\Models\UserSubscription;
+use App\Services\ReceiptPaymentService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PaymentController extends Controller
 {
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         return Inertia::render('Payments/Index', [
-            'subscriptions' => UserSubscription::query()
-                ->with(['user:id,name,email', 'plan:id,name,price,currency,duration_days'])
-                ->whereIn('status', ['pending', 'active', 'cancelled'])
-                ->latest()
-                ->paginate(15),
+            'payments' => Payment::query()->with(['user:id,name,email', 'plan:id,name,price,currency,duration_days', 'reviewer:id,name'])
+                ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+                ->when($request->filled('search'), fn ($q) => $q->where(fn ($query) => $query->where('receipt_reference', 'like', '%'.$request->string('search').'%')->orWhereHas('user', fn ($user) => $user->where('name', 'like', '%'.$request->string('search').'%')->orWhere('email', 'like', '%'.$request->string('search').'%'))))
+                ->latest()->paginate(15)->withQueryString(),
+            'filters' => $request->only('status', 'search'),
         ]);
     }
 
-    public function approve(UserSubscription $subscription): RedirectResponse
+    public function approve(Payment $payment, ReceiptPaymentService $payments): RedirectResponse
     {
-        abort_unless($subscription->status === 'pending', 422, 'Only pending payments can be approved.');
-
-        DB::transaction(function () use ($subscription) {
-            UserSubscription::where('user_id', $subscription->user_id)
-                ->where('status', 'active')
-                ->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-
-            $subscription->update([
-                'status' => 'active',
-                'starts_at' => now(),
-                'ends_at' => $subscription->plan->duration_days
-                    ? now()->addDays($subscription->plan->duration_days)
-                    : null,
-                'cancelled_at' => null,
-            ]);
-        });
+        $payments->approve($payment, request()->user());
 
         return back()->with('success', 'Payment approved and subscription activated.');
     }
 
-    public function reject(UserSubscription $subscription): RedirectResponse
+    public function reject(Payment $payment, \Illuminate\Http\Request $request, ReceiptPaymentService $payments): RedirectResponse
     {
-        abort_unless($subscription->status === 'pending', 422, 'Only pending payments can be rejected.');
+        $payments->reject($payment, $request->user(), $request->string('review_note')->toString() ?: null);
 
-        $subscription->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+        return back()->with('success', 'Payment rejected.');
+    }
 
-        return back()->with('success', 'Payment request rejected.');
+    /** Compatibility actions for the subscription-plan review table, whose rows are subscriptions rather than payments. */
+    public function approveSubscription(UserSubscription $subscription, ReceiptPaymentService $payments): RedirectResponse
+    {
+        $payment = $subscription->payments()->where('status', 'pending')->latest()->firstOrFail();
+        $payments->approve($payment, request()->user());
+        return back()->with('success', 'Payment approved and subscription activated.');
+    }
+
+    public function rejectSubscription(UserSubscription $subscription, \Illuminate\Http\Request $request, ReceiptPaymentService $payments): RedirectResponse
+    {
+        $payment = $subscription->payments()->where('status', 'pending')->latest()->firstOrFail();
+        $payments->reject($payment, $request->user(), $request->string('review_note')->toString() ?: null);
+        return back()->with('success', 'Payment rejected.');
+    }
+
+    public function update(Payment $payment, \Illuminate\Http\Request $request): RedirectResponse
+    {
+        $payment->update($request->validate(['receipt_reference' => ['nullable', 'string', 'max:100'], 'review_note' => ['nullable', 'string', 'max:1000']]));
+        return back()->with('success', 'Payment updated.');
+    }
+
+    public function destroy(Payment $payment): RedirectResponse
+    {
+        abort_if($payment->status === 'approved', 422, 'Approved payments cannot be deleted.');
+        if ($payment->receipt_path) Storage::disk('public')->delete($payment->receipt_path);
+        $payment->subscription?->delete();
+        $payment->delete();
+        return back()->with('success', 'Payment deleted.');
     }
 }

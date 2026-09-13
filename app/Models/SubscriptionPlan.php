@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,12 +11,19 @@ use Illuminate\Support\Facades\Cache;
 
 class SubscriptionPlan extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'name',
         'slug',
         'description',
         'price',
+        'monthly_price_cents',
+        'yearly_price_cents',
         'currency',
+        'stripe_product_id',
+        'stripe_monthly_price_id',
+        'stripe_yearly_price_id',
         'duration_days',
         'features',
         'max_categories',

@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\User;
+use App\Services\SubscriptionService;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rules;
 
 class AuthController extends Controller
 {
@@ -22,12 +27,14 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'registration_source' => 'frontend',
-            'status' => User::STATUS_PENDING,
+            'status' => User::STATUS_APPROVED,
+            'approved_at' => now(),
         ]);
 
         $user->assignRole('Normal');
+        app(SubscriptionService::class)->ensureFreeSubscription($user);
 
-        return $this->authenticatedResponse($user, $validated['device_name'] ?? 'api-client', 201);
+        return $this->authenticatedResponse($user, $validated['device_name'] ?? 'registration', 201);
     }
 
     public function login(Request $request)
@@ -58,6 +65,42 @@ class AuthController extends Controller
         return $this->authenticatedResponse($user, $validated['device_name'] ?? 'api-client');
     }
 
+    /** Send a public-site reset link without revealing whether an email exists. */
+    public function forgotPassword(Request $request)
+    {
+        $validated = $request->validate(['email' => ['required', 'email']]);
+
+        Password::sendResetLink(['email' => $validated['email']]);
+
+        return $this->success('If an account exists for this email address, a password reset link has been sent.');
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $status = Password::reset($validated, function (User $user, string $password): void {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => Str::random(60),
+            ])->save();
+
+            event(new PasswordReset($user));
+        });
+
+        if ($status !== Password::PASSWORD_RESET) {
+            throw ValidationException::withMessages([
+                'email' => ['This password reset link is invalid or has expired.'],
+            ]);
+        }
+
+        return $this->success('Your password has been reset. You can now sign in.');
+    }
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()?->delete();
@@ -81,7 +124,9 @@ class AuthController extends Controller
         }
         $user->save();
 
-        return response()->json(['message' => 'Profile updated successfully.', 'user' => $this->userPayload($user)]);
+        return $this->success($this->actorMessage('updated', 'profile'), [
+            'user' => $this->userPayload($user),
+        ]);
     }
 
     public function updatePassword(Request $request)
@@ -97,7 +142,7 @@ class AuthController extends Controller
 
         $request->user()->update(['password' => Hash::make($validated['password'])]);
 
-        return response()->json(['message' => 'Password updated successfully.']);
+        return $this->success($this->actorMessage('updated', 'password'));
     }
 
     public function updateAvatar(Request $request)
@@ -118,8 +163,7 @@ class AuthController extends Controller
 
         $avatarUrl = asset(Storage::url($path));
 
-        return response()->json([
-            'message' => 'Avatar updated successfully.',
+        return $this->success($this->actorMessage('updated', 'avatar'), [
             'avatar_url' => $avatarUrl,
             'user' => $this->userPayload($user),
         ]);
@@ -129,7 +173,7 @@ class AuthController extends Controller
     {
         $token = $user->createToken($deviceName)->plainTextToken;
 
-        return response()->json([
+        return $this->success('Authenticated successfully.', [
             'token' => $token,
             'token_type' => 'Bearer',
             'user' => $this->userPayload($user),
