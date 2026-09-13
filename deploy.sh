@@ -120,6 +120,12 @@ $PHP_BIN artisan view:cache
 $PHP_BIN artisan event:cache
 ok "Caches rebuilt"
 
+# Public uploads (including payment receipts) are stored in storage/app/public.
+# The symlink is required for Nginx/PHP to serve those files after deployment.
+log "Ensuring public storage link exists..."
+$PHP_BIN artisan storage:link || warn "Could not create public storage link"
+ok "Public storage link checked"
+
 # ─── Step 6: Fix permissions ────────────────────────────────────
 log "Fixing storage and bootstrap/cache permissions..."
 chmod -R 775 storage bootstrap/cache 2>/dev/null || warn "Could not fix permissions"
