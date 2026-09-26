@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Certificate;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
-use App\Models\QuizOption;
-use App\Models\QuizQuestion;
 use App\Models\UserAnswer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,19 +18,38 @@ class QuizController extends Controller
         $user = $request->user();
         $viewableIds = $user->getViewableCategoryIds();
 
-        $quizzes = Quiz::whereIn('category_id', $viewableIds)
+        $quizzes = Quiz::query()
+            ->whereIn('category_id', $viewableIds)
             ->where('is_active', true)
-            ->with('category')
+            ->with('category:id,title')
             ->withCount('attempts')
             ->latest()
             ->paginate(12);
 
-        // Annotate with user's attempts
-        $quizzes->getCollection()->transform(function ($quiz) use ($user) {
-            $quiz->user_attempts = $quiz->attemptsForUser($user)->count();
-            $quiz->user_best_score = $quiz->attemptsForUser($user)->max('score');
-            $quiz->user_passed = $quiz->attemptsForUser($user)->where('passed', true)->exists();
+        $quizIds = $quizzes->getCollection()->pluck('id');
+
+        // One query instead of N+1
+        $userAttemptStats = QuizAttempt::query()
+            ->where('user_id', $user->id)
+            ->whereIn('quiz_id', $quizIds)
+            ->selectRaw('
+                quiz_id,
+                COUNT(*) as attempts_count,
+                MAX(score) as best_score,
+                MAX(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as has_passed
+            ')
+            ->groupBy('quiz_id')
+            ->get()
+            ->keyBy('quiz_id');
+
+        $quizzes->getCollection()->transform(function ($quiz) use ($user, $userAttemptStats) {
+            $stats = $userAttemptStats->get($quiz->id);
+
+            $quiz->user_attempts = (int) ($stats->attempts_count ?? 0);
+            $quiz->user_best_score = $stats->best_score ?? null;
+            $quiz->user_passed = (bool) ($stats->has_passed ?? false);
             $quiz->can_attempt = $quiz->canUserAttempt($user);
+
             return $quiz;
         });
 
@@ -45,7 +62,10 @@ class QuizController extends Controller
     {
         $user = $request->user();
 
-        $quiz->load(['category', 'questions.options']);
+        $quiz->load([
+            'category:id,title',
+            'questions.options',
+        ]);
 
         $attempts = $quiz->attemptsForUser($user)
             ->latest('completed_at')
@@ -58,7 +78,7 @@ class QuizController extends Controller
         ]);
     }
 
-    public function take(Request $request, Quiz $quiz): Response
+    public function take(Request $request, Quiz $quiz): Response|\Illuminate\Http\RedirectResponse
     {
         $user = $request->user();
 
@@ -88,7 +108,6 @@ class QuizController extends Controller
             'answers.*.option_id' => 'required|exists:quiz_options,id',
         ]);
 
-        // Group answers by question
         $answersByQuestion = [];
         foreach ($request->input('answers') as $answer) {
             $answersByQuestion[$answer['question_id']][] = $answer['option_id'];
@@ -104,14 +123,20 @@ class QuizController extends Controller
                 'completed_at' => now(),
             ]);
 
+            // Load questions once
+            $questions = $quiz->questions()->with('options')->get();
+            $totalQuestions = $questions->count();
             $correctCount = 0;
-            $totalQuestions = $quiz->questions()->count();
 
-            foreach ($quiz->questions()->with('options')->get() as $question) {
+            $userAnswers = [];
+
+            foreach ($questions as $question) {
                 $selectedOptionIds = $answersByQuestion[$question->id] ?? [];
-                $correctOptionIds = $question->options->where('is_correct', true)->pluck('id')->all();
+                $correctOptionIds = $question->options
+                    ->where('is_correct', true)
+                    ->pluck('id')
+                    ->all();
 
-                // Question is correct if user selected ALL correct options and NO incorrect ones
                 $isQuestionCorrect = ! empty($correctOptionIds)
                     && empty(array_diff($correctOptionIds, $selectedOptionIds))
                     && empty(array_diff($selectedOptionIds, $correctOptionIds));
@@ -120,16 +145,22 @@ class QuizController extends Controller
                     $correctCount++;
                 }
 
-                // Save each selected answer
                 foreach ($selectedOptionIds as $optionId) {
                     $option = $question->options->firstWhere('id', $optionId);
-                    UserAnswer::create([
+                    $userAnswers[] = [
                         'attempt_id' => $attempt->id,
                         'question_id' => $question->id,
                         'option_id' => $optionId,
                         'is_correct' => $option?->is_correct ?? false,
-                    ]);
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
+            }
+
+            // Bulk insert answers
+            if (! empty($userAnswers)) {
+                UserAnswer::insert($userAnswers);
             }
 
             $score = $totalQuestions > 0
@@ -145,7 +176,6 @@ class QuizController extends Controller
                 'passed' => $passed,
             ]);
 
-            // Generate certificate if passed
             if ($passed) {
                 Certificate::create([
                     'user_id' => $user->id,
@@ -163,22 +193,19 @@ class QuizController extends Controller
                     ? 'Congratulations! You passed the quiz!'
                     : 'You did not pass this time. You can try again.'
                 );
-
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()->with('error', 'An error occurred while submitting your answers.');
         }
     }
 
     public function result(Request $request, QuizAttempt $attempt): Response
     {
-        $user = $request->user();
-
-        // Ensure user can only view their own attempts
-        abort_unless($attempt->user_id === $user->id, 403);
+        abort_unless($attempt->user_id === $request->user()->id, 403);
 
         $attempt->load([
-            'quiz.category',
+            'quiz.category:id,title',
             'answers.question',
             'answers.option',
             'certificate',
@@ -191,10 +218,12 @@ class QuizController extends Controller
 
     public function myAttempts(Request $request): Response
     {
-        $user = $request->user();
-
-        $attempts = $user->quizAttempts()
-            ->with('quiz.category')
+        $attempts = $request->user()
+            ->quizAttempts()
+            ->with([
+                'quiz:id,title,category_id',
+                'quiz.category:id,title',
+            ])
             ->latest('completed_at')
             ->paginate(12);
 

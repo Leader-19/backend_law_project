@@ -14,10 +14,10 @@ class Category extends Model
 
     protected static function booted(): void
     {
-        // Documents cascade-delete at the DB level (onDelete('cascade')),
-        // which bypasses the Document model events - clean up their files here
-        // so they are not orphaned on disk.
         static::deleting(function (Category $category) {
+            // Load documents once to avoid N+1
+            $category->load('documents');
+
             foreach ($category->documents as $document) {
                 if ($document->doc_upload) {
                     Storage::disk('public')->delete($document->doc_upload);
@@ -36,58 +36,41 @@ class Category extends Model
         'parent_id',
     ];
 
-    // Category belongs to a User (creator)
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Category has many Documents
     public function documents()
     {
         return $this->hasMany(Document::class);
     }
 
-    // Category has many subcategories
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id');
     }
 
     /**
-     * All nested descendants of this category.
-     * Uses iterative approach with depth limit to prevent infinite recursion.
+     * Proper recursive relationship (can be eager loaded).
+     * Usage: Category::with('childrenRecursive')->get()
      */
-    public function childrenRecursive(int $maxDepth = 10)
+    public function childrenRecursive()
     {
-        $allDescendants = collect();
-        $pending = $this->children()->get()->each(fn ($child) => $allDescendants->push($child));
-
-        $depth = 1;
-        while ($pending->isNotEmpty() && $depth < $maxDepth) {
-            $childrenOfPending = Category::whereIn('parent_id', $pending->pluck('id'))
-                ->get()
-                ->each(fn ($child) => $allDescendants->push($child));
-            $pending = $childrenOfPending;
-            $depth++;
-        }
-
-        return $allDescendants;
+        return $this->children()->with('childrenRecursive');
     }
 
-    // Category belongs to parent category
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    // Category belongs to many Users with specific permissions
     public function users()
     {
-        return $this->belongsToMany(User::class, 'category_user')->withPivot('permission');
+        return $this->belongsToMany(User::class, 'category_user')
+            ->withPivot('permission');
     }
 
-    /** Teams are application roles assigned to this category. */
     public function teams()
     {
         return $this->belongsToMany(Role::class, 'category_role')
@@ -95,16 +78,15 @@ class Category extends Model
             ->withTimestamps();
     }
 
-    // Users who can view this category
     public function allowedUsers()
     {
         return $this->belongsToMany(User::class, 'category_user')
-            ->wherePivot('permission', 'view')
-            ->orWherePivot('permission', 'manage');
+            ->wherePivotIn('permission', ['view', 'manage']);
     }
 
-    // Get all ancestor categories up to root
-    // Uses a batch approach: one query per tree level instead of N individual queries
+    /**
+     * Get all ancestor categories up to root (iterative, safe).
+     */
     public function getAllAncestors()
     {
         $ancestorIds = [];
@@ -121,11 +103,30 @@ class Category extends Model
 
             $pending = $found->pluck('parent_id')
                 ->filter()
-                ->reject(fn ($id) => in_array($id, $ancestorIds))
+                ->reject(fn ($id) => in_array($id, $ancestorIds, true))
                 ->values()
                 ->all();
         }
 
         return static::whereIn('id', $ancestorIds)->get();
+    }
+
+    /**
+     * Get all descendant IDs (useful for permissions / bulk operations).
+     */
+    public function getDescendantIds(int $maxDepth = 10): array
+    {
+        $ids = [];
+        $pending = [$this->id];
+        $depth = 0;
+
+        while (! empty($pending) && $depth < $maxDepth) {
+            $children = static::whereIn('parent_id', $pending)->pluck('id')->all();
+            $ids = array_merge($ids, $children);
+            $pending = $children;
+            $depth++;
+        }
+
+        return $ids;
     }
 }

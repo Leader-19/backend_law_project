@@ -6,68 +6,41 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CategoryController extends Controller
 {
     public function index(Request $request)
     {
         $user = $request->user();
+        $isAdmin = $user && $user->hasRole('Admin');
+        $viewableIds = $isAdmin ? null : ($user?->getViewableCategoryIds() ?? []);
 
-        if ($user && ! $user->hasRole('Admin')) {
-            $viewableIds = $user->getViewableCategoryIds();
+        if (! $isAdmin && empty($viewableIds)) {
+            return response()->json([
+                'status' => 'success',
+                'categories' => [],
+            ]);
+        }
 
-            if (empty($viewableIds)) {
-                return response()->json([
-                    'status' => 'success',
-                    'categories' => [],
-                ]);
-            }
+        $cacheKey = $isAdmin
+            ? 'api.categories.tree.admin'
+            : 'api.categories.tree.' . md5(implode(',', $viewableIds));
 
-            $allCategories = Category::with('documents')->withCount('documents')
-                ->whereIn('id', $viewableIds)
+        $categories = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($isAdmin, $viewableIds) {
+            // Only load categories + document count (NO full documents)
+            $all = Category::query()
+                ->withCount('documents')
+                ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
                 ->orderBy('title')
-                ->get();
-        } else {
-            $allCategories = Category::with('documents')->withCount('documents')->orderBy('title')->get();
-        }
+                ->get(['id', 'title', 'description', 'parent_id']);
 
-        $categoriesById = $allCategories->keyBy('id');
-
-        $childrenMap = [];
-        foreach ($allCategories as $category) {
-            if ($category->parent_id) {
-                $childrenMap[$category->parent_id][] = $category;
-            }
-        }
-
-        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
-            return [
-                'id' => $category->id,
-                'title' => $category->title,
-                'description' => $category->description,
-                'parent_id' => $category->parent_id,
-                'documents_count' => $category->documents_count,
-                'documents' => collect($category->documents)->map(function ($doc) {
-                    return [
-                        'id' => $doc->id,
-                        'doc_name' => $doc->doc_name,
-                        'doc_title' => $doc->doc_title,
-                        'description' => $doc->description,
-                        'doc_upload' => $doc->doc_upload,
-                        'image' => $doc->image,
-                    ];
-                }),
-                'subcategories' => isset($childrenMap[$category->id])
-                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
-                    : [],
-            ];
-        };
-
-        $rootCategories = $allCategories->whereNull('parent_id');
+            return $this->buildTree($all);
+        });
 
         return response()->json([
             'status' => 'success',
-            'categories' => $rootCategories->map($mapCategory)->all(),
+            'categories' => $categories,
         ]);
     }
 
@@ -81,17 +54,16 @@ class CategoryController extends Controller
 
         $viewableIds = $user->getViewableCategoryIds();
 
+        if (empty($viewableIds)) {
+            return response()->json([
+                'status' => 'success',
+                'categories' => [],
+            ]);
+        }
+
         $categories = Category::whereIn('id', $viewableIds)
             ->orderBy('title')
-            ->get(['id', 'title', 'description', 'parent_id'])
-            ->map(function ($category) {
-                return [
-                    'id' => $category->id,
-                    'title' => $category->title,
-                    'description' => $category->description,
-                    'parent_id' => $category->parent_id,
-                ];
-            });
+            ->get(['id', 'title', 'description', 'parent_id']);
 
         return response()->json([
             'status' => 'success',
@@ -101,19 +73,26 @@ class CategoryController extends Controller
 
     public function show(string $id)
     {
-        $category = Category::with(['parent:id,title', 'documents'])->withCount('documents')->findOrFail($id);
+        $category = Category::with(['parent:id,title'])
+            ->withCount('documents')
+            ->findOrFail($id);
 
-        $allCategories = Category::with('documents')->withCount('documents')->orderBy('title')->get();
+        // Only load direct children (not the whole tree)
+        $subcategories = Category::where('parent_id', $category->id)
+            ->withCount('documents')
+            ->orderBy('title')
+            ->get(['id', 'title', 'description', 'parent_id']);
 
-        $childrenMap = [];
-        foreach ($allCategories as $cat) {
-            if ($cat->parent_id) {
-                $childrenMap[$cat->parent_id][] = $cat;
-            }
-        }
+        // Latest documents only (limit 20)
+        $documents = $category->documents()
+            ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+            ->latest()
+            ->limit(20)
+            ->get();
 
-        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
-            return [
+        return response()->json([
+            'status' => 'success',
+            'category' => [
                 'id' => $category->id,
                 'title' => $category->title,
                 'description' => $category->description,
@@ -123,25 +102,15 @@ class CategoryController extends Controller
                     'title' => $category->parent->title,
                 ] : null,
                 'documents_count' => $category->documents_count,
-                'documents' => collect($category->documents)->map(function ($doc) {
-                    return [
-                        'id' => $doc->id,
-                        'doc_name' => $doc->doc_name,
-                        'doc_title' => $doc->doc_title,
-                        'description' => $doc->description,
-                        'doc_upload' => $doc->doc_upload,
-                        'image' => $doc->image,
-                    ];
-                }),
-                'subcategories' => isset($childrenMap[$category->id])
-                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
-                    : [],
-            ];
-        };
-
-        return response()->json([
-            'status' => 'success',
-            'category' => $mapCategory($category),
+                'documents' => $documents,
+                'subcategories' => $subcategories->map(fn ($sub) => [
+                    'id' => $sub->id,
+                    'title' => $sub->title,
+                    'description' => $sub->description,
+                    'parent_id' => $sub->parent_id,
+                    'documents_count' => $sub->documents_count,
+                ]),
+            ],
         ]);
     }
 
@@ -151,6 +120,8 @@ class CategoryController extends Controller
             ...$request->validated(),
             'user_id' => $request->user()->id,
         ]);
+
+        $this->clearCategoryCaches();
 
         return response()->json([
             'status' => 'success',
@@ -164,6 +135,8 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
         $category->update($request->validated());
 
+        $this->clearCategoryCaches();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Category updated successfully.',
@@ -176,6 +149,34 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
         $category->delete();
 
+        $this->clearCategoryCaches();
+
         return response()->noContent();
+    }
+
+    private function buildTree($categories, $parentId = null)
+    {
+        return $categories
+            ->where('parent_id', $parentId)
+            ->values()
+            ->map(function ($category) use ($categories) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'description' => $category->description,
+                    'parent_id' => $category->parent_id,
+                    'documents_count' => $category->documents_count,
+                    'documents' => [], // loaded on demand in show()
+                    'subcategories' => $this->buildTree($categories, $category->id),
+                ];
+            })
+            ->all();
+    }
+
+    private function clearCategoryCaches(): void
+    {
+        Cache::forget('api.categories.tree.admin');
+        // For user-specific keys you can use tags if Redis is available
+        // or just rely on short TTL (10 min)
     }
 }

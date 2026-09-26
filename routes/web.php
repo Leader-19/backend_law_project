@@ -115,12 +115,22 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     | Backup
     |--------------------------------------------------------------------------
     */
-    Route::get('backup', [BackupController::class, 'index'])
-        ->middleware(['permission:backup.view', 'throttle:10,1'])
-        ->name('backup.index');
-    Route::get('backup/download', [BackupController::class, 'download'])
-        ->middleware(['permission:backup.download', 'throttle:5,1'])
-        ->name('backup.download');
+    // Route::get('backup', [BackupController::class, 'index'])
+    //     ->middleware(['permission:backup.view', 'throttle:10,1'])
+    //     ->name('backup.index');
+    // Route::get('backup/download', [BackupController::class, 'download'])
+    //     ->middleware(['permission:backup.download', 'throttle:5,1'])
+    //     ->name('backup.download');
+
+    // Backup
+Route::get('backup', [BackupController::class, 'index'])
+    ->middleware(['permission:backup.view', 'throttle:30,1'])
+    ->name('backup.index');
+
+// Long-running download – higher limit (or no throttle)
+Route::get('backup/download', [BackupController::class, 'download'])
+    ->middleware(['permission:backup.download', 'throttle:backup-download'])
+    ->name('backup.download');
 
     /*
     |--------------------------------------------------------------------------
