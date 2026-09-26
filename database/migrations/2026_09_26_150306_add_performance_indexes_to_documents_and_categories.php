@@ -3,73 +3,62 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // Helper to check if an index already exists
-        $hasIndex = function (string $table, string $indexName): bool {
-            $indexes = collect(DB::select("SHOW INDEX FROM `{$table}`"))
-                ->pluck('Key_name')
-                ->unique()
-                ->toArray();
+        $this->safeIndex('documents', ['category_id'], 'documents_category_id_index');
+        $this->safeIndex('documents', ['user_id'], 'documents_user_id_index');
+        $this->safeIndex('documents', ['created_at'], 'documents_created_at_index');
+        $this->safeIndex('documents', ['category_id', 'created_at'], 'documents_category_id_created_at_index');
+        $this->safeIndex('documents', ['user_id', 'created_at'], 'documents_user_id_created_at_index');
+        $this->safeIndex('documents', ['doc_name'], 'documents_doc_name_index');
 
-            return in_array($indexName, $indexes, true);
-        };
-
-        Schema::table('documents', function (Blueprint $table) use ($hasIndex) {
-            if (!$hasIndex('documents', 'documents_category_id_index')) {
-                $table->index('category_id');
-            }
-
-            if (!$hasIndex('documents', 'documents_user_id_index')) {
-                $table->index('user_id');
-            }
-
-            if (!$hasIndex('documents', 'documents_created_at_index')) {
-                $table->index('created_at');
-            }
-
-            if (!$hasIndex('documents', 'documents_category_id_created_at_index')) {
-                $table->index(['category_id', 'created_at']);
-            }
-
-            if (!$hasIndex('documents', 'documents_user_id_created_at_index')) {
-                $table->index(['user_id', 'created_at']);
-            }
-
-            if (!$hasIndex('documents', 'documents_doc_name_index')) {
-                $table->index('doc_name');
-            }
-        });
-
-        Schema::table('categories', function (Blueprint $table) use ($hasIndex) {
-            if (!$hasIndex('categories', 'categories_parent_id_index')) {
-                $table->index('parent_id');
-            }
-
-            if (!$hasIndex('categories', 'categories_title_index')) {
-                $table->index('title');
-            }
-        });
+        $this->safeIndex('categories', ['parent_id'], 'categories_parent_id_index');
+        $this->safeIndex('categories', ['title'], 'categories_title_index');
     }
 
     public function down(): void
     {
-        Schema::table('documents', function (Blueprint $table) {
-            $table->dropIndex(['category_id']);
-            $table->dropIndex(['user_id']);
-            $table->dropIndex(['created_at']);
-            $table->dropIndex(['category_id', 'created_at']);
-            $table->dropIndex(['user_id', 'created_at']);
-            $table->dropIndex(['doc_name']);
-        });
+        $this->safeDropIndex('documents', 'documents_category_id_index');
+        $this->safeDropIndex('documents', 'documents_user_id_index');
+        $this->safeDropIndex('documents', 'documents_created_at_index');
+        $this->safeDropIndex('documents', 'documents_category_id_created_at_index');
+        $this->safeDropIndex('documents', 'documents_user_id_created_at_index');
+        $this->safeDropIndex('documents', 'documents_doc_name_index');
 
-        Schema::table('categories', function (Blueprint $table) {
-            $table->dropIndex(['parent_id']);
-            $table->dropIndex(['title']);
-        });
+        $this->safeDropIndex('categories', 'categories_parent_id_index');
+        $this->safeDropIndex('categories', 'categories_title_index');
+    }
+
+    private function safeIndex(string $table, array $columns, string $indexName): void
+    {
+        if (! Schema::hasTable($table)) {
+            return;
+        }
+
+        try {
+            Schema::table($table, function (Blueprint $blueprint) use ($columns, $indexName) {
+                $blueprint->index($columns, $indexName);
+            });
+        } catch (\Throwable $e) {
+            // Index already exists (MySQL) or not supported – ignore
+        }
+    }
+
+    private function safeDropIndex(string $table, string $indexName): void
+    {
+        if (! Schema::hasTable($table)) {
+            return;
+        }
+
+        try {
+            Schema::table($table, function (Blueprint $blueprint) use ($indexName) {
+                $blueprint->dropIndex($indexName);
+            });
+        } catch (\Throwable $e) {
+            // Index does not exist – ignore
+        }
     }
 };
