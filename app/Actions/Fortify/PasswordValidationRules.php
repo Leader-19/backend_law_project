@@ -14,6 +14,7 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
+        //verify password, email
         return ['required', 'string', Password::default(), 'confirmed'];
     }
 }
