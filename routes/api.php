@@ -3,18 +3,21 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\HealthCheckController;
-use App\Http\Controllers\Api\QuizController;
 // use App\Http\Controllers\Api\ReadingHistoryController; // Not needed - using full namespace below
+use App\Http\Controllers\Api\LeaderboardController;
+use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\ReadingHistoryController;
 use App\Http\Controllers\Api\ReceiptPaymentController;
 use App\Http\Controllers\Api\SubscriptionPlanController;
 use App\Http\Controllers\Api\TextContentController;
 use App\Http\Controllers\Api\UserSubscriptionController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TelegramPaymentWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -86,11 +89,11 @@ Route::middleware(['auth:sanctum', 'route.security'])->group(function () {
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware(['permission:category.delete', 'throttle:10,1']);
 
     // Library
-    Route::get('/library', [App\Http\Controllers\LibraryController::class, 'index'])->middleware('throttle:30,1');
-    Route::post('/library', [App\Http\Controllers\LibraryController::class, 'store'])->middleware('throttle:30,1');
-    Route::delete('/library/{documentId}', [App\Http\Controllers\LibraryController::class, 'destroy'])->middleware('throttle:30,1');
-    Route::delete('/library', [App\Http\Controllers\LibraryController::class, 'bulkDestroy'])->middleware('throttle:10,1');
-    Route::post('/library/check', [App\Http\Controllers\LibraryController::class, 'check'])->middleware('throttle:30,1');
+    Route::get('/library', [LibraryController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/library', [LibraryController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/library/{documentId}', [LibraryController::class, 'destroy'])->middleware('throttle:30,1');
+    Route::delete('/library', [LibraryController::class, 'bulkDestroy'])->middleware('throttle:10,1');
+    Route::post('/library/check', [LibraryController::class, 'check'])->middleware('throttle:30,1');
 
     // Reading History
     Route::get('/reading-history', [ReadingHistoryController::class, 'index'])->middleware('throttle:30,1');
@@ -106,12 +109,12 @@ Route::middleware(['auth:sanctum', 'route.security'])->group(function () {
     Route::get('/my-attempts', [QuizController::class, 'myAttempts'])->middleware('throttle:30,1');
 
     // Leaderboard
-    Route::get('/leaderboard', [App\Http\Controllers\Api\LeaderboardController::class, 'index'])->middleware('throttle:30,1');
+    Route::get('/leaderboard', [LeaderboardController::class, 'index'])->middleware('throttle:30,1');
 
     // Certificates
-    Route::get('/certificates', [App\Http\Controllers\Api\CertificateController::class, 'index'])->middleware('throttle:30,1');
-    Route::get('/certificates/{certificate}', [App\Http\Controllers\Api\CertificateController::class, 'show'])->middleware('throttle:30,1');
-    Route::get('/certificates/{certificate}/download', [App\Http\Controllers\Api\CertificateController::class, 'download'])->middleware('throttle:10,1');
+    Route::get('/certificates', [CertificateController::class, 'index'])->middleware('throttle:30,1');
+    Route::get('/certificates/{certificate}', [CertificateController::class, 'show'])->middleware('throttle:30,1');
+    Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download'])->middleware('throttle:10,1');
 
     // Contact Messages
     Route::get('/contact', [ContactController::class, 'index'])->middleware('throttle:30,1');
