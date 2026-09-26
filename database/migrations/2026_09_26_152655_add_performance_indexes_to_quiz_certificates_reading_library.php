@@ -41,7 +41,7 @@ return new class extends Migration
             Schema::table($table, function (Blueprint $blueprint) use ($columns, $indexName) {
                 $blueprint->index($columns, $indexName);
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // already exists – ignore
         }
     }
@@ -56,7 +56,7 @@ return new class extends Migration
             Schema::table($table, function (Blueprint $blueprint) use ($columns, $indexName) {
                 $blueprint->unique($columns, $indexName);
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // already exists – ignore
         }
     }

@@ -31,7 +31,7 @@ class LibraryController extends Controller
                 break;
             case 'category':
                 $query->join('categories', 'documents.category_id', '=', 'categories.id')
-                      ->orderBy('categories.title', 'asc');
+                    ->orderBy('categories.title', 'asc');
                 break;
             default: // newest
                 $query->latest('user_library.created_at');
@@ -41,8 +41,8 @@ class LibraryController extends Controller
         if ($search = $request->input('search')) {
             $query->whereHas('document', function ($q) use ($search) {
                 $q->where('doc_name', 'like', "%{$search}%")
-                  ->orWhere('doc_title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('doc_title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -51,15 +51,15 @@ class LibraryController extends Controller
                 // Uncategorized — documents with no category
                 $query->where('document_id', function ($q) {
                     $q->select('id')
-                      ->from('documents')
-                      ->whereNull('category_id')
-                      ->orWhere('category_id', 0);
+                        ->from('documents')
+                        ->whereNull('category_id')
+                        ->orWhere('category_id', 0);
                 });
             } else {
                 $query->where('document_id', function ($q) use ($categoryId) {
                     $q->select('id')
-                      ->from('documents')
-                      ->where('category_id', $categoryId);
+                        ->from('documents')
+                        ->where('category_id', $categoryId);
                 });
             }
         }
@@ -88,7 +88,7 @@ class LibraryController extends Controller
             ->where('user_library.user_id', $user->id)
             ->where(function ($q) {
                 $q->whereNull('documents.category_id')
-                  ->orWhere('documents.category_id', 0);
+                    ->orWhere('documents.category_id', 0);
             })
             ->count();
 

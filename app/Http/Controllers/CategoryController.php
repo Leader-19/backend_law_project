@@ -23,7 +23,7 @@ class CategoryController extends Controller
     {
         $cacheKey = $viewableIds === null
             ? 'categories.parents.admin'
-            : 'categories.parents.' . md5(implode(',', $viewableIds));
+            : 'categories.parents.'.md5(implode(',', $viewableIds));
 
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($viewableIds) {
             return Category::query()
@@ -153,7 +153,7 @@ class CategoryController extends Controller
 
         // Only load tree when needed (and cache it)
         $allCategories = Cache::remember(
-            $isAdmin ? 'categories.tree.admin' : 'categories.tree.' . $user->id,
+            $isAdmin ? 'categories.tree.admin' : 'categories.tree.'.$user->id,
             now()->addMinutes(15),
             function () use ($isAdmin, $viewableIds) {
                 return Category::query()

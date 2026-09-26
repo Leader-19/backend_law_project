@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Controller;
 use App\Models\Category;
 use App\Models\Document;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use PhpOffice\PhpWord\IOFactory;
@@ -57,7 +57,7 @@ class DocumentController extends Controller
 
         $cacheKey = $isAdmin
             ? 'api.documents.index.admin'
-            : 'api.documents.index.' . md5(implode(',', $viewableIds ?? []));
+            : 'api.documents.index.'.md5(implode(',', $viewableIds ?? []));
 
         $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($isAdmin, $viewableIds) {
             $all = Category::with([
@@ -94,7 +94,7 @@ class DocumentController extends Controller
         $plan = $activeSub?->plan;
 
         if (! $plan && ! $isAdmin) {
-            $plan = app(\App\Services\SubscriptionService::class)->currentPlanFor($user);
+            $plan = app(SubscriptionService::class)->currentPlanFor($user);
         }
 
         $isFreePlan = false;
@@ -230,7 +230,7 @@ class DocumentController extends Controller
 
     private function extractContent(Document $document): string
     {
-        $path = storage_path('app/public/' . $document->doc_upload);
+        $path = storage_path('app/public/'.$document->doc_upload);
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $content = '';
 
@@ -242,7 +242,7 @@ class DocumentController extends Controller
             if ($ext === 'docx') {
                 $phpWord = IOFactory::load($path);
                 $writer = new HTML($phpWord);
-                $tempHtml = tempnam(sys_get_temp_dir(), 'docx') . '.html';
+                $tempHtml = tempnam(sys_get_temp_dir(), 'docx').'.html';
                 $writer->save($tempHtml, 'HTML');
                 $content = file_get_contents($tempHtml);
                 @unlink($tempHtml);
@@ -258,12 +258,12 @@ class DocumentController extends Controller
                         foreach ($row->getCellIterator() as $cell) {
                             $cells[] = $cell->getValue();
                         }
-                        $content .= implode(' ', $cells) . "\n";
+                        $content .= implode(' ', $cells)."\n";
                     }
                 }
             }
         } catch (\Exception $e) {
-            $content = 'Could not extract file content: ' . $e->getMessage();
+            $content = 'Could not extract file content: '.$e->getMessage();
         }
 
         return $content;

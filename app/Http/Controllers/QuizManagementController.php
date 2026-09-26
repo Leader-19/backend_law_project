@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Quiz;
 use App\Models\QuizOption;
 use App\Models\QuizQuestion;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -50,7 +51,7 @@ class QuizManagementController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -123,7 +124,7 @@ class QuizManagementController extends Controller
             ->with('success', 'Quiz deleted successfully.');
     }
 
-    public function storeQuestion(Request $request, Quiz $quiz): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function storeQuestion(Request $request, Quiz $quiz): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string|max:1000',
@@ -183,7 +184,7 @@ class QuizManagementController extends Controller
         }
     }
 
-    public function updateQuestion(Request $request, Quiz $quiz, QuizQuestion $question): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function updateQuestion(Request $request, Quiz $quiz, QuizQuestion $question): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string|max:1000',
@@ -253,7 +254,7 @@ class QuizManagementController extends Controller
         return back()->with('success', 'Question deleted successfully.');
     }
 
-    public function reorderQuestions(Request $request, Quiz $quiz): \Illuminate\Http\JsonResponse
+    public function reorderQuestions(Request $request, Quiz $quiz): JsonResponse
     {
         $request->validate([
             'question_ids' => 'required|array',

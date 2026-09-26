@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
 {
@@ -37,6 +39,7 @@ class AdminUserController extends Controller
             ->withQueryString()
             ->through(function ($user) {
                 $subscriptions = $user->activeSubscriptions()->with('plan')->get();
+
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -96,11 +99,11 @@ class AdminUserController extends Controller
             'registration_source' => $validated['registration_source'] ?? 'admin',
         ]);
 
-        if (!empty($validated['roles'])) {
+        if (! empty($validated['roles'])) {
             $this->ensureAdministratorCanManageRoles($request);
             $roles = $validated['roles'];
             if (in_array('Admin', $roles) || in_array('admin', $roles) || in_array('Super Admin', $roles)) {
-                $roles = \Spatie\Permission\Models\Role::pluck('name')->all();
+                $roles = Role::pluck('name')->all();
             }
             $user->syncRoles($roles);
         } else {
@@ -172,7 +175,7 @@ class AdminUserController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
 
@@ -182,7 +185,7 @@ class AdminUserController extends Controller
             $this->ensureAdministratorCanManageRoles($request);
             $roles = $validated['roles'];
             if (in_array('Admin', $roles) || in_array('admin', $roles) || in_array('Super Admin', $roles)) {
-                $roles = \Spatie\Permission\Models\Role::pluck('name')->all();
+                $roles = Role::pluck('name')->all();
             }
             $user->syncRoles($roles);
         }
@@ -232,9 +235,9 @@ class AdminUserController extends Controller
                     ->where('category_id', $assignment['category_id']);
 
                 $updated = $assignmentQuery->update([
-                        'permission' => implode(',', $assignment['permissions']),
-                        'updated_at' => now(),
-                    ]);
+                    'permission' => implode(',', $assignment['permissions']),
+                    'updated_at' => now(),
+                ]);
 
                 if (! $updated) {
                     DB::table('category_user')->insert([
@@ -295,7 +298,7 @@ class AdminUserController extends Controller
             'ends_at' => ['nullable', 'date'],
         ]);
 
-        $plan = \App\Models\SubscriptionPlan::findOrFail($validated['subscription_plan_id']);
+        $plan = SubscriptionPlan::findOrFail($validated['subscription_plan_id']);
 
         if ($request->has('subscription_id')) {
             $subscription = UserSubscription::where('user_id', $user->id)
@@ -383,15 +386,15 @@ class AdminUserController extends Controller
 
     public function availablePlans()
     {
-        $plans = \App\Models\SubscriptionPlan::where('is_active', true)
+        $plans = SubscriptionPlan::where('is_active', true)
             ->orderBy('price')
             ->get(['id', 'name', 'slug', 'description', 'price', 'currency', 'duration_days', 'features', 'max_categories', 'max_documents', 'max_text_contents', 'max_storage_mb'])
             ->map(function ($plan) {
                 $symbolMap = ['USD' => '$', 'KHR' => '៛', 'THB' => '฿'];
                 $symbol = $symbolMap[$plan->currency] ?? $plan->currency;
                 $formattedPrice = $plan->currency === 'KHR'
-                    ? number_format($plan->price) . ' ' . $symbol
-                    : $symbol . number_format($plan->price, 2);
+                    ? number_format($plan->price).' '.$symbol
+                    : $symbol.number_format($plan->price, 2);
 
                 return array_merge($plan->toArray(), [
                     'currency_symbol' => $symbol,

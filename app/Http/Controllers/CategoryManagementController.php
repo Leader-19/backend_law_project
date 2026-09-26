@@ -24,7 +24,7 @@ class CategoryManagementController extends Controller
         // Safer way to load the tree (avoids broken recursive relation)
         $cacheKey = $isAdmin
             ? 'categories.tree.admin'
-            : 'categories.tree.' . $user->id;
+            : 'categories.tree.'.$user->id;
 
         $categories = Cache::remember($cacheKey, now()->addMinutes(15), function () use ($isAdmin, $viewableIds) {
             $all = Category::query()
@@ -69,6 +69,7 @@ class CategoryManagementController extends Controller
             ->values()
             ->map(function ($category) use ($categories) {
                 $category->children = $this->buildTree($categories, $category->id);
+
                 return $category;
             });
     }

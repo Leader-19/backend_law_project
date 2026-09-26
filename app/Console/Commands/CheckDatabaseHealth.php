@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class CheckDatabaseHealth extends Command
 {
     protected $signature = 'health:database';
+
     protected $description = 'Check database connectivity and performance, log any issues';
 
     public function handle(): int
@@ -24,14 +25,14 @@ class CheckDatabaseHealth extends Command
         } catch (\Exception $e) {
             $issues[] = [
                 'severity' => 'critical',
-                'description' => 'Database connection failed: ' . $e->getMessage(),
+                'description' => 'Database connection failed: '.$e->getMessage(),
                 'details' => [
                     'error' => $e->getMessage(),
                     'driver' => config('database.default'),
-                    'host' => config('database.connections.' . config('database.default') . '.host'),
+                    'host' => config('database.connections.'.config('database.default').'.host'),
                 ],
             ];
-            $this->error('  ✗ Database connection FAILED: ' . $e->getMessage());
+            $this->error('  ✗ Database connection FAILED: '.$e->getMessage());
         }
 
         // Test query execution
@@ -42,13 +43,13 @@ class CheckDatabaseHealth extends Command
             } catch (\Exception $e) {
                 $issues[] = [
                     'severity' => 'critical',
-                    'description' => 'Database query execution failed: ' . $e->getMessage(),
+                    'description' => 'Database query execution failed: '.$e->getMessage(),
                     'details' => [
                         'error' => $e->getMessage(),
                         'query_test' => 'SELECT 1',
                     ],
                 ];
-                $this->error('  ✗ Query execution FAILED: ' . $e->getMessage());
+                $this->error('  ✗ Query execution FAILED: '.$e->getMessage());
             }
         }
 
@@ -133,7 +134,7 @@ class CheckDatabaseHealth extends Command
             $this->info('  ✓ Health check logged successfully');
         }
 
-        $this->info(empty($issues) ? "\n✓ Database health check PASSED" : "\n✗ Database health check FOUND " . count($issues) . " issue(s)");
+        $this->info(empty($issues) ? "\n✓ Database health check PASSED" : "\n✗ Database health check FOUND ".count($issues).' issue(s)');
 
         return empty($issues) ? Command::SUCCESS : Command::FAILURE;
     }

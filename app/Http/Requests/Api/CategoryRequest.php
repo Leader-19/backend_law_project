@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CategoryRequest extends FormRequest
 {
@@ -23,12 +23,12 @@ class CategoryRequest extends FormRequest
             'parent_id' => [
                 'nullable',
                 'integer',
-                \Illuminate\Validation\Rule::exists('categories', 'id'),
+                Rule::exists('categories', 'id'),
             ],
         ];
 
         if ($isUpdate && $categoryId) {
-            $rules['parent_id'][] = \Illuminate\Validation\Rule::notIn([$categoryId]);
+            $rules['parent_id'][] = Rule::notIn([$categoryId]);
         }
 
         return $rules;

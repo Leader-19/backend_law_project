@@ -24,9 +24,11 @@ class DocumentLimitService
 
     public function ensureCanCreate(User $user, int $quantity = 1): void
     {
-        if ($user->hasRole('Admin')) return;
+        if ($user->hasRole('Admin')) {
+            return;
+        }
         $usage = $this->usage($user);
-        if ($usage['limit'] !== null && $usage['used'] + $quantity > $usage['limit']) {
+        if ($usage['limit'] !== null && $usage['limit'] < $usage['used'] + $quantity) {
             throw new AuthorizationException("You've reached your document limit. Upgrade your plan to add more documents.");
         }
     }

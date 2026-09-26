@@ -428,7 +428,7 @@ class DLmsSeeder extends Seeder
             ContactMessage::create([
                 'user_id' => $user->id,
                 'subject' => 'Question about document access',
-                'message' => 'Hello admin, I would like to request access to additional documents in the ' . $catLaw->title . ' category. Thank you.',
+                'message' => 'Hello admin, I would like to request access to additional documents in the '.$catLaw->title.' category. Thank you.',
                 'status' => $i < 2 ? 'replied' : 'open',
                 'admin_reply' => $i < 2 ? 'Access has been granted. Please check your library.' : null,
                 'replied_at' => $i < 2 ? now()->subDays(1) : null,

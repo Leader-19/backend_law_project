@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
-use App\Models\QuizOption;
-use App\Models\QuizQuestion;
 use App\Models\UserAnswer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,6 +31,7 @@ class QuizController extends Controller
             $quiz->user_best_score = $quiz->attemptsForUser($user)->max('score');
             $quiz->user_passed = $quiz->attemptsForUser($user)->where('passed', true)->exists();
             $quiz->can_attempt = $quiz->canUserAttempt($user);
+
             return $quiz;
         });
 
@@ -176,6 +175,7 @@ class QuizController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['message' => 'An error occurred while submitting your answers.'], 500);
         }
     }

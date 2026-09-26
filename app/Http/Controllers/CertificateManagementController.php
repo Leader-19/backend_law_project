@@ -77,7 +77,7 @@ class CertificateManagementController extends Controller
 
         return back()->with(
             'success',
-            'Certificate regenerated with new number: ' . $certificate->certificate_number
+            'Certificate regenerated with new number: '.$certificate->certificate_number
         );
     }
 

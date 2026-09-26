@@ -61,6 +61,7 @@ class GoogleAuthController extends Controller
             if ($source === 'backend') {
                 return redirect()->route('login')->withErrors(['email' => 'Google sign-in was cancelled or access was denied.']);
             }
+
             return redirect()->away(rtrim((string) $frontendUrl, '/').'/login?google_error=1');
         }
 
@@ -102,6 +103,7 @@ class GoogleAuthController extends Controller
             if ($source === 'backend') {
                 Auth::login($user, true);
                 $request->session()->regenerate();
+
                 return redirect()->intended(route('dashboard'));
             }
 
@@ -125,7 +127,7 @@ class GoogleAuthController extends Controller
     {
         $configured = config('services.google.redirect');
 
-        if (!empty($configured)) {
+        if (! empty($configured)) {
             return $configured;
         }
 

@@ -6,6 +6,7 @@ use App\Models\Certificate;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
 use App\Models\UserAnswer;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -78,7 +79,7 @@ class QuizController extends Controller
         ]);
     }
 
-    public function take(Request $request, Quiz $quiz): Response|\Illuminate\Http\RedirectResponse
+    public function take(Request $request, Quiz $quiz): Response|RedirectResponse
     {
         $user = $request->user();
 
@@ -94,7 +95,7 @@ class QuizController extends Controller
         ]);
     }
 
-    public function submit(Request $request, Quiz $quiz): \Illuminate\Http\RedirectResponse
+    public function submit(Request $request, Quiz $quiz): RedirectResponse
     {
         $user = $request->user();
 

@@ -7,7 +7,6 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -17,9 +16,13 @@ class SubscriptionFlowTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $frontendUser;
+
     protected SubscriptionPlan $plan;
+
     protected Category $category1;
+
     protected Category $category2;
 
     protected function setUp(): void

@@ -5,6 +5,7 @@ namespace App\Repositories\Documents;
 use App\Interfaces\Documents\DocumentsInterface;
 use App\Models\Document;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class DocumentsRepository implements DocumentsInterface
@@ -42,17 +43,17 @@ class DocumentsRepository implements DocumentsInterface
         return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
-    public function store(array $data): \Illuminate\Database\Eloquent\Model
+    public function store(array $data): Model
     {
         return Document::create($data);
     }
 
-    public function find(int|string $id): \Illuminate\Database\Eloquent\Model
+    public function find(int|string $id): Model
     {
         return Document::with('category')->findOrFail($id);
     }
 
-    public function update(int|string $id, array $data): \Illuminate\Database\Eloquent\Model
+    public function update(int|string $id, array $data): Model
     {
         $document = Document::findOrFail($id);
         $document->update($data);
@@ -60,7 +61,7 @@ class DocumentsRepository implements DocumentsInterface
         return $document;
     }
 
-    public function delete(int|string $id): \Illuminate\Database\Eloquent\Model
+    public function delete(int|string $id): Model
     {
         $document = Document::findOrFail($id);
         $document->delete();

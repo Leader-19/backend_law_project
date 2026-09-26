@@ -42,7 +42,7 @@ return new class extends Migration
             Schema::table($table, function (Blueprint $blueprint) use ($columns, $indexName) {
                 $blueprint->index($columns, $indexName);
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Index already exists (MySQL) or not supported – ignore
         }
     }
@@ -57,7 +57,7 @@ return new class extends Migration
             Schema::table($table, function (Blueprint $blueprint) use ($indexName) {
                 $blueprint->dropIndex($indexName);
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Index does not exist – ignore
         }
     }

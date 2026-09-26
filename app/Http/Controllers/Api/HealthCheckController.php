@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Storage;
 
 class HealthCheckController extends Controller
 {
@@ -42,7 +42,7 @@ class HealthCheckController extends Controller
         // 2. Cache
         try {
             $start = microtime(true);
-            $cacheKey = '_health_check_' . now()->timestamp;
+            $cacheKey = '_health_check_'.now()->timestamp;
             Cache::put($cacheKey, true, 10);
             $value = Cache::get($cacheKey);
             Cache::forget($cacheKey);
@@ -66,7 +66,7 @@ class HealthCheckController extends Controller
         // 3. Storage (public disk)
         try {
             $start = microtime(true);
-            $testFile = '_health_check_' . now()->timestamp . '.txt';
+            $testFile = '_health_check_'.now()->timestamp.'.txt';
             Storage::disk('public')->put($testFile, 'ok');
             $exists = Storage::disk('public')->exists($testFile);
             Storage::disk('public')->delete($testFile);

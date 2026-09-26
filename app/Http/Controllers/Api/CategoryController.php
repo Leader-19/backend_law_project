@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\Api\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -25,7 +24,7 @@ class CategoryController extends Controller
 
         $cacheKey = $isAdmin
             ? 'api.categories.tree.admin'
-            : 'api.categories.tree.' . md5(implode(',', $viewableIds));
+            : 'api.categories.tree.'.md5(implode(',', $viewableIds));
 
         $categories = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($isAdmin, $viewableIds) {
             // Only load categories + document count (NO full documents)

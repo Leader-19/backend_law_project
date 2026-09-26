@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 class SetTelegramPaymentWebhook extends Command
 {
     protected $signature = 'telegram:payments:set-webhook {url? : Public HTTPS URL for the Telegram payment webhook}';
+
     protected $description = 'Register the secure Telegram callback URL used by receipt approval buttons';
 
     public function handle(): int
@@ -18,6 +19,7 @@ class SetTelegramPaymentWebhook extends Command
 
         if ($token === '' || $secret === '') {
             $this->error('Set TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET before registering the webhook.');
+
             return self::FAILURE;
         }
 
@@ -29,10 +31,12 @@ class SetTelegramPaymentWebhook extends Command
 
         if ($response->failed() || ! $response->json('ok')) {
             $this->error('Telegram rejected the webhook: '.$response->body());
+
             return self::FAILURE;
         }
 
         $this->info("Telegram payment webhook registered: {$url}");
+
         return self::SUCCESS;
     }
 }

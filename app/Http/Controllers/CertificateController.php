@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use Barryvdh\DomPDF\PDF;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -41,7 +42,7 @@ class CertificateController extends Controller
         return Inertia::render('Certificates/Show', [
             'certificate' => $certificate,
             'pdfUrl' => $certificate->pdf_path
-                ? asset('storage/' . $certificate->pdf_path)
+                ? asset('storage/'.$certificate->pdf_path)
                 : null,
         ]);
     }
@@ -58,7 +59,7 @@ class CertificateController extends Controller
                 Storage::disk('public')->path($certificate->pdf_path),
                 [
                     'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'attachment; filename="certificate-' . $certificate->certificate_number . '.pdf"',
+                    'Content-Disposition' => 'attachment; filename="certificate-'.$certificate->certificate_number.'.pdf"',
                 ]
             );
         }
@@ -80,7 +81,7 @@ class CertificateController extends Controller
             'issuedDate' => $certificate->created_at->format('F d, Y'),
         ]);
 
-        $filename = 'certificates/' . $certificate->certificate_number . '.pdf';
+        $filename = 'certificates/'.$certificate->certificate_number.'.pdf';
 
         if (! Storage::disk('public')->exists($filename)) {
             Storage::disk('public')->put($filename, $pdf->output());
@@ -90,10 +91,10 @@ class CertificateController extends Controller
             $certificate->update(['pdf_path' => $filename]);
         }
 
-        return $pdf->download('certificate-' . $certificate->certificate_number . '.pdf');
+        return $pdf->download('certificate-'.$certificate->certificate_number.'.pdf');
     }
 
-    public function verify(Request $request, string $certificateNumber): \Illuminate\Http\JsonResponse
+    public function verify(Request $request, string $certificateNumber): JsonResponse
     {
         $certificate = Certificate::where('certificate_number', $certificateNumber)
             ->with([

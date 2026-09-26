@@ -7,16 +7,14 @@ use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\HealthCheckController;
-use App\Http\Controllers\Api\LibraryController;
 use App\Http\Controllers\Api\QuizController;
 // use App\Http\Controllers\Api\ReadingHistoryController; // Not needed - using full namespace below
+use App\Http\Controllers\Api\ReadingHistoryController;
 use App\Http\Controllers\Api\ReceiptPaymentController;
 use App\Http\Controllers\Api\SubscriptionPlanController;
 use App\Http\Controllers\Api\TextContentController;
 use App\Http\Controllers\Api\UserSubscriptionController;
-use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\ContactController;
-use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\TelegramPaymentWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -88,36 +86,36 @@ Route::middleware(['auth:sanctum', 'route.security'])->group(function () {
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->middleware(['permission:category.delete', 'throttle:10,1']);
 
     // Library
-    Route::get('/library', [\App\Http\Controllers\LibraryController::class, 'index'])->middleware('throttle:30,1');
-    Route::post('/library', [\App\Http\Controllers\LibraryController::class, 'store'])->middleware('throttle:30,1');
-    Route::delete('/library/{documentId}', [\App\Http\Controllers\LibraryController::class, 'destroy'])->middleware('throttle:30,1');
-    Route::delete('/library', [\App\Http\Controllers\LibraryController::class, 'bulkDestroy'])->middleware('throttle:10,1');
-    Route::post('/library/check', [\App\Http\Controllers\LibraryController::class, 'check'])->middleware('throttle:30,1');
+    Route::get('/library', [App\Http\Controllers\LibraryController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/library', [App\Http\Controllers\LibraryController::class, 'store'])->middleware('throttle:30,1');
+    Route::delete('/library/{documentId}', [App\Http\Controllers\LibraryController::class, 'destroy'])->middleware('throttle:30,1');
+    Route::delete('/library', [App\Http\Controllers\LibraryController::class, 'bulkDestroy'])->middleware('throttle:10,1');
+    Route::post('/library/check', [App\Http\Controllers\LibraryController::class, 'check'])->middleware('throttle:30,1');
 
     // Reading History
-    Route::get('/reading-history', [\App\Http\Controllers\Api\ReadingHistoryController::class, 'index'])->middleware('throttle:30,1');
-    Route::post('/reading-history/progress', [\App\Http\Controllers\Api\ReadingHistoryController::class, 'updateProgress'])->middleware('throttle:30,1');
-    Route::get('/reading-history/{documentId}/progress', [\App\Http\Controllers\Api\ReadingHistoryController::class, 'getProgress'])->middleware('throttle:30,1');
+    Route::get('/reading-history', [ReadingHistoryController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/reading-history/progress', [ReadingHistoryController::class, 'updateProgress'])->middleware('throttle:30,1');
+    Route::get('/reading-history/{documentId}/progress', [ReadingHistoryController::class, 'getProgress'])->middleware('throttle:30,1');
 
     // Quizzes
-    Route::get('/quizzes', [\App\Http\Controllers\Api\QuizController::class, 'index'])->middleware('throttle:30,1');
-    Route::get('/quizzes/{quiz}', [\App\Http\Controllers\Api\QuizController::class, 'show'])->middleware('throttle:30,1');
-    Route::get('/quizzes/{quiz}/take', [\App\Http\Controllers\Api\QuizController::class, 'take'])->middleware('throttle:30,1');
-    Route::post('/quizzes/{quiz}/submit', [\App\Http\Controllers\Api\QuizController::class, 'submit'])->middleware('throttle:10,1');
-    Route::get('/quizzes/attempts/{attempt}', [\App\Http\Controllers\Api\QuizController::class, 'result'])->middleware('throttle:30,1');
-    Route::get('/my-attempts', [\App\Http\Controllers\Api\QuizController::class, 'myAttempts'])->middleware('throttle:30,1');
+    Route::get('/quizzes', [QuizController::class, 'index'])->middleware('throttle:30,1');
+    Route::get('/quizzes/{quiz}', [QuizController::class, 'show'])->middleware('throttle:30,1');
+    Route::get('/quizzes/{quiz}/take', [QuizController::class, 'take'])->middleware('throttle:30,1');
+    Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit'])->middleware('throttle:10,1');
+    Route::get('/quizzes/attempts/{attempt}', [QuizController::class, 'result'])->middleware('throttle:30,1');
+    Route::get('/my-attempts', [QuizController::class, 'myAttempts'])->middleware('throttle:30,1');
 
     // Leaderboard
-    Route::get('/leaderboard', [\App\Http\Controllers\Api\LeaderboardController::class, 'index'])->middleware('throttle:30,1');
+    Route::get('/leaderboard', [App\Http\Controllers\Api\LeaderboardController::class, 'index'])->middleware('throttle:30,1');
 
     // Certificates
-    Route::get('/certificates', [\App\Http\Controllers\Api\CertificateController::class, 'index'])->middleware('throttle:30,1');
-    Route::get('/certificates/{certificate}', [\App\Http\Controllers\Api\CertificateController::class, 'show'])->middleware('throttle:30,1');
-    Route::get('/certificates/{certificate}/download', [\App\Http\Controllers\Api\CertificateController::class, 'download'])->middleware('throttle:10,1');
+    Route::get('/certificates', [App\Http\Controllers\Api\CertificateController::class, 'index'])->middleware('throttle:30,1');
+    Route::get('/certificates/{certificate}', [App\Http\Controllers\Api\CertificateController::class, 'show'])->middleware('throttle:30,1');
+    Route::get('/certificates/{certificate}/download', [App\Http\Controllers\Api\CertificateController::class, 'download'])->middleware('throttle:10,1');
 
     // Contact Messages
-    Route::get('/contact', [\App\Http\Controllers\ContactController::class, 'index'])->middleware('throttle:30,1');
-    Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/contact', [ContactController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:10,1');
 
     // Chunked Upload API
     Route::post('/upload/init', [ChunkedUploadController::class, 'init'])->middleware('throttle:30,1');

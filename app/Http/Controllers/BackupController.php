@@ -49,8 +49,8 @@ class BackupController extends Controller
         set_time_limit(0);
         ini_set('memory_limit', '512M');
 
-        $backupName = 'backup_' . now()->format('Y-m-d_H-i-s') . '_' . Str::lower(Str::random(6));
-        $tempDir = storage_path('app/private/backups/' . $backupName);
+        $backupName = 'backup_'.now()->format('Y-m-d_H-i-s').'_'.Str::lower(Str::random(6));
+        $tempDir = storage_path('app/private/backups/'.$backupName);
         $zipPath = null;
 
         File::makeDirectory($tempDir, 0700, true, true);
@@ -143,14 +143,14 @@ class BackupController extends Controller
                 File::deleteDirectory($tempDir);
                 File::delete($zipPath);
             }
-        }, $backupName . '.zip', [
+        }, $backupName.'.zip', [
             'Content-Type' => 'application/zip',
         ]);
     }
 
     private function exportDatabase(string $tempDir): void
     {
-        $handle = fopen($tempDir . DIRECTORY_SEPARATOR . 'database.sql', 'wb');
+        $handle = fopen($tempDir.DIRECTORY_SEPARATOR.'database.sql', 'wb');
 
         if ($handle === false) {
             throw new \RuntimeException('Unable to create the database backup file.');
@@ -158,7 +158,7 @@ class BackupController extends Controller
 
         try {
             fwrite($handle, "-- SPRITUP database backup\n");
-            fwrite($handle, '-- Generated: ' . now()->format('Y-m-d H:i:s T') . "\n\n");
+            fwrite($handle, '-- Generated: '.now()->format('Y-m-d H:i:s T')."\n\n");
             fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
 
             foreach ($this->databaseTables() as $tableName) {
@@ -179,16 +179,16 @@ class BackupController extends Controller
                         $columns = array_map($this->quoteIdentifier(...), array_keys($rowArray));
                     }
 
-                    $valueRows[] = '(' . implode(', ', array_map(
+                    $valueRows[] = '('.implode(', ', array_map(
                         fn ($value) => $value === null ? 'NULL' : DB::getPdo()->quote((string) $value),
                         array_values($rowArray)
-                    )) . ')';
+                    )).')';
 
                     if (count($valueRows) >= 200) {
                         fwrite(
                             $handle,
-                            "INSERT INTO {$quotedTable} (" . implode(', ', $columns) . ') VALUES ' .
-                            implode(",\n", $valueRows) . ";\n"
+                            "INSERT INTO {$quotedTable} (".implode(', ', $columns).') VALUES '.
+                            implode(",\n", $valueRows).";\n"
                         );
                         $valueRows = [];
                     }
@@ -197,8 +197,8 @@ class BackupController extends Controller
                 if ($valueRows !== []) {
                     fwrite(
                         $handle,
-                        "INSERT INTO {$quotedTable} (" . implode(', ', $columns) . ') VALUES ' .
-                        implode(",\n", $valueRows) . ";\n"
+                        "INSERT INTO {$quotedTable} (".implode(', ', $columns).') VALUES '.
+                        implode(",\n", $valueRows).";\n"
                     );
                 }
 
@@ -224,7 +224,7 @@ class BackupController extends Controller
                 DB::select("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
             ),
             default => throw new \RuntimeException(
-                'Full database backup currently supports MySQL/MariaDB and SQLite. Use your database provider\'s native backup tool for ' . DB::getDriverName() . '.'
+                'Full database backup currently supports MySQL/MariaDB and SQLite. Use your database provider\'s native backup tool for '.DB::getDriverName().'.'
             ),
         };
     }
@@ -233,7 +233,8 @@ class BackupController extends Controller
     {
         return match (DB::getDriverName()) {
             'mysql', 'mariadb' => (function () use ($tableName): string {
-                $create = DB::select('SHOW CREATE TABLE ' . $this->quoteIdentifier($tableName));
+                $create = DB::select('SHOW CREATE TABLE '.$this->quoteIdentifier($tableName));
+
                 return (string) (array_values((array) $create[0])[1] ?? '');
             })(),
             'sqlite' => (string) (DB::selectOne(
@@ -248,12 +249,12 @@ class BackupController extends Controller
     {
         $quote = DB::getDriverName() === 'sqlite' ? '"' : '`';
 
-        return $quote . str_replace($quote, $quote . $quote, $identifier) . $quote;
+        return $quote.str_replace($quote, $quote.$quote, $identifier).$quote;
     }
 
     private function exportFiles(string $tempDir, $documents): array
     {
-        $categoriesDir = $tempDir . DIRECTORY_SEPARATOR . 'categories';
+        $categoriesDir = $tempDir.DIRECTORY_SEPARATOR.'categories';
         File::ensureDirectoryExists($categoriesDir, 0700);
 
         $fileCount = 0;
@@ -262,7 +263,7 @@ class BackupController extends Controller
 
         foreach ($documents as $document) {
             $categoryName = $document->category?->title ?? 'uncategorized';
-            $categoryDir = $categoriesDir . DIRECTORY_SEPARATOR . $this->sanitizeDirName($categoryName);
+            $categoryDir = $categoriesDir.DIRECTORY_SEPARATOR.$this->sanitizeDirName($categoryName);
 
             if (! File::isDirectory($categoryDir)) {
                 File::makeDirectory($categoryDir, 0755, true);
@@ -272,8 +273,8 @@ class BackupController extends Controller
             if ($document->doc_upload) {
                 if ($disk->exists($document->doc_upload)) {
                     $ext = pathinfo($document->doc_upload, PATHINFO_EXTENSION);
-                    $safeName = $document->id . '_' . $this->sanitizeFileName($document->doc_name) . '.' . $ext;
-                    $dest = $categoryDir . DIRECTORY_SEPARATOR . $safeName;
+                    $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'.'.$ext;
+                    $dest = $categoryDir.DIRECTORY_SEPARATOR.$safeName;
 
                     if (! File::exists($dest)) {
                         File::copy($disk->path($document->doc_upload), $dest);
@@ -288,8 +289,8 @@ class BackupController extends Controller
             if ($document->image) {
                 if ($disk->exists($document->image)) {
                     $ext = pathinfo($document->image, PATHINFO_EXTENSION);
-                    $safeName = $document->id . '_' . $this->sanitizeFileName($document->doc_name) . '_image.' . $ext;
-                    $dest = $categoryDir . DIRECTORY_SEPARATOR . $safeName;
+                    $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'_image.'.$ext;
+                    $dest = $categoryDir.DIRECTORY_SEPARATOR.$safeName;
 
                     if (! File::exists($dest)) {
                         File::copy($disk->path($document->image), $dest);
@@ -309,7 +310,7 @@ class BackupController extends Controller
 
     private function createZip(string $tempDir, string $backupName): string
     {
-        $zipPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $backupName . '.zip';
+        $zipPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.$backupName.'.zip';
         $zip = new ZipArchive;
 
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
@@ -376,7 +377,7 @@ class BackupController extends Controller
             ->get(['id', 'parent_id', 'title', 'description', 'created_at', 'updated_at']);
 
         file_put_contents(
-            $tempDir . DIRECTORY_SEPARATOR . 'category-data.json',
+            $tempDir.DIRECTORY_SEPARATOR.'category-data.json',
             json_encode([
                 'categories' => $categories,
                 'documents' => $documentMeta,
@@ -393,7 +394,7 @@ class BackupController extends Controller
         bool $includesDatabase
     ): void {
         file_put_contents(
-            $tempDir . DIRECTORY_SEPARATOR . 'manifest.json',
+            $tempDir.DIRECTORY_SEPARATOR.'manifest.json',
             json_encode([
                 'created_at' => now()->toIso8601String(),
                 'requested_category_ids' => $requestedCategoryIds,

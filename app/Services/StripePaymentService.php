@@ -28,6 +28,7 @@ class StripePaymentService
             'metadata' => ['user_id' => (string) $user->id, 'plan_id' => (string) $plan->id, 'interval' => $interval],
             'subscription_data' => ['metadata' => ['user_id' => (string) $user->id, 'plan_id' => (string) $plan->id, 'interval' => $interval]],
         ]);
+
         return $session->url;
     }
 
@@ -35,6 +36,7 @@ class StripePaymentService
     {
         $customer = $user->activeSubscription()->where('provider', 'stripe')->value('provider_customer_id');
         abort_unless($customer, 422, 'No Stripe subscription is available to manage.');
+
         return $this->client()->billingPortal->sessions->create(['customer' => $customer, 'return_url' => route('billing.subscription')])->url;
     }
 }

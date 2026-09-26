@@ -1,34 +1,33 @@
 <?php
 
-use App\Http\Controllers\SubscriptionPlanWebController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\BackupController;
-use App\Http\Controllers\CertificateController;
-use App\Http\Controllers\CertificateManagementController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CategoryManagementController;
 use App\Http\Controllers\CategoryUserController;
+use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\CertificateManagementController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FrontendUserController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\QuizManagementController;
 use App\Http\Controllers\ReadingHistoryController;
-use App\Http\Controllers\TextContentController;
-use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SubscriptionPlanWebController;
+use App\Http\Controllers\TextContentController;
 use App\Http\Controllers\UserApprovalController;
 use App\Http\Controllers\UserController;
 use App\Models\Category;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BillingController;
-use App\Http\Controllers\StripeWebhookController;
-use App\Http\Controllers\GoogleAuthController;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
@@ -123,14 +122,14 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     //     ->name('backup.download');
 
     // Backup
-Route::get('backup', [BackupController::class, 'index'])
-    ->middleware(['permission:backup.view', 'throttle:30,1'])
-    ->name('backup.index');
+    Route::get('backup', [BackupController::class, 'index'])
+        ->middleware(['permission:backup.view', 'throttle:30,1'])
+        ->name('backup.index');
 
-// Long-running download – higher limit (or no throttle)
-Route::get('backup/download', [BackupController::class, 'download'])
-    ->middleware(['permission:backup.download', 'throttle:backup-download'])
-    ->name('backup.download');
+    // Long-running download – higher limit (or no throttle)
+    Route::get('backup/download', [BackupController::class, 'download'])
+        ->middleware(['permission:backup.download', 'throttle:backup-download'])
+        ->name('backup.download');
 
     /*
     |--------------------------------------------------------------------------
