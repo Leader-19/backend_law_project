@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
 use App\Models\ActivityLog;
+use App\Models\Category;
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class FrontendUserController extends Controller
 {
@@ -107,7 +110,7 @@ class FrontendUserController extends Controller
         return Inertia::render('Users/FrontendUpdate', [
             'user' => $user,
             'userRoles' => $user->roles()->pluck('name')->all(),
-            'roles' => \Spatie\Permission\Models\Role::pluck('name')->all(),
+            'roles' => Role::pluck('name')->all(),
         ]);
     }
 
@@ -128,7 +131,7 @@ class FrontendUserController extends Controller
         $user->email = $request->email;
 
         if ($request->password) {
-            $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+            $user->password = Hash::make($request->password);
         }
 
         $user->save();
@@ -136,7 +139,7 @@ class FrontendUserController extends Controller
         if ($request->has('roles')) {
             $roles = (array) $request->roles;
             if (in_array('Admin', $roles) || in_array('Super Admin', $roles)) {
-                $roles = \Spatie\Permission\Models\Role::pluck('name')->all();
+                $roles = Role::pluck('name')->all();
             }
             $user->syncRoles($roles);
         }
@@ -257,7 +260,7 @@ class FrontendUserController extends Controller
             'ends_at' => ['nullable', 'date'],
         ]);
 
-        $plan = \App\Models\SubscriptionPlan::findOrFail($validated['subscription_plan_id']);
+        $plan = SubscriptionPlan::findOrFail($validated['subscription_plan_id']);
 
         if ($request->has('subscription_id')) {
             $subscription = UserSubscription::where('user_id', $user->id)
@@ -295,7 +298,9 @@ class FrontendUserController extends Controller
 
         return to_route('frontend-users.show', $user->id)
             ->with('success', 'Plan assigned successfully!');
-    }    public function cancelPlan(Request $request, string $id)
+    }
+
+    public function cancelPlan(Request $request, string $id)
     {
         $user = User::where('registration_source', 'frontend')->findOrFail($id);
         $this->authorize('assignPlan', $user);
@@ -316,7 +321,7 @@ class FrontendUserController extends Controller
     /**
      * Sync a plan's default categories to a user with 'view' permission.
      */
-    private function syncPlanCategoriesToUser(User $user, \App\Models\SubscriptionPlan $plan): void
+    private function syncPlanCategoriesToUser(User $user, SubscriptionPlan $plan): void
     {
         $planCategories = $plan->categories;
 

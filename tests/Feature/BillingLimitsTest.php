@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Document;
 use App\Models\Category;
+use App\Models\Document;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\DocumentLimitService;

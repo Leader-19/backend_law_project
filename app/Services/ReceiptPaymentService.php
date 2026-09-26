@@ -30,6 +30,7 @@ class ReceiptPaymentService
                     Storage::disk('public')->delete($existing->receipt_path);
                     $existing->subscription->update(['billing_interval' => $billingCycle]);
                     $existing->update(['receipt_path' => $path, 'receipt_reference' => $reference, 'amount_cents' => $this->amountCents($plan, $billingCycle)]);
+
                     return $existing;
                 }
 
@@ -49,6 +50,7 @@ class ReceiptPaymentService
         }
 
         app(TelegramPaymentNotifier::class)->notify($payment->fresh(['user', 'plan']));
+
         return $payment;
     }
 
@@ -56,8 +58,12 @@ class ReceiptPaymentService
     {
         return DB::transaction(function () use ($payment, $reviewer) {
             $payment = Payment::query()->with('subscription.plan.categories')->lockForUpdate()->findOrFail($payment->id);
-            if ($payment->status === 'approved') return $payment;
-            if ($payment->status !== 'pending') throw ValidationException::withMessages(['payment' => 'Only pending payments can be approved.']);
+            if ($payment->status === 'approved') {
+                return $payment;
+            }
+            if ($payment->status !== 'pending') {
+                throw ValidationException::withMessages(['payment' => 'Only pending payments can be approved.']);
+            }
 
             UserSubscription::where('user_id', $payment->user_id)->where('status', 'active')->update(['status' => 'cancelled', 'cancelled_at' => now()]);
             $subscription = $payment->subscription;
@@ -66,6 +72,7 @@ class ReceiptPaymentService
             // Access is derived from the active subscription by User::hasPlanCategoryAccess().
             // Do not create permanent category_user rows here: they would keep access after expiry.
             $payment->update(['status' => 'approved', 'paid_at' => now(), 'reviewed_at' => now(), 'reviewed_by' => $reviewer?->id]);
+
             return $payment->fresh(['user', 'plan', 'subscription']);
         });
     }
@@ -74,22 +81,31 @@ class ReceiptPaymentService
     {
         return DB::transaction(function () use ($payment, $reviewer, $note) {
             $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
-            if ($payment->status !== 'pending') throw ValidationException::withMessages(['payment' => 'Only pending payments can be rejected.']);
+            if ($payment->status !== 'pending') {
+                throw ValidationException::withMessages(['payment' => 'Only pending payments can be rejected.']);
+            }
             $payment->subscription?->update(['status' => 'cancelled', 'cancelled_at' => now()]);
             $payment->update(['status' => 'rejected', 'reviewed_at' => now(), 'reviewed_by' => $reviewer?->id, 'review_note' => $note]);
+
             return $payment;
         });
     }
 
     private function amountCents(SubscriptionPlan $plan, string $billingCycle): int
     {
-        if ($billingCycle === 'yearly') return (int) ($plan->yearly_price_cents ?? round(((float) $plan->price) * 1200));
+        if ($billingCycle === 'yearly') {
+            return (int) ($plan->yearly_price_cents ?? round(((float) $plan->price) * 1200));
+        }
+
         return (int) ($plan->monthly_price_cents ?? round(((float) $plan->price) * 100));
     }
 
     private function endsAt(UserSubscription $subscription, $startsAt): mixed
     {
-        if (! $subscription->plan->duration_days) return null;
+        if (! $subscription->plan->duration_days) {
+            return null;
+        }
+
         return $subscription->billing_interval === 'yearly'
             ? $startsAt->copy()->addYear()
             : $startsAt->copy()->addMonth();

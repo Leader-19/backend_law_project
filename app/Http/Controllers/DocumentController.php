@@ -6,46 +6,63 @@ use App\Http\Requests\Doc\DocumentRequest;
 use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Document;
-use App\Services\Documents\DocumentsService;
 use App\Services\DocumentLimitService;
+use App\Services\Documents\DocumentsService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class DocumentController extends Controller
 {
-    protected $service;
+    public function __construct(
+        protected DocumentsService $service
+    ) {}
 
-    public function __construct(DocumentsService $service)
+    /**
+     * Cached category list – reused in index / create / edit / batch.
+     */
+    private function getCategories()
     {
-        $this->service = $service;
+        return Cache::remember('categories.list', now()->addMinutes(30), function () {
+            return Category::query()
+                ->orderBy('title')
+                ->get(['id', 'title', 'parent_id']);
+        });
     }
 
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
-        $page = $request->get('page', 1);
-        $search = (string) $request->input('search', '');
+        $perPage = min(max((int) $request->get('per_page', 10), 5), 50);
+        $page = max((int) $request->get('page', 1), 1);
+        $search = trim((string) $request->input('search', ''));
+        $searchType = $request->get('search_type', 'all');
+
         $categoryIds = $request->input('category_ids', []);
         $categoryIds = is_array($categoryIds) ? $categoryIds : [];
 
         if ($categoryIds === [] && $request->filled('category_id')) {
-            $categoryIds = [$request->input('category_id')];
+            $categoryIds = [(int) $request->input('category_id')];
         }
 
         $validated = validator(['category_ids' => $categoryIds], [
             'category_ids' => ['array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
         ])->validate();
+
         $categoryIds = $validated['category_ids'];
 
-        $searchType = $request->get('search_type', 'all');
-
-        $paginated = $this->service->getPaginated($perPage, $page, $search, $categoryIds, $searchType);
+        $paginated = $this->service->getPaginated(
+            $perPage,
+            $page,
+            $search,
+            $categoryIds,
+            $searchType
+        );
 
         return Inertia::render('Documents/DocumentIndex', [
             'documents' => $paginated->items(),
-            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
+            'categories' => $this->getCategories(),
             'selectedCategoryIds' => $categoryIds,
             'searchType' => $searchType,
             'pagination' => [
@@ -60,7 +77,7 @@ class DocumentController extends Controller
     public function create()
     {
         return Inertia::render('Documents/DocumentCreate', [
-            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
+            'categories' => $this->getCategories(),
         ]);
     }
 
@@ -71,6 +88,8 @@ class DocumentController extends Controller
         app(DocumentLimitService::class)->ensureCanCreate($request->user());
 
         $this->service->store($request);
+
+        Cache::forget('categories.list');
 
         return redirect()->route('documents.index')
             ->with('success', 'Document created successfully!');
@@ -93,7 +112,7 @@ class DocumentController extends Controller
 
         return Inertia::render('Documents/DocumentUpdate', [
             'document' => $document,
-            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
+            'categories' => $this->getCategories(),
         ]);
     }
 
@@ -103,6 +122,8 @@ class DocumentController extends Controller
         $this->authorize('update', $document);
 
         $this->service->update($request, $id);
+
+        Cache::forget('categories.list');
 
         return redirect()->route('documents.index')
             ->with('success', 'Document updated successfully!');
@@ -115,22 +136,33 @@ class DocumentController extends Controller
 
         $this->service->delete($id);
 
+        Cache::forget('categories.list');
+
         return redirect()->route('documents.index')
             ->with('success', 'Document deleted successfully!');
     }
 
+    /**
+     * Optimized bulk delete – load once, authorize, then delete.
+     */
     public function bulkDestroy(Request $request)
     {
         $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1'],
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
             'ids.*' => ['integer', 'distinct', 'exists:documents,id'],
         ]);
 
-        foreach ($validated['ids'] as $id) {
-            $document = $this->service->find($id);
+        $documents = Document::whereIn('id', $validated['ids'])->get();
+
+        foreach ($documents as $document) {
             $this->authorize('delete', $document);
-            $this->service->delete($id);
         }
+
+        foreach ($documents as $document) {
+            $this->service->delete($document->id);
+        }
+
+        Cache::forget('categories.list');
 
         return redirect()->route('documents.index')
             ->with('success', 'Selected documents deleted successfully!');
@@ -139,7 +171,7 @@ class DocumentController extends Controller
     public function batchCreate()
     {
         return Inertia::render('Documents/DocumentBatchCreate', [
-            'categories' => Category::orderBy('title')->get(['id', 'title', 'parent_id']),
+            'categories' => $this->getCategories(),
         ]);
     }
 
@@ -147,7 +179,7 @@ class DocumentController extends Controller
     {
         $validated = $request->validate([
             'doc_upload' => ['required', 'array', 'min:1', 'max:50'],
-            'doc_upload.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:2097152'], // 2 GB max (KB)
+            'doc_upload.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx', 'max:2097152'],
             'category_id' => ['required', 'exists:categories,id'],
             'description' => ['nullable', 'string', 'max:500'],
         ]);
@@ -187,6 +219,8 @@ class DocumentController extends Controller
             'failed_count' => count($failures),
         ]);
 
+        Cache::forget('categories.list');
+
         return redirect()->route('documents.index')
             ->with('success', $flash);
     }
@@ -209,7 +243,12 @@ class DocumentController extends Controller
             return back()->withErrors(['zip_file' => 'The ZIP file failed to upload. Please try again.'])->withInput();
         }
 
-        $result = $this->service->storeBatchZip($zipFile, $validated['category_id'], $validated['description']);
+        $result = $this->service->storeBatchZip(
+            $zipFile,
+            $validated['category_id'],
+            $validated['description']
+        );
+
         $count = $result['count'];
         $failures = $result['failures'];
         $skipped = $result['skipped'];
@@ -237,6 +276,8 @@ class DocumentController extends Controller
             'skipped_count' => $skipped,
         ]);
 
+        Cache::forget('categories.list');
+
         return redirect()->route('documents.index')
             ->with('success', $flash);
     }
@@ -250,6 +291,7 @@ class DocumentController extends Controller
         }
 
         $plans = $user->activeSubscriptions()->with('plan')->get()->pluck('plan')->filter();
+
         if ($plans->isEmpty()) {
             throw ValidationException::withMessages([
                 'doc_upload' => ['An active subscription is required to import documents.'],
@@ -270,25 +312,44 @@ class DocumentController extends Controller
     private function countImportableZipFiles($zipFile): int
     {
         $zip = new \ZipArchive;
+
         if ($zip->open($zipFile->getRealPath()) !== true) {
-            throw ValidationException::withMessages(['zip_file' => ['Unable to open the ZIP file.']]);
+            throw ValidationException::withMessages([
+                'zip_file' => ['Unable to open the ZIP file.'],
+            ]);
         }
 
         $allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
         $count = 0;
+
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entry = $zip->statIndex($index);
-            if ($entry && $entry['size'] > 0 && in_array(strtolower(pathinfo($entry['name'], PATHINFO_EXTENSION)), $allowedExtensions, true)) {
+
+            if (
+                $entry
+                && $entry['size'] > 0
+                && in_array(
+                    strtolower(pathinfo($entry['name'], PATHINFO_EXTENSION)),
+                    $allowedExtensions,
+                    true
+                )
+            ) {
                 $count++;
             }
         }
+
         $zip->close();
 
         if ($count === 0) {
-            throw ValidationException::withMessages(['zip_file' => ['The ZIP file contains no supported documents.']]);
+            throw ValidationException::withMessages([
+                'zip_file' => ['The ZIP file contains no supported documents.'],
+            ]);
         }
+
         if ($count > 100) {
-            throw ValidationException::withMessages(['zip_file' => ['A ZIP import may contain at most 100 supported documents.']]);
+            throw ValidationException::withMessages([
+                'zip_file' => ['A ZIP import may contain at most 100 supported documents.'],
+            ]);
         }
 
         return $count;

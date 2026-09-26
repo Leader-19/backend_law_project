@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SubscriptionPlan;
 use App\Models\Category;
+use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -77,7 +77,7 @@ class SubscriptionPlanWebController extends Controller
         $counter = 1;
 
         while (SubscriptionPlan::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         $validated['slug'] = $slug;

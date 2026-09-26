@@ -137,8 +137,8 @@ class AdminSubscriptionController extends Controller
                 $symbolMap = ['USD' => '$', 'KHR' => '៛', 'THB' => '฿'];
                 $symbol = $symbolMap[$plan->currency] ?? $plan->currency;
                 $formattedPrice = $plan->currency === 'KHR'
-                    ? number_format($plan->price) . ' ' . $symbol
-                    : $symbol . number_format($plan->price, 2);
+                    ? number_format($plan->price).' '.$symbol
+                    : $symbol.number_format($plan->price, 2);
 
                 return array_merge($plan->toArray(), [
                     'currency_symbol' => $symbol,
@@ -179,7 +179,7 @@ class AdminSubscriptionController extends Controller
         $counter = 1;
 
         while (SubscriptionPlan::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter++;
+            $slug = $baseSlug.'-'.$counter++;
         }
 
         $validated['slug'] = $slug;

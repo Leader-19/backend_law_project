@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Controller;
 use App\Http\Requests\TextContent\TextContentRequest;
-use App\Models\Category;
 use App\Models\TextContent;
 use Illuminate\Http\Request;
 
@@ -21,7 +19,7 @@ class TextContentController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('body', 'like', "%{$search}%");
+                    ->orWhere('body', 'like', "%{$search}%");
             });
         }
 

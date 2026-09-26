@@ -10,10 +10,15 @@ use App\Http\Middleware\LogApiRequest;
 use App\Http\Middleware\RouteSecurity;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleRequests;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Exceptions\UnauthorizedException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -57,9 +62,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+        $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                \Illuminate\Support\Facades\Log::channel('stack')->error('Unhandled API exception', [
+                Log::channel('stack')->error('Unhandled API exception', [
                     'request_id' => $request->attributes->get('request_id'),
                     'exception' => get_class($e),
                     'file' => $e->getFile(),
@@ -70,7 +75,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 $message = 'Something went wrong. Please try again later.';
 
-                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                if ($e instanceof ValidationException) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'The given data was invalid.',
@@ -78,14 +83,14 @@ return Application::configure(basePath: dirname(__DIR__))
                     ], 422);
                 }
 
-                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                if ($e instanceof AuthenticationException) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'Unauthenticated.',
                     ], 401);
                 }
 
-                if ($e instanceof \Spatie\Permission\Exceptions\UnauthorizedException) {
+                if ($e instanceof UnauthorizedException) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'You do not have permission to perform this action.',

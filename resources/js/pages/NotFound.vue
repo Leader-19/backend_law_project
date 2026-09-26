@@ -7,8 +7,6 @@ import { Head } from '@inertiajs/vue3';
 
 <template>
     <Head title="Page Not Found" />
-
-    <AppLayout>
         <div class="flex h-full flex-1 flex-col items-center justify-center p-8">
             <div class="text-center max-w-md">
                 <div class="mx-auto w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-6">
@@ -28,5 +26,5 @@ import { Head } from '@inertiajs/vue3';
                 </Link>
             </div>
         </div>
-    </AppLayout>
+
 </template>

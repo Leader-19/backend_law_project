@@ -40,6 +40,7 @@ class CreateNewUser implements CreatesNewUsers
             'approved_at' => now(),
         ]);
         app(SubscriptionService::class)->ensureFreeSubscription($user);
+
         return $user;
     }
 }

@@ -41,6 +41,6 @@ class Certificate extends Model
 
     public static function generateCertificateNumber(): string
     {
-        return 'CERT-' . strtoupper(Str::random(4)) . '-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+        return 'CERT-'.strtoupper(Str::random(4)).'-'.date('Ymd').'-'.strtoupper(Str::random(4));
     }
 }

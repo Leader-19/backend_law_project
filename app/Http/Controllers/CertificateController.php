@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use Barryvdh\DomPDF\PDF;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -14,10 +15,12 @@ class CertificateController extends Controller
 {
     public function index(Request $request): InertiaResponse
     {
-        $user = $request->user();
-
-        $certificates = $user->certificates()
-            ->with('quiz.category')
+        $certificates = $request->user()
+            ->certificates()
+            ->with([
+                'quiz:id,title,category_id',
+                'quiz.category:id,title',
+            ])
             ->latest()
             ->paginate(12);
 
@@ -28,66 +31,77 @@ class CertificateController extends Controller
 
     public function show(Request $request, Certificate $certificate): InertiaResponse
     {
-        $user = $request->user();
+        abort_unless($certificate->user_id === $request->user()->id, 403);
 
-        // Users can only view their own certificates
-        abort_unless($certificate->user_id === $user->id, 403);
-
-        $certificate->load(['quiz.category', 'user']);
+        $certificate->load([
+            'quiz:id,title,category_id',
+            'quiz.category:id,title',
+            'user:id,name,email',
+        ]);
 
         return Inertia::render('Certificates/Show', [
             'certificate' => $certificate,
-            'pdfUrl' => $certificate->pdf_path ? asset('storage/' . $certificate->pdf_path) : null,
+            'pdfUrl' => $certificate->pdf_path
+                ? asset('storage/'.$certificate->pdf_path)
+                : null,
         ]);
     }
 
     public function download(Request $request, Certificate $certificate): Response
     {
-        $user = $request->user();
+        abort_unless($certificate->user_id === $request->user()->id, 403);
 
-        // Users can only download their own certificates
-        abort_unless($certificate->user_id === $user->id, 403);
+        $certificate->loadMissing(['quiz.category', 'user']);
 
-        $certificate->load(['quiz.category', 'user']);
+        // Serve existing PDF if available
+        if ($certificate->pdf_path && Storage::disk('public')->exists($certificate->pdf_path)) {
+            return response()->file(
+                Storage::disk('public')->path($certificate->pdf_path),
+                [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'attachment; filename="certificate-'.$certificate->certificate_number.'.pdf"',
+                ]
+            );
+        }
 
         return $this->generatePdf($certificate);
     }
 
     public function generatePdf(Certificate $certificate): Response
     {
+        $certificate->loadMissing(['quiz.category', 'user']);
+
         $pdf = app(PDF::class);
         $pdf->loadView('certificates.certificate', [
             'userName' => $certificate->user->name,
             'quizTitle' => $certificate->quiz->title,
-            'categoryName' => $certificate->quiz->category->title,
+            'categoryName' => $certificate->quiz->category->title ?? 'N/A',
             'score' => $certificate->score,
             'certificateNumber' => $certificate->certificate_number,
             'issuedDate' => $certificate->created_at->format('F d, Y'),
         ]);
 
-        // Save PDF to storage for future use
-        $filename = 'certificates/' . $certificate->certificate_number . '.pdf';
-        $storagePath = storage_path('app/public/' . $filename);
+        $filename = 'certificates/'.$certificate->certificate_number.'.pdf';
 
-        $directory = dirname($storagePath);
-        if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
+        if (! Storage::disk('public')->exists($filename)) {
+            Storage::disk('public')->put($filename, $pdf->output());
         }
 
-        $pdf->save($storagePath);
-
-        // Update certificate with pdf_path if not set
         if (! $certificate->pdf_path) {
             $certificate->update(['pdf_path' => $filename]);
         }
 
-        return $pdf->download('certificate-' . $certificate->certificate_number . '.pdf');
+        return $pdf->download('certificate-'.$certificate->certificate_number.'.pdf');
     }
 
-    public function verify(Request $request, string $certificateNumber): \Illuminate\Http\JsonResponse
+    public function verify(Request $request, string $certificateNumber): JsonResponse
     {
         $certificate = Certificate::where('certificate_number', $certificateNumber)
-            ->with(['user:id,name,email', 'quiz:id,title,category_id', 'quiz.category:id,title'])
+            ->with([
+                'user:id,name,email',
+                'quiz:id,title,category_id',
+                'quiz.category:id,title',
+            ])
             ->first();
 
         if (! $certificate) {
@@ -103,7 +117,7 @@ class CertificateController extends Controller
                 'number' => $certificate->certificate_number,
                 'user_name' => $certificate->user->name,
                 'quiz_title' => $certificate->quiz->title,
-                'category' => $certificate->quiz->category->title,
+                'category' => $certificate->quiz->category->title ?? null,
                 'score' => $certificate->score,
                 'issued_at' => $certificate->created_at->format('Y-m-d'),
             ],

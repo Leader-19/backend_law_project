@@ -5,6 +5,7 @@ namespace App\Repositories\Categories;
 use App\Interfaces\Categories\CategoriesInterface;
 use App\Models\Category;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CategoriesRepository implements CategoriesInterface
@@ -35,17 +36,17 @@ class CategoriesRepository implements CategoriesInterface
         return Category::with('documents')->where('parent_id', $parentId)->get();
     }
 
-    public function store(array $data): \Illuminate\Database\Eloquent\Model
+    public function store(array $data): Model
     {
         return Category::create($data);
     }
 
-    public function find(int|string $id): \Illuminate\Database\Eloquent\Model
+    public function find(int|string $id): Model
     {
         return Category::with('childrenRecursive')->findOrFail($id);
     }
 
-    public function update(int|string $id, array $data): \Illuminate\Database\Eloquent\Model
+    public function update(int|string $id, array $data): Model
     {
         $category = Category::findOrFail($id);
         $data['description'] = $data['description'] ?? '';

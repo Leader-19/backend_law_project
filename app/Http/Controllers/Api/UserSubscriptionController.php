@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\SubscriptionRequest;
-use App\Models\Category;
 use App\Models\SubscriptionPlan;
 use App\Models\UserSubscription;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +15,7 @@ class UserSubscriptionController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        app(\App\Services\SubscriptionService::class)->expireEndedSubscriptions();
+        app(SubscriptionService::class)->expireEndedSubscriptions();
 
         $subscriptions = UserSubscription::where('user_id', $user->id)
             ->with('plan:id,name,slug,description,price,currency,duration_days,features')

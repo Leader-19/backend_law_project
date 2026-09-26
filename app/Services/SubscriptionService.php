@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Category;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
@@ -25,7 +26,7 @@ class SubscriptionService
         ]);
 
         if ($plan->categories()->count() === 0) {
-            $catIds = \App\Models\Category::pluck('id')->all();
+            $catIds = Category::pluck('id')->all();
             if (! empty($catIds)) {
                 $plan->categories()->sync(
                     collect($catIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all()
@@ -40,8 +41,11 @@ class SubscriptionService
     public function ensureFreeSubscription(User $user): UserSubscription
     {
         $active = $user->activeSubscription()->first();
-        if ($active) return $active;
+        if ($active) {
+            return $active;
+        }
         $free = $this->freePlan();
+
         return UserSubscription::firstOrCreate(
             ['user_id' => $user->id, 'subscription_plan_id' => $free->id, 'status' => 'active'],
             ['starts_at' => now(), 'provider' => 'internal']
@@ -51,6 +55,7 @@ class SubscriptionService
     public function currentSubscriptionFor(User $user): UserSubscription
     {
         $this->expireEndedSubscriptions();
+
         return $this->ensureFreeSubscription($user)->loadMissing('plan');
     }
 
@@ -66,6 +71,7 @@ class SubscriptionService
             UserSubscription::where('user_id', $user->id)->where('status', 'active')->update([
                 'status' => 'cancelled', 'cancelled_at' => now(),
             ]);
+
             return UserSubscription::updateOrCreate(['provider_subscription_id' => $stripeSubscriptionId], [
                 'user_id' => $user->id, 'subscription_plan_id' => $plan->id, 'status' => 'active',
                 'provider' => 'stripe', 'provider_customer_id' => $customerId, 'billing_interval' => $interval,

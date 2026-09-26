@@ -51,11 +51,11 @@ const mainNavItems = computed<NavItem[]>(() => [
                 href: dashboard(),
                 icon: LayoutGrid,
             },
-            ...sidebarCategories.value.map((cat: any) => ({
-                title: `${cat.title} Dashboard`,
-                href: `/categories/${cat.id}/dashboard`,
-                icon: Calendar,
-            })),
+            // ...sidebarCategories.value.map((cat: any) => ({
+            //     title: `${cat.title} Dashboard`,
+            //     href: `/categories/${cat.id}/dashboard`,
+            //     icon: Calendar,
+            // })),
         ],
     }] : []),
 

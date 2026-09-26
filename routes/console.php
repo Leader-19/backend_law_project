@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\SubscriptionService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -11,5 +12,5 @@ Artisan::command('inspire', function () {
 // Database health check - runs every 30 minutes
 Schedule::command('health:database')->everyThirtyMinutes()->withoutOverlapping();
 Schedule::call(function () {
-    app(\App\Services\SubscriptionService::class)->expireEndedSubscriptions();
+    app(SubscriptionService::class)->expireEndedSubscriptions();
 })->hourly()->name('subscriptions:expire')->withoutOverlapping();

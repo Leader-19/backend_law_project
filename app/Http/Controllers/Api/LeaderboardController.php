@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\QuizAttempt;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,8 @@ class LeaderboardController extends Controller
             ->get()
             ->map(function ($entry, $index) {
                 $entry->rank = $index + 1;
-                $entry->user = \App\Models\User::select('id', 'name', 'avatar')->find($entry->user_id);
+                $entry->user = User::select('id', 'name', 'avatar')->find($entry->user_id);
+
                 return $entry;
             })
             ->filter(fn ($entry) => $entry->user !== null)

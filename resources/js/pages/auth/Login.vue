@@ -154,7 +154,7 @@ const passwordVisible = ref(false);
                 </div>
             </Form>
 
-            <div v-if="canRegister" class="text-center text-sm text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <!-- <div v-if="canRegister" class="text-center text-sm text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                 មិនទាន់មានគណនី?
                 <TextLink
                     href="/register"
@@ -162,7 +162,7 @@ const passwordVisible = ref(false);
                 >
                     ចុះឈ្មោះឥឡូវនេះ (Sign up)
                 </TextLink>
-            </div>
+            </div> -->
         </div>
     </AuthBase>
 </template>
