@@ -2,15 +2,171 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { ArrowLeft, LockKeyhole, Save, UserCog } from 'lucide-vue-next'
+import { ArrowLeft, Check, Eye, EyeOff, RefreshCw, Save, Shield } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import { route } from 'ziggy-js'
 
 const props = defineProps<{ user: { id: number; name: string; email: string }; roles: string[]; userRoles: string[] }>()
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Edit user', href: '/users' }]
 const form = useForm({ name: props.user.name, email: props.user.email, password: '', roles: props.userRoles ?? [] })
+
+const showPassword = ref(false)
+
+const initials = computed(() => {
+    const parts = form.name.trim().split(/\s+/).filter(Boolean)
+    if (parts.length === 0) return '?'
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+})
+
+// Short, plain-language description per role. Falls back to a generic line
+// for any role name that isn't recognized.
+const roleDescriptions: Record<string, string> = {
+    admin: 'Full access, including managing other users and account settings.',
+    editor: 'Can create and change content, but not manage users.',
+    viewer: 'Read-only access to view content and reports.',
+    manager: 'Oversees a team and its work, without account-level access.',
+}
+function describeRole(role: string) {
+    return roleDescriptions[role.toLowerCase()] ?? `Grants the "${role}" role's standard permissions.`
+}
+
+function generatePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%'
+    let value = ''
+    for (let i = 0; i < 14; i++) {
+        value += chars[Math.floor(Math.random() * chars.length)]
+    }
+    form.password = value
+    showPassword.value = true
+}
 </script>
 
 <template>
+
     <Head title="Edit User" />
-    <AppLayout :breadcrumbs="breadcrumbs"><main class="mx-auto max-w-8xl p-4 sm:p-6"><Link :href="route('users.index')" class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 dark:text-slate-300"><ArrowLeft class="h-4 w-4" /> Back to users</Link><form class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-950" @submit.prevent="form.put(route('users.update', props.user.id))"><div class="border-b border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center gap-4"><div class="rounded-xl bg-amber-100 p-3 text-amber-700 dark:bg-amber-950"><UserCog class="h-6 w-6" /></div><div><h1 class="text-xl font-bold text-slate-900 dark:text-white">Edit user</h1><p class="text-sm text-slate-500">Update account details or assigned roles.</p></div></div></div><div class="grid gap-6 p-6 lg:grid-cols-2"><section class="space-y-5"><div><label class="text-sm font-medium">Full name</label><input v-model="form.name" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 dark:border-slate-600 dark:bg-slate-800" /><p v-if="form.errors.name" class="mt-1 text-sm text-red-600">{{ form.errors.name }}</p></div><div><label class="text-sm font-medium">Email address</label><input v-model="form.email" type="email" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 dark:border-slate-600 dark:bg-slate-800" /><p v-if="form.errors.email" class="mt-1 text-sm text-red-600">{{ form.errors.email }}</p></div><div><label class="text-sm font-medium">New password</label><div class="relative mt-2"><LockKeyhole class="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input v-model="form.password" type="password" class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 dark:border-slate-600 dark:bg-slate-800" placeholder="Enter a new password" /></div><p class="mt-1 text-xs text-slate-500">Leave blank to keep the current password.</p><p v-if="form.errors.password" class="mt-1 text-sm text-red-600">{{ form.errors.password }}</p></div></section><section><h2 class="font-semibold text-slate-900 dark:text-white">Assigned roles</h2><p class="text-sm text-slate-500">{{ form.roles.length }} roles selected</p><div class="mt-4 space-y-2"><label v-for="role in props.roles" :key="role" class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-900"><input v-model="form.roles" :value="role" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-600" /><span class="font-medium capitalize text-slate-700 dark:text-slate-200">{{ role }}</span></label></div></section></div><div class="flex justify-end gap-3 border-t border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"><Link :href="route('users.index')" class="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancel</Link><button :disabled="form.processing" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"><Save class="h-4 w-4" /> Save changes</button></div></form></main></AppLayout>
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <main class="mx-auto max-w-5xl p-4 pb-28 sm:p-6">
+            <Link :href="route('users.index')"
+                class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                <ArrowLeft class="h-4 w-4" /> Back to users
+            </Link>
+
+            <form class="mt-5 mb-15" @submit.prevent="form.put(route('users.update', props.user.id))">
+                <header
+                    class="flex items-center justify-between gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lg font-semibold text-white dark:bg-white dark:text-slate-900">
+                            {{ initials }}
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-semibold text-slate-900 dark:text-white">Edit user</h1>
+                            <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{{ props.user.email }}</p>
+                        </div>
+                    </div>
+                    <span v-if="form.isDirty"
+                        class="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                        Unsaved changes
+                    </span>
+                </header>
+
+                <div class="grid gap-10 py-8 lg:grid-cols-2 lg:gap-8">
+                    <!-- Account details -->
+                    <section class="space-y-5">
+                        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Account details</h2>
+
+                        <div>
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Full name</label>
+                            <input v-model="form.name" type="text"
+                                class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-white dark:focus:ring-white" />
+                            <p v-if="form.errors.name" class="mt-1.5 text-sm text-red-600">{{ form.errors.name }}</p>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">Email address</label>
+                            <input v-model="form.email" type="email"
+                                class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-white dark:focus:ring-white" />
+                            <p v-if="form.errors.email" class="mt-1.5 text-sm text-red-600">{{ form.errors.email }}</p>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <label class="text-sm font-medium text-slate-700 dark:text-slate-200">New
+                                    password</label>
+                                <button type="button" @click="generatePassword"
+                                    class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                                    <RefreshCw class="h-3.5 w-3.5" /> Generate
+                                </button>
+                            </div>
+                            <div class="relative mt-2">
+                                <input v-model="form.password" :type="showPassword ? 'text' : 'password'"
+                                    class="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-3 pr-10 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-white dark:focus:ring-white"
+                                    placeholder="Enter a new password" />
+                                <button type="button" @click="showPassword = !showPassword"
+                                    class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                                    <EyeOff v-if="showPassword" class="h-4 w-4" />
+                                    <Eye v-else class="h-4 w-4" />
+                                </button>
+                            </div>
+                            <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Leave blank to keep the current
+                                password.</p>
+                            <p v-if="form.errors.password" class="mt-1.5 text-sm text-red-600">{{ form.errors.password
+                                }}</p>
+                        </div>
+                    </section>
+
+                    <!-- Roles -->
+                    <section>
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Roles</h2>
+                            <span class="text-xs font-medium text-slate-400">{{ form.roles.length }} selected</span>
+                        </div>
+
+                        <div class="mt-4 space-y-2">
+                            <label v-for="role in props.roles" :key="role"
+                                class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
+                                :class="form.roles.includes(role)
+                                    ? 'border-slate-900 bg-slate-50 dark:border-white dark:bg-slate-800'
+                                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'">
+                                <input v-model="form.roles" :value="role" type="checkbox" class="sr-only" />
+                                <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border"
+                                    :class="form.roles.includes(role)
+                                        ? 'border-slate-900 bg-slate-900 dark:border-white dark:bg-white'
+                                        : 'border-slate-300 dark:border-slate-600'">
+                                    <Check v-if="form.roles.includes(role)"
+                                        class="h-3.5 w-3.5 text-white dark:text-slate-900" />
+                                </span>
+                                <span class="min-w-0">
+                                    <span
+                                        class="flex items-center gap-1.5 font-medium capitalize text-slate-800 dark:text-slate-100">
+                                        <Shield class="h-3.5 w-3.5 text-slate-400" /> {{ role }}
+                                    </span>
+                                    <span class="mt-0.5 block text-sm text-slate-500 dark:text-slate-400">
+                                        {{ describeRole(role) }}
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <p v-if="form.errors.roles" class="mt-2 text-sm text-red-600">{{ form.errors.roles }}</p>
+                    </section>
+                </div>
+
+                <!-- Sticky action bar -->
+                <div
+                    class="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+                    <div class="mx-auto flex max-w-5xl items-center justify-end gap-3 p-4">
+                        <Link :href="route('users.index')"
+                            class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+                            Cancel
+                        </Link>
+                        <button :disabled="form.processing"
+                            class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                            <Save class="h-4 w-4" /> Save changes
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </AppLayout>
 </template>

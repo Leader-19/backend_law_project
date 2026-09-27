@@ -35,6 +35,7 @@ function selectAll() {
 function deselectAll() {
     selectedIds.value = []
 }
+
 const saving = ref(false)
 const searchQuery = ref(props.filters.search ?? '')
 const categoriesById = computed(() => {
@@ -102,93 +103,60 @@ function clearSearch() {
 <template>
     <Head :title="`${plan.name} Categories`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
-            <!-- Header Section -->
-            <section class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <FolderTree class="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                        <h1 class="text-xl font-bold text-slate-900 dark:text-white">Categories for {{ plan.name }}</h1>
-                    </div>
-                    <p class="mt-1 text-sm text-slate-500">Subscribers can view documents in every selected category.</p>
+        <main class="mx-auto w-full max-w-4xl space-y-6 p-4 pb-28 sm:p-6">
+            <!-- Header -->
+            <section class="flex items-center gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                    <FolderTree class="h-5 w-5" />
                 </div>
-                <button :disabled="saving" @click="save" class="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors">
-                    <Save class="h-4 w-4" />
-                    {{ saving ? 'Saving...' : 'Save categories' }}
-                    <span v-if="selectedIds.length" class="rounded-full bg-white/20 px-2 py-0.5 text-xs">{{ selectedIds.length }}</span>
-                </button>
+                <div>
+                    <h1 class="text-xl font-semibold text-slate-900 dark:text-white">Categories for {{ plan.name }}</h1>
+                    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Subscribers can view documents in every selected category.</p>
+                </div>
             </section>
 
-            <!-- Assigned Categories Summary -->
-            <section v-if="plan.categories.length" class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3">Currently Assigned ({{ plan.categories.length }})</h2>
-                <div class="flex flex-wrap gap-2">
-                    <span v-for="cat in plan.categories" :key="cat.id" class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-950 dark:border-purple-800 dark:text-purple-300">
-                        <Check class="h-3 w-3" />
+            <!-- Currently assigned -->
+            <section v-if="plan.categories.length">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Currently assigned ({{ plan.categories.length }})</h2>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <span v-for="cat in plan.categories" :key="cat.id"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        <Check class="h-3 w-3 text-slate-400" />
                         {{ cat.title }}
                     </span>
                 </div>
             </section>
 
-            <!-- Category Selection List -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <!-- Search Bar -->
-                <div class="border-b border-slate-100 dark:border-slate-800 px-6 py-4">
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <p class="text-sm text-slate-500">{{ pagination.total }} categories available. Check boxes to assign to plan.</p>
-                        <div class="flex items-center gap-3">
-                            <p class="text-sm text-slate-500">{{ pagination.total }} categories available.</p>
-                            <div class="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-3">
-                                <button
-                                    type="button"
-                                    @click="selectAll"
-                                    class="rounded-lg bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 px-2.5 py-1 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition-colors"
-                                >
-                                    Select All
-                                </button>
-                                <button
-                                    type="button"
-                                    @click="deselectAll"
-                                    class="rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-colors"
-                                >
-                                    Deselect All
-                                </button>
-                            </div>
+            <!-- Category picker -->
+            <section>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">{{ pagination.total }} categories</h2>
+                        <div class="flex items-center gap-1.5 border-l border-slate-200 pl-3 text-xs dark:border-slate-700">
+                            <button type="button" @click="selectAll" class="font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Select all</button>
+                            <span class="text-slate-300 dark:text-slate-600">|</span>
+                            <button type="button" @click="deselectAll" class="font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Deselect all</button>
                         </div>
-                        <div class="relative w-full sm:w-64">
-                            <Search class="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                            <input
-                                v-model="searchQuery"
-                                @input="onSearchInput"
-                                type="text"
-                                placeholder="Search categories..."
-                                class="w-full rounded-xl border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <button
-                                v-if="searchQuery"
-                                @click="clearSearch"
-                                class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                            >
-                                <X class="h-4 w-4" />
-                            </button>
-                        </div>
+                    </div>
+                    <div class="relative w-full sm:w-64">
+                        <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <input v-model="searchQuery" @input="onSearchInput" type="text" placeholder="Search categories"
+                            class="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-9 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-white dark:focus:ring-white" />
+                        <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <X class="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
 
-                <div class="divide-y divide-slate-200 dark:divide-slate-800">
-                    <label
-                        v-for="category in categories"
-                        :key="category.id"
-                        class="flex cursor-pointer items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                    >
-                        <input
-                            type="checkbox"
-                            :checked="selectedIds.includes(category.id)"
-                            @change="toggleCategory(category.id)"
-                            class="h-5 w-5 rounded border-slate-300 text-purple-600 focus:ring-purple-500 dark:border-slate-600 dark:bg-slate-800"
-                        />
-                        <span class="flex-1 font-medium text-slate-900 dark:text-white">{{ categoryLabel(category) }}</span>
-                        <Check v-if="selectedIds.includes(category.id)" class="h-5 w-5 text-purple-600 flex-shrink-0" />
+                <div class="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                    <label v-for="category in categories" :key="category.id"
+                        class="flex cursor-pointer items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <input type="checkbox" :checked="selectedIds.includes(category.id)" @change="toggleCategory(category.id)" class="sr-only" />
+                        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded border"
+                            :class="selectedIds.includes(category.id) ? 'border-slate-900 bg-slate-900 dark:border-white dark:bg-white' : 'border-slate-300 dark:border-slate-600'">
+                            <Check v-if="selectedIds.includes(category.id)" class="h-3.5 w-3.5 text-white dark:text-slate-900" />
+                        </span>
+                        <span class="flex-1 font-medium text-slate-800 dark:text-slate-100">{{ categoryLabel(category) }}</span>
                     </label>
                     <p v-if="!categories.length" class="p-8 text-center text-sm text-slate-400">
                         {{ searchQuery ? 'No matching categories found.' : 'Create categories before assigning them to a plan.' }}
@@ -196,16 +164,13 @@ function clearSearch() {
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="pagination.last_page > 1" class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 px-6 py-4">
+                <div v-if="pagination.last_page > 1" class="mt-4 flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <span class="text-sm text-slate-500">
+                        <span class="text-sm text-slate-500 dark:text-slate-400">
                             Page {{ pagination.current_page }} of {{ pagination.last_page }} ({{ pagination.total }} total)
                         </span>
-                        <select
-                            :value="pagination.per_page"
-                            @change="changePerPage(Number(($event.target as HTMLSelectElement).value))"
-                            class="rounded-lg border border-slate-200 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-900 focus:outline-none"
-                        >
+                        <select :value="pagination.per_page" @change="changePerPage(Number(($event.target as HTMLSelectElement).value))"
+                            class="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900">
                             <option :value="10">10 / page</option>
                             <option :value="15">15 / page</option>
                             <option :value="25">25 / page</option>
@@ -213,23 +178,29 @@ function clearSearch() {
                         </select>
                     </div>
                     <div class="flex gap-2">
-                        <button
-                            :disabled="pagination.current_page <= 1"
-                            @click="changePage(pagination.current_page - 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
+                        <button :disabled="pagination.current_page <= 1" @click="changePage(pagination.current_page - 1)"
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                             Previous
                         </button>
-                        <button
-                            :disabled="pagination.current_page >= pagination.last_page"
-                            @click="changePage(pagination.current_page + 1)"
-                            class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800 transition-colors"
-                        >
+                        <button :disabled="pagination.current_page >= pagination.last_page" @click="changePage(pagination.current_page + 1)"
+                            class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
                             Next
                         </button>
                     </div>
                 </div>
             </section>
         </main>
+
+        <!-- Sticky action bar -->
+        <div class="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
+            <div class="mx-auto flex max-w-4xl items-center justify-end gap-3 p-4">
+                <button :disabled="saving" @click="save"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                    <Save class="h-4 w-4" />
+                    {{ saving ? 'Saving…' : 'Save categories' }}
+                    <span v-if="selectedIds.length" class="rounded-full bg-white/20 px-2 py-0.5 text-xs dark:bg-slate-900/10">{{ selectedIds.length }}</span>
+                </button>
+            </div>
+        </div>
     </AppLayout>
 </template>

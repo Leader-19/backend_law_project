@@ -10,7 +10,6 @@ import {
     BookOpen,
     Activity,
     ArrowUpRight,
-    Sparkles,
     ShieldCheck,
     CreditCard,
     Plus,
@@ -24,8 +23,11 @@ import {
     Award,
     UserCheck,
     MessageSquare,
+    Filter,
+    Check,
+    ChevronDown,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 
 interface DashboardProps {
@@ -117,8 +119,61 @@ const activitySearch = ref(props.activity_search ?? '');
 const categorySearch = ref('');
 const categorySort = ref<'title_asc' | 'title_desc' | 'docs_desc' | 'docs_asc'>('title_asc');
 
+// Excel-style "filter by name" dropdown. A category id in this set is
+// hidden from the list; empty set (the default) means nothing is hidden.
+const hiddenCategoryIds = ref<Set<number>>(new Set());
+const categoryFilterOpen = ref(false);
+const categoryFilterListSearch = ref('');
+const categoryFilterRef = ref<HTMLElement | null>(null);
+
+// The full, alphabetical list of names shown inside the filter dropdown,
+// independent of the main search/sort applied to the grid itself.
+const categoryFilterOptions = computed(() => {
+    const list = [...(props.categories ?? [])].sort((a, b) => a.title.localeCompare(b.title));
+    const q = categoryFilterListSearch.value.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((cat) => cat.title.toLowerCase().includes(q));
+});
+
+const isCategoryFilterActive = computed(() => hiddenCategoryIds.value.size > 0);
+
+function isCategoryChecked(id: number) {
+    return !hiddenCategoryIds.value.has(id);
+}
+
+function toggleCategoryChecked(id: number) {
+    const next = new Set(hiddenCategoryIds.value);
+    if (next.has(id)) {
+        next.delete(id);
+    } else {
+        next.add(id);
+    }
+    hiddenCategoryIds.value = next;
+}
+
+function selectAllCategoryFilters() {
+    hiddenCategoryIds.value = new Set();
+}
+
+function clearAllCategoryFilters() {
+    hiddenCategoryIds.value = new Set((props.categories ?? []).map((c) => c.id));
+}
+
+function toggleCategoryFilterOpen() {
+    categoryFilterOpen.value = !categoryFilterOpen.value;
+}
+
+function handleClickOutsideFilter(event: MouseEvent) {
+    if (categoryFilterRef.value && !categoryFilterRef.value.contains(event.target as Node)) {
+        categoryFilterOpen.value = false;
+    }
+}
+
+onMounted(() => document.addEventListener('click', handleClickOutsideFilter));
+onUnmounted(() => document.removeEventListener('click', handleClickOutsideFilter));
+
 const sortedCategories = computed(() => {
-    let list = [...(props.categories ?? [])];
+    let list = [...(props.categories ?? [])].filter((cat) => !hiddenCategoryIds.value.has(cat.id));
 
     const q = categorySearch.value.trim().toLowerCase();
     if (q) {
@@ -202,6 +257,53 @@ const permissionBadgeClass: Record<string, string> = {
     view: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
     delete: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
 };
+
+// Items that need action right now, surfaced once instead of hidden among stat tiles.
+const attentionItems = computed(() => {
+    const items: Array<{ key: string; label: string; count: number; href: string; cta: string; icon: any }> = [];
+    if (isAdmin.value && props.stats.pending_approvals > 0) {
+        items.push({
+            key: 'approvals',
+            label: 'User accounts waiting for approval',
+            count: props.stats.pending_approvals,
+            href: '/user-approvals?status=pending',
+            cta: 'Review',
+            icon: UserCheck,
+        });
+    }
+    if (isAdmin.value && props.stats.open_messages > 0) {
+        items.push({
+            key: 'messages',
+            label: 'Open contact messages',
+            count: props.stats.open_messages,
+            href: '/contact-messages?status=open',
+            cta: 'Reply',
+            icon: MessageSquare,
+        });
+    }
+    return items;
+});
+
+// Neutral overview tiles. Admin-only ones are filtered out for non-admins.
+const overviewStats = computed(() => {
+    const tiles = [
+        { key: 'categories', label: 'Categories', value: props.stats.total_categories, icon: FolderTree, adminOnly: false, note: 'Category tree' },
+        { key: 'users', label: 'Users', value: props.stats.total_users, icon: Users, adminOnly: true, note: 'All roles assigned' },
+        {
+            key: 'documents',
+            label: isAdmin.value ? 'Items' : 'My items',
+            value: props.stats.total_documents,
+            icon: FileText,
+            adminOnly: false,
+            note: 'Category uploads',
+        },
+        { key: 'text', label: 'Text contents', value: props.stats.total_text_contents, icon: BookOpen, adminOnly: false, note: 'Book text entries' },
+        { key: 'quizzes', label: 'Quizzes', value: props.stats.total_quizzes, icon: ClipboardList, adminOnly: true, note: `${props.stats.total_quiz_attempts} attempts` },
+        { key: 'certificates', label: 'Certificates', value: props.stats.total_certificates, icon: Award, adminOnly: true, note: 'Manage', href: '/certificate-management' },
+        { key: 'logs', label: 'System logs', value: props.stats.total_activities, icon: Activity, adminOnly: false, note: 'Action audit' },
+    ];
+    return tiles.filter((t) => !t.adminOnly || isAdmin.value);
+});
 </script>
 
 <template>
@@ -209,261 +311,121 @@ const permissionBadgeClass: Record<string, string> = {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-8 max-w-8xl mx-auto w-full">
-            <!-- Hero Welcome Card -->
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-500/10">
-                <div class="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-                <div class="absolute right-1/3 -top-10 h-48 w-48 rounded-full bg-purple-400/20 blur-xl pointer-events-none"></div>
+            <!-- Welcome header -->
+            <div class="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        {{ isAdmin ? 'Admin portal' : 'Your dashboard' }}
+                    </p>
+                    <h1 class="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
+                        Welcome back, {{ user?.name || 'there' }}
+                    </h1>
+                    <p class="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                        {{ isAdmin
+                            ? 'Manage users, categories, documents, and subscriptions from one place.'
+                            : 'Here are your assigned categories, recent items, and activity.'
+                        }}
+                    </p>
+                </div>
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    <Link
+                        v-if="isAdmin"
+                        href="/users"
+                        class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                        <Users class="h-4 w-4" />
+                        Manage users
+                    </Link>
+                    <Link
+                        href="/categories"
+                        class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                    >
+                        <Plus class="h-4 w-4" />
+                        Explore categories
+                    </Link>
+                </div>
+            </div>
 
-                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <div class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-md border border-white/20 mb-3">
-                            <Sparkles class="h-3.5 w-3.5 text-amber-300" />
-                            <span>{{ isAdmin ? 'Super Admin System Portal' : 'User Control Center' }}</span>
-                        </div>
-                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                            Welcome back, {{ user?.name || 'Administrator' }}! 👋
-                        </h1>
-                        <p class="mt-2 text-sm text-blue-100/90 max-w-8xl leading-relaxed">
-                            {{ isAdmin
-                                ? 'Full administrative access active. All roles and categories auto-assigned. Manage users, categories, documents, and multi-currency subscriptions seamlessly.'
-                                : 'Access your assigned category dashboards, manage documents, and review recent activity.'
-                            }}
+            <!-- Needs attention -->
+            <div v-if="attentionItems.length" class="space-y-2">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Needs attention</h2>
+                <Link
+                    v-for="item in attentionItems"
+                    :key="item.key"
+                    :href="item.href"
+                    class="flex items-center gap-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 transition-colors hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/40 dark:hover:bg-amber-950/70"
+                >
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                        <component :is="item.icon" class="h-4.5 w-4.5" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-amber-900 dark:text-amber-100">
+                            <span class="font-bold">{{ item.count }}</span> {{ item.label }}
                         </p>
                     </div>
-
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <Link
-                            v-if="isAdmin"
-                            href="/users"
-                            class="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2.5 text-xs font-semibold text-white transition-all shadow-sm"
-                        >
-                            <Users class="h-4 w-4" />
-                            Manage Users
-                        </Link>
-                        <Link
-                            href="/categories"
-                            class="inline-flex items-center gap-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 px-4 py-2.5 text-xs font-bold transition-all shadow-md"
-                        >
-                            <Plus class="h-4 w-4" />
-                            Explore Categories
-                        </Link>
-                    </div>
-                </div>
+                    <span class="flex shrink-0 items-center gap-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                        {{ item.cta }} <ArrowUpRight class="h-3.5 w-3.5" />
+                    </span>
+                </Link>
             </div>
 
-            <!-- Stats Grid -->
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                <!-- Categories -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+            <!-- Overview stats -->
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <component
+                    :is="stat.href ? Link : 'div'"
+                    v-for="stat in overviewStats"
+                    :key="stat.key"
+                    :href="stat.href"
+                    class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+                >
                     <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Categories</p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                {{ stats.total_categories }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                            <FolderTree class="h-6 w-6" />
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ stat.label }}</p>
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                            <component :is="stat.icon" class="h-4.5 w-4.5" />
                         </div>
                     </div>
-                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                        <span class="text-emerald-500 font-semibold flex items-center gap-1">
-                            <CheckCircle2 class="h-3.5 w-3.5" /> Active
-                        </span>
-                        <span class="mx-2">•</span>
-                        <span>Category tree management</span>
-                    </div>
-                </div>
-
-                <!-- Users (Admin) -->
-                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Users</p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                                {{ stats.total_users }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
-                            <Users class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                        <span class="text-indigo-500 font-semibold flex items-center gap-1">
-                            <ShieldCheck class="h-3.5 w-3.5" /> All Roles Auto-Assigned
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Documents -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                {{ isAdmin ? 'Total Items' : 'My Assigned Items' }}
-                            </p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                {{ stats.total_documents }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
-                            <FileText class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                        <span>Items & category uploads</span>
-                    </div>
-                </div>
-
-                <!-- Text Contents -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Text Contents</p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                {{ stats.total_text_contents }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
-                            <BookOpen class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                        <span>Book text content entries</span>
-                    </div>
-                </div>
-
-                <!-- Pending Approvals (Admin) -->
-                <div v-if="isAdmin && stats.pending_approvals > 0" class="group relative overflow-hidden rounded-2xl border border-yellow-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pending Approvals</p>
-                            <p class="mt-2 text-3xl font-extrabold text-yellow-600 dark:text-yellow-400">
-                                {{ stats.pending_approvals }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
-                            <UserCheck class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <Link href="/user-approvals?status=pending" class="text-xs font-semibold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
-                            Review Now <ArrowUpRight class="h-3.5 w-3.5" />
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Quizzes (Admin) -->
-                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quizzes</p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                                {{ stats.total_quizzes }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
-                            <ClipboardList class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                        <span>{{ stats.total_quiz_attempts }} total attempts</span>
-                    </div>
-                </div>
-
-                <!-- Certificates (Admin) -->
-                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Certificates</p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">
-                                {{ stats.total_certificates }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
-                            <Award class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <Link href="/certificate-management" class="text-xs font-semibold text-yellow-600 hover:text-yellow-700 flex items-center gap-1">
-                            Manage <ArrowUpRight class="h-3.5 w-3.5" />
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Open Messages (Admin) -->
-                <div v-if="isAdmin && stats.open_messages > 0" class="group relative overflow-hidden rounded-2xl border border-orange-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Open Messages</p>
-                            <p class="mt-2 text-3xl font-extrabold text-orange-600 dark:text-orange-400">
-                                {{ stats.open_messages }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400">
-                            <MessageSquare class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <Link href="/contact-messages?status=open" class="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1">
-                            Reply Now <ArrowUpRight class="h-3.5 w-3.5" />
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Activity Log -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">System Logs</p>
-                            <p class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                                {{ stats.total_activities }}
-                            </p>
-                        </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                            <Activity class="h-6 w-6" />
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                        <span class="flex items-center gap-1"><Clock class="h-3.5 w-3.5" /> Real-time action audit</span>
-                    </div>
-                </div>
+                    <p class="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">{{ stat.value }}</p>
+                    <p class="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                        {{ stat.note }}
+                        <ArrowUpRight v-if="stat.href" class="h-3 w-3" />
+                    </p>
+                </component>
             </div>
 
-            <!-- ===================== ALL CATEGORIES (Admin) ===================== -->
-            <div v-if="isAdmin && categories.length" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
+            <!-- Categories (shared block for admin/non-admin) -->
+            <div v-if="categories.length" class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+                <div class="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-2">
-                        <FolderTree class="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        <h2 class="text-base font-bold text-slate-900 dark:text-white">All Categories</h2>
+                        <FolderTree class="h-5 w-5 text-slate-400" />
+                        <h2 class="text-base font-semibold text-slate-900 dark:text-white">
+                            {{ isAdmin ? 'All categories' : 'My assigned categories' }}
+                        </h2>
                         <span class="text-xs text-slate-500 dark:text-slate-400">
                             ({{ sortedCategories.length }}{{ categorySearch ? ` of ${categories.length}` : '' }})
                         </span>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- Search -->
                         <div class="relative">
-                            <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                            <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                             <input
                                 v-model="categorySearch"
                                 type="text"
-                                placeholder="Search categories..."
-                                class="w-40 sm:w-52 rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-8 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                placeholder="Search categories"
+                                class="w-40 rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-8 text-xs outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-white dark:focus:ring-white sm:w-52"
                             />
                             <button
                                 v-if="categorySearch"
                                 @click="categorySearch = ''"
-                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                             >
                                 <X class="h-3.5 w-3.5" />
                             </button>
                         </div>
 
-                        <!-- Sort -->
                         <select
                             v-model="categorySort"
-                            class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                            class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                         >
                             <option value="title_asc">Name A–Z</option>
                             <option value="title_desc">Name Z–A</option>
@@ -471,97 +433,183 @@ const permissionBadgeClass: Record<string, string> = {
                             <option value="docs_asc">Fewest items</option>
                         </select>
 
-                        <Link href="/categories" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 transition">
-                            Manage All <ArrowUpRight class="h-3.5 w-3.5" />
+                        <!-- Excel-style checkbox filter by category name -->
+                        <div ref="categoryFilterRef" class="relative">
+                            <button
+                                type="button"
+                                @click="toggleCategoryFilterOpen"
+                                class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                                :class="isCategoryFilterActive
+                                    ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900'
+                                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'"
+                            >
+                                <Filter class="h-3.5 w-3.5" />
+                                Filter
+                                <span
+                                    v-if="isCategoryFilterActive"
+                                    class="rounded-full px-1.5 text-[10px] font-bold"
+                                    :class="isCategoryFilterActive ? 'bg-white/20' : ''"
+                                >
+                                    {{ categoryFilterOptions.length - hiddenCategoryIds.size }}
+                                </span>
+                                <ChevronDown class="h-3.5 w-3.5" />
+                            </button>
+
+                            <div
+                                v-if="categoryFilterOpen"
+                                class="absolute right-0 z-20 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                            >
+                                <div class="relative mb-2">
+                                    <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        v-model="categoryFilterListSearch"
+                                        type="text"
+                                        placeholder="Search names"
+                                        class="w-full rounded-md border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-2 text-xs outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                                    />
+                                </div>
+
+                                <div class="mb-1 flex items-center justify-between px-1">
+                                    <button type="button" @click="selectAllCategoryFilters" class="text-[11px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+                                        Select all
+                                    </button>
+                                    <button type="button" @click="clearAllCategoryFilters" class="text-[11px] font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+                                        Clear all
+                                    </button>
+                                </div>
+
+                                <div class="max-h-56 overflow-y-auto border-t border-slate-100 pt-1 dark:border-slate-800">
+                                    <label
+                                        v-for="cat in categoryFilterOptions"
+                                        :key="cat.id"
+                                        class="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                                    >
+                                        <span
+                                            class="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
+                                            :class="isCategoryChecked(cat.id)
+                                                ? 'border-slate-900 bg-slate-900 dark:border-white dark:bg-white'
+                                                : 'border-slate-300 dark:border-slate-600'"
+                                        >
+                                            <Check v-if="isCategoryChecked(cat.id)" class="h-3 w-3 text-white dark:text-slate-900" />
+                                        </span>
+                                        <input
+                                            type="checkbox"
+                                            :checked="isCategoryChecked(cat.id)"
+                                            @change="toggleCategoryChecked(cat.id)"
+                                            class="sr-only"
+                                        />
+                                        <span class="truncate">{{ cat.title }}</span>
+                                    </label>
+                                    <p v-if="!categoryFilterOptions.length" class="px-1.5 py-3 text-center text-xs text-slate-400">
+                                        No matching names.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Link href="/categories" class="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+                            {{ isAdmin ? 'Manage all' : 'View all' }} <ArrowUpRight class="h-3.5 w-3.5" />
                         </Link>
                     </div>
                 </div>
 
-                <!-- Empty search result -->
                 <div v-if="sortedCategories.length === 0" class="py-12 text-center">
-                    <AlertCircle class="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <AlertCircle class="mx-auto mb-2 h-8 w-8 text-slate-300 dark:text-slate-600" />
                     <p class="text-sm text-slate-500 dark:text-slate-400">
-                        No categories found matching “{{ categorySearch }}”
+                        {{ isCategoryFilterActive && !categorySearch
+                            ? 'No categories are checked in the filter.'
+                            : `No categories found matching "${categorySearch}"` }}
                     </p>
                     <button
+                        v-if="categorySearch"
                         @click="categorySearch = ''"
-                        class="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                        class="mt-3 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                     >
                         Clear search
                     </button>
+                    <button
+                        v-else-if="isCategoryFilterActive"
+                        @click="selectAllCategoryFilters"
+                        class="mt-3 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                    >
+                        Reset filter
+                    </button>
                 </div>
 
-                <!-- Categories grid -->
-                <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-all duration-200">
+                <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
                         v-for="category in sortedCategories"
                         :key="category.id"
                         :href="`/categories/${category.id}/dashboard`"
-                        class="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-all duration-200 group"
+                        class="group flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/60"
                     >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex-shrink-0">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                             <FolderTree class="h-5 w-5" />
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                {{ category.title }}
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ category.title }}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                <template v-if="isAdmin">
+                                    <span class="font-semibold text-slate-700 dark:text-slate-300">{{ category.documents_count }}</span> items
+                                    <span v-if="category.parent_id" class="ml-1 text-slate-400">· sub-category</span>
+                                </template>
+                                <template v-else>
+                                    {{ category.documents_count }} documents ·
+                                    <span
+                                        class="ml-1 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                                        :class="permissionBadgeClass[category.permission || 'view'] || permissionBadgeClass.view"
+                                    >
+                                        {{ category.permission || 'view' }}
+                                    </span>
+                                </template>
                             </p>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                                <span class="font-bold text-blue-600 dark:text-blue-400">{{ category.documents_count }}</span> items
-                                <span v-if="category.parent_id" class="ml-1 text-slate-400">• sub-category</span>
-                            </p>
-                            <p v-if="category.description" class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
-                                {{ category.description }}
-                            </p>
+                            <p v-if="isAdmin && category.description" class="mt-0.5 truncate text-xs text-slate-400">{{ category.description }}</p>
                         </div>
-                        <ArrowUpRight class="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors flex-shrink-0" />
+                        <ArrowUpRight class="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-slate-500 dark:group-hover:text-slate-300" />
                     </Link>
                 </div>
             </div>
 
-            <!-- Subscription Plan Card (non-admin only) -->
-            <div v-if="!isAdmin" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div class="flex items-center justify-between">
+            <!-- Subscription (non-admin only) -->
+            <div v-if="!isAdmin" class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+                <div class="flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-                            <CreditCard class="h-6 w-6" />
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                            <CreditCard class="h-5 w-5" />
                         </div>
                         <div>
-                            <h3 class="text-base font-bold text-slate-900 dark:text-white">
-                                {{ subscriptionPlan ? subscriptionPlan.name : 'No Active Plan' }}
+                            <h3 class="text-base font-semibold text-slate-900 dark:text-white">
+                                {{ subscriptionPlan ? subscriptionPlan.name : 'No active plan' }}
                             </h3>
                             <p class="text-sm text-slate-500 dark:text-slate-400">
                                 {{ isSubscriptionActive ? 'Active subscription' : 'Free plan included' }}
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex shrink-0 items-center gap-3">
                         <div v-if="document_usage" class="hidden text-right sm:block">
                             <p class="text-xs text-slate-500 dark:text-slate-400">Document usage</p>
-                            <p class="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                {{ document_usage.used }} / {{ document_usage.limit ?? '∞' }} documents
+                            <p class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                {{ document_usage.used }} / {{ document_usage.limit ?? '∞' }}
                             </p>
                         </div>
                         <Link
                             href="/subscription"
-                            class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
+                            class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
                         >
-                            {{ document_usage?.at_limit ? 'Upgrade Plan' : 'Manage Plan' }}
+                            {{ document_usage?.at_limit ? 'Upgrade plan' : 'Manage plan' }}
                         </Link>
                     </div>
                 </div>
                 <div v-if="document_usage" class="mt-5">
-                    <div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                    <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                         <div
                             class="h-full rounded-full transition-all duration-300"
-                            :class="document_usage.at_limit ? 'bg-rose-500' : 'bg-blue-600'"
+                            :class="document_usage.at_limit ? 'bg-red-500' : 'bg-slate-900 dark:bg-white'"
                             :style="{ width: `${document_usage.percentage}%` }"
                         ></div>
                     </div>
-                    <p
-                        class="mt-2 text-xs"
-                        :class="document_usage.at_limit ? 'font-semibold text-rose-600' : 'text-slate-500 dark:text-slate-400'"
-                    >
+                    <p class="mt-2 text-xs" :class="document_usage.at_limit ? 'font-semibold text-red-600' : 'text-slate-500 dark:text-slate-400'">
                         {{ document_usage.at_limit
                             ? "You've reached your document limit. Upgrade your plan to add more."
                             : document_usage.remaining === null
@@ -572,143 +620,50 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
             </div>
 
-            <!-- ===================== MY ASSIGNED CATEGORIES (Non-Admin) ===================== -->
-            <div v-if="!isAdmin && categories.length" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
-                    <div class="flex items-center gap-2">
-                        <FolderTree class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        <h2 class="text-base font-bold text-slate-900 dark:text-white">My Assigned Categories</h2>
-                        <span class="text-xs text-slate-500 dark:text-slate-400">
-                            ({{ sortedCategories.length }}{{ categorySearch ? ` of ${categories.length}` : '' }})
-                        </span>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <!-- Search -->
-                        <div class="relative">
-                            <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                            <input
-                                v-model="categorySearch"
-                                type="text"
-                                placeholder="Search categories..."
-                                class="w-40 sm:w-52 rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-8 text-xs dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
-                            />
-                            <button
-                                v-if="categorySearch"
-                                @click="categorySearch = ''"
-                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
-                            >
-                                <X class="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-
-                        <!-- Sort -->
-                        <select
-                            v-model="categorySort"
-                            class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
-                        >
-                            <option value="title_asc">Name A–Z</option>
-                            <option value="title_desc">Name Z–A</option>
-                            <option value="docs_desc">Most items</option>
-                            <option value="docs_asc">Fewest items</option>
-                        </select>
-
-                        <Link href="/categories" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 transition">
-                            View All <ArrowUpRight class="h-3.5 w-3.5" />
-                        </Link>
-                    </div>
-                </div>
-
-                <!-- Empty search result -->
-                <div v-if="sortedCategories.length === 0" class="py-12 text-center">
-                    <AlertCircle class="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
-                        No categories found matching “{{ categorySearch }}”
-                    </p>
-                    <button
-                        @click="categorySearch = ''"
-                        class="mt-3 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-                    >
-                        Clear search
-                    </button>
-                </div>
-
-                <!-- Categories grid -->
-                <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 transition-all duration-200">
-                    <Link
-                        v-for="category in sortedCategories"
-                        :key="category.id"
-                        :href="`/categories/${category.id}/dashboard`"
-                        class="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-all duration-200 group"
-                    >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex-shrink-0">
-                            <FolderTree class="h-5 w-5" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                {{ category.title }}
-                            </p>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                                {{ category.documents_count }} documents •
-                                <span
-                                    class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ml-1"
-                                    :class="permissionBadgeClass[category.permission || 'view'] || permissionBadgeClass.view"
-                                >
-                                    {{ category.permission || 'view' }}
-                                </span>
-                            </p>
-                        </div>
-                        <ArrowUpRight class="h-4 w-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors flex-shrink-0" />
-                    </Link>
-                </div>
-            </div>
-
-            <!-- Two-Column Grid: Recent Activity & Documents -->
+            <!-- Recent activity & recent items -->
             <div class="grid gap-6 lg:grid-cols-2">
-                <!-- Recent Activity -->
-                <div class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
+                <!-- Recent activity -->
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+                    <div class="mb-4 flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                         <div class="flex items-center gap-2">
-                            <Activity class="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                            <h2 class="text-base font-bold text-slate-900 dark:text-white">Recent Activity Log</h2>
+                            <Activity class="h-5 w-5 text-slate-400" />
+                            <h2 class="text-base font-semibold text-slate-900 dark:text-white">Recent activity</h2>
                         </div>
-                        <Link href="/activity-logs" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                            View All <ArrowUpRight class="h-3.5 w-3.5" />
+                        <Link href="/activity-logs" class="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+                            View all <ArrowUpRight class="h-3.5 w-3.5" />
                         </Link>
                     </div>
 
-                    <div class="mb-4">
-                        <div class="relative">
-                            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                            <input
-                                v-model="activitySearch"
-                                @input="onActivitySearchInput"
-                                type="text"
-                                placeholder="Search activities..."
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-9 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <button
-                                v-if="activitySearch"
-                                @click="clearActivitySearch"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                            >
-                                <X class="h-4 w-4" />
-                            </button>
-                        </div>
+                    <div class="relative mb-4">
+                        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                            v-model="activitySearch"
+                            @input="onActivitySearchInput"
+                            type="text"
+                            placeholder="Search activities"
+                            class="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-white dark:focus:ring-white"
+                        />
+                        <button
+                            v-if="activitySearch"
+                            @click="clearActivitySearch"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                            <X class="h-4 w-4" />
+                        </button>
                     </div>
 
-                    <div v-if="recent_activity.length" class="space-y-3">
+                    <div v-if="recent_activity.length" class="space-y-2">
                         <div
                             v-for="activity in recent_activity"
                             :key="activity.id"
-                            class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors"
+                            class="flex items-center gap-3.5 rounded-xl border border-slate-100 p-3.5 dark:border-slate-800"
                         >
-                            <div :class="['flex h-9 w-9 items-center justify-center rounded-xl font-bold text-xs flex-shrink-0', getActionClass(activity.action)]">
-                                <component :is="getActionIcon(activity.action)" class="w-4 h-4" />
+                            <div :class="['flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', getActionClass(activity.action)]">
+                                <component :is="getActionIcon(activity.action)" class="h-4 w-4" />
                             </div>
-                            <div class="flex-1 min-w-0">
+                            <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
-                                    <p class="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                                    <p class="truncate text-xs font-semibold text-slate-900 dark:text-white">
                                         {{ activity.description || activity.action }}
                                     </p>
                                     <span
@@ -725,62 +680,56 @@ const permissionBadgeClass: Record<string, string> = {
                                         {{ activity.severity }}
                                     </span>
                                 </div>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                    by <span class="font-medium text-slate-700 dark:text-slate-300">{{ activity.causer_name }}</span> • {{ activity.created_at }}
+                                <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                    by <span class="font-medium text-slate-700 dark:text-slate-300">{{ activity.causer_name }}</span> · {{ activity.created_at }}
                                 </p>
                             </div>
                         </div>
                     </div>
-                    <div v-else-if="!hasData" class="text-center py-10 text-xs text-slate-400">
-                        No recent activity logged.
-                    </div>
-                    <div v-else class="flex flex-col items-center justify-center py-10 text-xs text-slate-400 gap-2">
+                    <div v-else-if="!hasData" class="py-10 text-center text-xs text-slate-400">No recent activity logged.</div>
+                    <div v-else class="flex flex-col items-center justify-center gap-2 py-10 text-xs text-slate-400">
                         <AlertCircle class="h-8 w-8 text-slate-300 dark:text-slate-600" />
                         <p>No recent activity to display.</p>
                     </div>
                 </div>
 
-                <!-- Recent Items -->
-                <div class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
+                <!-- Recent items -->
+                <div class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+                    <div class="mb-4 flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                         <div class="flex items-center gap-2">
-                            <FileText class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                            <h2 class="text-base font-bold text-slate-900 dark:text-white">Recent Category Items</h2>
+                            <FileText class="h-5 w-5 text-slate-400" />
+                            <h2 class="text-base font-semibold text-slate-900 dark:text-white">Recent items</h2>
                         </div>
-                        <Link href="/documents" class="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1">
-                            Manage All <ArrowUpRight class="h-3.5 w-3.5" />
+                        <Link href="/documents" class="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+                            Manage all <ArrowUpRight class="h-3.5 w-3.5" />
                         </Link>
                     </div>
 
-                    <div v-if="recent_documents.length" class="space-y-3">
+                    <div v-if="recent_documents.length" class="space-y-2">
                         <div
                             v-for="doc in recent_documents"
                             :key="doc.id"
-                            class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors"
+                            class="flex items-center gap-3.5 rounded-xl border border-slate-100 p-3.5 dark:border-slate-800"
                         >
-                            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 font-bold text-xs flex-shrink-0">
-                                <FileText class="w-4 h-4" />
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                <FileText class="h-4 w-4" />
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                                    {{ doc.doc_name }}
-                                </p>
-                                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                    <span class="font-medium text-purple-600 dark:text-purple-400">{{ doc.category_title }}</span> • by {{ doc.user_name }}
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-xs font-semibold text-slate-900 dark:text-white">{{ doc.doc_name }}</p>
+                                <p class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                    <span class="font-medium text-slate-700 dark:text-slate-300">{{ doc.category_title }}</span> · by {{ doc.user_name }}
                                 </p>
                             </div>
                             <Link
                                 :href="`/documents/${doc.id}`"
-                                class="flex-shrink-0 rounded-xl p-2 text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition-colors"
+                                class="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
                             >
-                                <ArrowUpRight class="w-4 h-4" />
+                                <ArrowUpRight class="h-4 w-4" />
                             </Link>
                         </div>
                     </div>
-                    <div v-else-if="!hasData" class="text-center py-10 text-xs text-slate-400">
-                        No category items created yet.
-                    </div>
-                    <div v-else class="flex flex-col items-center justify-center py-10 text-xs text-slate-400 gap-2">
+                    <div v-else-if="!hasData" class="py-10 text-center text-xs text-slate-400">No category items created yet.</div>
+                    <div v-else class="flex flex-col items-center justify-center gap-2 py-10 text-xs text-slate-400">
                         <AlertCircle class="h-8 w-8 text-slate-300 dark:text-slate-600" />
                         <p>No recent items to display.</p>
                     </div>

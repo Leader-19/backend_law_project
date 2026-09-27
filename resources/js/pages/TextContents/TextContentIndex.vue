@@ -1,268 +1,254 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { Head, Link, router, useForm } from '@inertiajs/vue3'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Plus, Pencil, Trash2, FileText, AlertTriangle } from 'lucide-vue-next'
-import { type BreadcrumbItem } from '@/types'
-import { computed, ref } from 'vue'
-import { can } from '@/lib/can'
-import DataTable from '@/components/ui/data-table/DataTable.vue'
-import TextContentSearchBar from '@/components/text-contents/TextContentSearchBar.vue'
+import { ref, computed } from 'vue'
+import type { BreadcrumbItem } from '@/types'
+
+interface Category {
+    id: number
+    title: string
+}
 
 interface TextContent {
     id: number
     title: string
     body: string
-    category_id: number
-    category: { id: number; title: string } | null
+    category_id: number | null
+    category?: Category | null
     created_at: string
 }
 
-interface Category {
-    id: number
-    title: string
-    parent_id: number | null
-}
-
-interface Pagination {
-    current_page: number
-    last_page: number
-    per_page: number
-    total: number
-}
-
-interface Quota {
-    used: number
-    limit: number
-    remaining: number
-}
-
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'អត្ថបទ', href: '/text-contents' },
+    { title: 'អត្ថបទ', href: route('text-contents.index') },
 ]
 
-const props = defineProps<{
-    textContents: TextContent[]
-    categories: Category[]
-    pagination: Pagination
-    search: string
-    selectedCategoryId: number | null
-    quota: Quota | null
-}>()
+const page = usePage()
+const textContents = page.props.textContents as TextContent[]
+const categories = page.props.categories as Category[]
 
-const searchQuery = ref<string>(props.search || '')
-const selectedCategoryId = ref<number | null>(props.selectedCategoryId || null)
-const selectedIds = ref<number[]>([])
+// Filters (Excel-like)
+const search = ref('')
+const categoryFilter = ref<string | number>('')
+const dateFrom = ref('')
+const dateTo = ref('')
 
-const isAllSelected = computed(() =>
-    props.textContents.length > 0 &&
-    props.textContents.every((item) => selectedIds.value.includes(item.id))
-)
+const filteredContents = computed(() => {
+    return textContents.filter((item) => {
+        // Search (title + body)
+        const searchLower = search.value.toLowerCase().trim()
+        const matchesSearch =
+            !searchLower ||
+            item.title.toLowerCase().includes(searchLower) ||
+            (item.body && item.body.toLowerCase().includes(searchLower))
 
-const quotaPercent = computed(() => {
-    if (!props.quota) return 0
-    return Math.round((props.quota.used / props.quota.limit) * 100)
+        // Category
+        const matchesCategory =
+            !categoryFilter.value || item.category_id === Number(categoryFilter.value)
+
+        // Date range
+        const created = new Date(item.created_at)
+        const matchesFrom = !dateFrom.value || created >= new Date(dateFrom.value)
+        const matchesTo = !dateTo.value || created <= new Date(dateTo.value + 'T23:59:59')
+
+        return matchesSearch && matchesCategory && matchesFrom && matchesTo
+    })
 })
 
-const quotaColor = computed(() => {
-    if (!props.quota) return 'bg-green-500'
-    if (quotaPercent.value >= 90) return 'bg-red-500'
-    if (quotaPercent.value >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
+const clearFilters = () => {
+    search.value = ''
+    categoryFilter.value = ''
+    dateFrom.value = ''
+    dateTo.value = ''
+}
+
+const hasActiveFilters = computed(() => {
+    return !!(search.value || categoryFilter.value || dateFrom.value || dateTo.value)
 })
 
-const quotaExhausted = computed(() => {
-    if (!props.quota) return false
-    return props.quota.remaining <= 0
-})
-
-function toggleSelectAll() {
-    selectedIds.value = isAllSelected.value
-        ? []
-        : props.textContents.map((item) => item.id)
-}
-
-function changePage(page: number) {
-    if (page < 1 || page > props.pagination.last_page) return
-    router.get(route('text-contents.index'), {
-        per_page: props.pagination.per_page,
-        page,
-        search: searchQuery.value,
-        category_id: selectedCategoryId.value,
-    }, { preserveState: true })
-}
-
-function changeItemsPerPage(perPage: number) {
-    router.get(route('text-contents.index'), {
-        per_page: perPage,
-        page: 1,
-        search: searchQuery.value,
-        category_id: selectedCategoryId.value,
-    }, { preserveState: true })
-}
-
-function handleSearch() {
-    router.get(route('text-contents.index'), {
-        search: searchQuery.value,
-        category_id: selectedCategoryId.value,
-        per_page: props.pagination.per_page,
-        page: 1,
-    }, { preserveState: true })
-}
-
-function deleteItem(id: number) {
-    if (confirm('Are you sure you want to delete this text content?')) {
+const deleteItem = (id: number) => {
+    if (confirm('តើអ្នកពិតជាចង់លុបអត្ថបទនេះមែនទេ?')) {
         router.delete(route('text-contents.destroy', id))
     }
 }
 
-function deleteSelected() {
-    if (selectedIds.value.length === 0 || !confirm(`Delete ${selectedIds.value.length} selected items?`)) return
-    router.delete(route('text-contents.bulk-destroy'), {
-        data: { ids: selectedIds.value },
-        onSuccess: () => { selectedIds.value = [] },
+const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('km-KH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
     })
-}
-
-function truncateText(text: string, max: number = 80): string {
-    if (!text) return ''
-    const plain = text.replace(/<[^>]*>/g, '')
-    return plain.length > max ? plain.substring(0, max) + '...' : plain
 }
 </script>
 
 <template>
-    <Head title="អត្ថបទ" />
+    <Head title="បញ្ជីអត្ថបទ" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-3">
-
-            <!-- Top Bar -->
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex flex-wrap items-center gap-3">
-                    <Link
-                        v-if="can('text-contents.create') && !quotaExhausted"
-                        :href="route('text-contents.create')"
-                        class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
-                    >
-                        <Plus class="w-4 h-4" />
-                        បង្កើត​ អត្ថបទ
-                    </Link>
-
-                    <span
-                        v-else-if="can('text-contents.create')"
-                        class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-400 bg-gray-100 rounded-md cursor-not-allowed"
-                    >
-                        <Plus class="w-4 h-4" />
-                        Quota Exhausted
-                    </span>
-
-                    <div v-if="selectedIds.length && can('text-contents.delete')" class="inline-flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
-                        <span class="text-sm text-red-700">{{ selectedIds.length }} selected</span>
-                        <button @click="deleteSelected" class="inline-flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700">
-                            <Trash2 class="w-3 h-3" /> Delete selected
-                        </button>
-                    </div>
+        <div class="max-w-7xl mx-auto p-6">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">អត្ថបទ</h1>
+                    <p class="text-sm text-gray-500 mt-1">
+                        សរុប {{ filteredContents.length }} / {{ textContents.length }} អត្ថបទ
+                    </p>
                 </div>
-
-                <!-- Search -->
-                <TextContentSearchBar
-                    v-model:searchQuery="searchQuery"
-                    v-model:selectedCategoryId="selectedCategoryId"
-                    :categories="categories"
-                    @search="handleSearch"
-                />
+                <Link
+                    :href="route('text-contents.create')"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
+                >
+                    + បង្កើតអត្ថបទថ្មី
+                </Link>
             </div>
 
-            <!-- Quota Banner -->
-            <div v-if="quota" class="mb-4 p-3 rounded-lg border" :class="quotaPercent >= 90 ? 'bg-red-50 border-red-200' : quotaPercent >= 70 ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <AlertTriangle v-if="quotaPercent >= 90" class="w-4 h-4 text-red-500" />
-                        <span class="text-sm font-medium" :class="quotaPercent >= 90 ? 'text-red-700' : quotaPercent >= 70 ? 'text-yellow-700' : 'text-blue-700'">
-                            Text Content Quota: {{ quota.used }} / {{ quota.limit }} used
-                        </span>
+            <!-- Excel-like Filters -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- Search -->
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">ស្វែងរក</label>
+                        <input
+                            v-model="search"
+                            type="text"
+                            placeholder="ស្វែងរកតាមចំណងជើង ឬ អត្ថបទ..."
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
                     </div>
-                    <span class="text-xs" :class="quotaPercent >= 90 ? 'text-red-500' : quotaPercent >= 70 ? 'text-yellow-500' : 'text-blue-500'">
-                        {{ quota.remaining }} remaining
-                    </span>
+
+                    <!-- Category -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">ប្រភេទ</label>
+                        <select
+                            v-model="categoryFilter"
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        >
+                            <option value="">ទាំងអស់</option>
+                            <option
+                                v-for="cat in categories"
+                                :key="cat.id"
+                                :value="cat.id"
+                            >
+                                {{ cat.title }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Date From -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">ពីថ្ងៃ</label>
+                        <input
+                            v-model="dateFrom"
+                            type="date"
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
+
+                    <!-- Date To -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">ដល់ថ្ងៃ</label>
+                        <input
+                            v-model="dateTo"
+                            type="date"
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                    </div>
                 </div>
-                <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
-                    <div :class="quotaColor" class="h-2 rounded-full transition-all" :style="{ width: quotaPercent + '%' }"></div>
+
+                <div v-if="hasActiveFilters" class="mt-3 flex justify-end">
+                    <button
+                        @click="clearFilters"
+                        class="text-sm text-red-600 hover:text-red-700 font-medium"
+                    >
+                        សម្អាតតម្រងទាំងអស់
+                    </button>
                 </div>
             </div>
 
-            <!-- Data Table -->
-            <DataTable
-                :data="props.textContents"
-                :pagination="props.pagination"
-                :columns="['select', 'stt', 'title', 'category', 'body', 'created_at', 'actions']"
-                class="mt-3"
-                @page-change="changePage"
-                @per-page-change="changeItemsPerPage"
-            >
-                <template #header-select>
-                    <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" aria-label="Select all" />
-                </template>
-                <template #select="{ item }">
-                    <input v-model="selectedIds" type="checkbox" :value="item.id" />
-                </template>
+            <!-- Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    ចំណងជើង
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    ប្រភេទ
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    ថ្ងៃបង្កើត
+                                </th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    សកម្មភាព
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100">
+                            <tr
+                                v-for="item in filteredContents"
+                                :key="item.id"
+                                class="hover:bg-gray-50 transition-colors"
+                            >
+                                <td class="px-4 py-3">
+                                    <Link
+                                        :href="route('text-contents.show', item.id)"
+                                        class="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                    >
+                                        {{ item.title }}
+                                    </Link>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span
+                                        v-if="item.category"
+                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                                    >
+                                        {{ item.category.title }}
+                                    </span>
+                                    <span v-else class="text-xs text-gray-400">—</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    {{ formatDate(item.created_at) }}
+                                </td>
+                                <td class="px-4 py-3 text-right text-sm space-x-2">
+                                    <Link
+                                        :href="route('text-contents.show', item.id)"
+                                        class="text-gray-600 hover:text-gray-900"
+                                    >
+                                        មើល
+                                    </Link>
+                                    <Link
+                                        :href="route('text-contents.edit', item.id)"
+                                        class="text-blue-600 hover:text-blue-800"
+                                    >
+                                        កែ
+                                    </Link>
+                                    <button
+                                        @click="deleteItem(item.id)"
+                                        class="text-red-600 hover:text-red-800"
+                                    >
+                                        លុប
+                                    </button>
+                                </td>
+                            </tr>
 
-                <template #header-stt>លរ</template>
-                <template #header-title>ចំណងជើង</template>
-                <template #header-category>ប្រភេទ</template>
-                <template #header-body>អត្ថបទ</template>
-                <template #header-created_at>ថ្ងៃបង្កើត</template>
-                <template #header-actions>សកម្មភាព</template>
-
-                <template #stt="{ index }">
-                    {{ (props.pagination.current_page - 1) * props.pagination.per_page + index + 1 }}
-                </template>
-
-                <template #category="{ item }">
-                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
-                        {{ item.category?.title || '-' }}
-                    </span>
-                </template>
-
-                <template #body="{ item }">
-                    <span class="text-xs text-gray-600" :title="item.body.replace(/<[^>]*>/g, '')">
-                        {{ truncateText(item.body) }}
-                    </span>
-                </template>
-
-                <template #created_at="{ item }">
-                    <span class="text-xs text-gray-500">
-                        {{ new Date(item.created_at).toLocaleDateString() }}
-                    </span>
-                </template>
-
-                <template #actions="{ item }">
-                    <div class="flex justify-center gap-2">
-                        <Link
-                            :href="route('text-contents.show', item.id)"
-                            class="p-2 bg-gray-800 rounded hover:bg-gray-700"
-                        >
-                            <FileText class="w-4 h-4 text-white" />
-                        </Link>
-                        <Link
-                            v-if="can('text-contents.edit')"
-                            :href="route('text-contents.edit', item.id)"
-                            class="p-2 bg-blue-500 rounded hover:bg-blue-900"
-                        >
-                            <Pencil class="w-4 h-4 text-white" />
-                        </Link>
-                        <button
-                            v-if="can('text-contents.delete')"
-                            @click="deleteItem(item.id)"
-                            class="p-2 bg-red-500 rounded hover:bg-red-700"
-                        >
-                            <Trash2 class="w-4 h-4 text-white" />
-                        </button>
-                    </div>
-                </template>
-            </DataTable>
-
+                            <tr v-if="filteredContents.length === 0">
+                                <td colspan="4" class="px-4 py-12 text-center text-gray-500">
+                                    <p class="text-sm">មិនមានអត្ថបទណាមួយត្រូវនឹងតម្រងនេះទេ</p>
+                                    <button
+                                        v-if="hasActiveFilters"
+                                        @click="clearFilters"
+                                        class="mt-2 text-sm text-blue-600 hover:underline"
+                                    >
+                                        សម្អាតតម្រង
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
