@@ -114,6 +114,7 @@ function clearSearch() {
     <Head title="Frontend Registered Users" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
+        <!-- list of frontend users -->
         <main class="mx-auto w-full max-w-none space-y-6 p-4 sm:p-6 lg:p-8">
             <!-- Header -->
             <section

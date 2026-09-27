@@ -53,6 +53,7 @@ function generatePassword() {
                 <ArrowLeft class="h-4 w-4" /> Back to users
             </Link>
 
+            <!-- form create -->
             <form class="mt-5 mb-10" @submit.prevent="form.post(route('users.store'))">
                 <header class="flex items-center gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
                     <div

@@ -149,6 +149,7 @@ function clearSelection() {
 <template>
     <Head title="Category Assignment" />
     <AppLayout :breadcrumbs="breadcrumbs">
+        <!-- categories page model -->
         <main class="mx-auto w-full max-w-none space-y-8 p-4 pb-28 sm:p-6 lg:p-8">
             <!-- Header -->
             <header class="flex items-center gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
