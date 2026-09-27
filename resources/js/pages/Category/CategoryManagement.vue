@@ -192,7 +192,7 @@ function handleSearch() {
                             description="បញ្ចូលពត៌មានឯកសារថ្មីក្នុងប្រភេទនេះ"
                             submit-label="បង្កើត"
                             :processing="createForm.processing"
-                            :form="createForm"
+                            v-model:form="createForm"
                             @update:open="isCreateOpen = $event"
                             @submit="handleSubmitCreate"
                         >
@@ -302,7 +302,7 @@ function handleSearch() {
 
             <DocumentEditDialog
                 :open="isEditOpen"
-                :form="editForm"
+                v-model:form="editForm"
                 :processing="editForm.processing"
                 @update:open="isEditOpen = $event"
                 @submit="handleSubmitEdit"

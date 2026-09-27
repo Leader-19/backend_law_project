@@ -23,10 +23,6 @@ function onSearchInput() {
     }, 400)
 }
 
-function submitSearch() {
-    router.get(route('permissions.index'), { search: search.value, page: 1 }, { preserveState: true, replace: true })
-}
-
 function clearSearch() {
     search.value = ''
     router.get(route('permissions.index'), {}, { preserveState: true, replace: true })

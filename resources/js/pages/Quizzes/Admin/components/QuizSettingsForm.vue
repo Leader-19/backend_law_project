@@ -10,11 +10,12 @@ interface Category {
     parent_id: number | null
 }
 
-const props = defineProps<{
-    form: ReturnType<typeof useForm>
+defineProps<{
     categories: Category[]
     saving: boolean
 }>()
+
+const form = defineModel<ReturnType<typeof useForm>>('form', { required: true })
 
 defineEmits<{
     submit: []

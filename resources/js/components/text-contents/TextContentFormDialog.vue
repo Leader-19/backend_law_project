@@ -17,10 +17,11 @@ defineProps<{
     description: string
     submitLabel: string
     processing: boolean
-    form: Form<any>
     categories: { id: number; title: string; parent_id: number | null }[]
     isEdit?: boolean
 }>()
+
+const form = defineModel<Form<any>>('form', { required: true })
 
 defineEmits<{
     (e: 'update:open', value: boolean): void
@@ -38,7 +39,7 @@ defineEmits<{
 
             <form @submit.prevent="$emit('submit')" class="space-y-4 mt-4">
                 <TextContentFormFields
-                    :form="form"
+                    v-model:form="form"
                     :categories="categories"
                     :processing="processing"
                     :submit-label="submitLabel"

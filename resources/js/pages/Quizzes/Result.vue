@@ -37,7 +37,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Result', href: '#' },
 ]
 
-const props = defineProps<{
+defineProps<{
     attempt: Attempt
 }>()
 </script>

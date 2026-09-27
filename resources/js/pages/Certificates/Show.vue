@@ -24,7 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Certificate', href: '#' },
 ]
 
-const props = defineProps<{
+defineProps<{
     certificate: Certificate
     pdfUrl: string | null
 }>()

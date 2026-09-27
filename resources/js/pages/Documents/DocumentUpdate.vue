@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import DocumentFormFields from '@/components/documents/DocumentFormFields.vue';
 
@@ -68,7 +68,7 @@ const submit = () => {
 
                 <form @submit.prevent="submit" class="p-6">
                     <DocumentFormFields
-                        :form="form"
+                        v-model:form="form"
                         :categories="categories"
                         :processing="form.processing"
                         submit-label="Update Document"

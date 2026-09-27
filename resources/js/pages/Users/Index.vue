@@ -8,7 +8,7 @@ import { route } from 'ziggy-js';
 import { can } from '@/lib/can';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import DataTable from '@/components/ui/data-table/DataTable.vue';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 interface Role {
     id: number;

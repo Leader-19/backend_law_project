@@ -62,7 +62,6 @@ const zipUploading = ref(false)
 const zipProgress = ref('')
 
 const showFileErrors = computed(() => Object.keys(fileErrors.value).length > 0)
-const hasFailedFiles = computed(() => failedFilesMap.value.size > 0)
 
 function fileNameWithoutExt(name: string): string {
     return name.replace(/\.[^/.]+$/, '')
@@ -184,7 +183,6 @@ async function retryFailedFiles() {
     if (failed.length === 0) return
 
     isRetrying.value = true
-    const prevFailed = failedFilesMap.value
     const newFailed = new Map<number, FailedFile>()
 
     batchTotalFiles.value = failed.length

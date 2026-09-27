@@ -31,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quizzes', href: '/quizzes' },
 ]
 
-const props = defineProps<{
+defineProps<{
     quizzes: { data: Quiz[] } & Pagination
 }>()
 

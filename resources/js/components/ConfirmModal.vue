@@ -19,7 +19,7 @@ interface Props {
     variant?: 'danger' | 'warning' | 'info';
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     title: 'Are you sure?',
     description: 'This action cannot be undone.',
     confirmLabel: 'Confirm',

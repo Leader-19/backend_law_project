@@ -25,7 +25,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Leaderboard', href: '/leaderboard' },
 ]
 
-const props = defineProps<{
+defineProps<{
     leaderboard: LeaderboardEntry[]
     userRank: number | null
     userStats: UserStats

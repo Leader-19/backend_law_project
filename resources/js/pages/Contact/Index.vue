@@ -27,7 +27,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Contact Admin', href: '/contact' },
 ]
 
-const props = defineProps<{
+defineProps<{
     messages: { data: ContactMessage[] } & Pagination
 }>()
 

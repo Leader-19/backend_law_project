@@ -58,7 +58,7 @@ const submit = async () => {
                     reset()
                 },
             })
-        } catch (err) {
+        } catch {
             // Error is already captured in progress state
             uploadProgress.value = { ...progress.value }
         }
@@ -104,7 +104,7 @@ const handleCancel = () => {
 
                 <form @submit.prevent="submit" class="p-6">
                     <DocumentFormFields
-                        :form="form"
+                        v-model:form="form"
                         :categories="categories"
                         :processing="form.processing || isUploading"
                         submit-label="Create Document"

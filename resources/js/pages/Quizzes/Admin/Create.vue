@@ -337,7 +337,7 @@ onMounted(async () => {
             <template v-else-if="draftQuiz">
                 <!-- Quiz Settings -->
                 <QuizSettingsForm
-                    :form="settingsForm"
+                    v-model:form="settingsForm"
                     :categories="categories"
                     :saving="savingSettings"
                     @submit="updateSettings"

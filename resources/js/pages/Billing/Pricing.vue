@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { Check, Sparkles } from '@lucide/vue';
 
 type Plan = { id: number; name: string; slug: string; description: string; currency: string; monthly_price_cents: number | null; yearly_price_cents: number | null; max_documents: number | null; features: string[] | null };
-const props = defineProps<{ plans: Plan[]; current_plan: string }>();
+defineProps<{ plans: Plan[]; current_plan: string }>();
 const interval = ref<'monthly' | 'yearly'>('monthly');
 const format = (cents: number | null, currency: string) => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format((cents ?? 0) / 100);
 const annualSavings = (plan: Plan) => plan.monthly_price_cents && plan.yearly_price_cents ? Math.max(0, plan.monthly_price_cents * 12 - plan.yearly_price_cents) : 0;

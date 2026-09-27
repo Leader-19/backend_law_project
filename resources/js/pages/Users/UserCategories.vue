@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { ref } from 'vue'

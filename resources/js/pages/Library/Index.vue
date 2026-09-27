@@ -27,7 +27,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Library', href: '/library' },
 ]
 
-const props = defineProps<{
+defineProps<{
     libraryItems: { data: LibraryItem[] } & Pagination
 }>()
 

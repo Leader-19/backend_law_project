@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, Clock, CheckCircle, XCircle, Trophy } from '@lucide/vue'
+import { ArrowLeft, CheckCircle, XCircle, Trophy } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface Quiz {
@@ -37,7 +37,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quiz Details', href: '#' },
 ]
 
-const props = defineProps<{
+defineProps<{
     quiz: Quiz
     attempts: Attempt[]
     canAttempt: boolean

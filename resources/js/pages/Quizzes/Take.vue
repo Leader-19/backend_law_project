@@ -44,7 +44,6 @@ const isSubmitting = ref(false)
 const totalQuestions = computed(() => props.quiz.questions.length)
 const question = computed(() => props.quiz.questions[currentQuestion.value])
 const isLastQuestion = computed(() => currentQuestion.value === totalQuestions.value - 1)
-const allAnswered = computed(() => props.quiz.questions.every(q => answers.value[q.id]?.length > 0))
 
 function selectOption(questionId: number, optionId: number) {
     if (!answers.value[questionId]) {

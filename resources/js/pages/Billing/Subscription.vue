@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-const props = defineProps<{ subscription: any; usage: { used: number; limit: number | null; remaining: number | null; percentage: number; at_limit: boolean }; payments: any }>();
+defineProps<{ subscription: any; usage: { used: number; limit: number | null; remaining: number | null; percentage: number; at_limit: boolean }; payments: any }>();
 const openPortal = () => router.post('/billing/portal');
 </script>
 

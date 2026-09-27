@@ -48,7 +48,7 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="space-y-6">
                 <TextContentFormFields
-                    :form="form"
+                    v-model:form="form"
                     :categories="categories"
                     :processing="form.processing"
                     submit-label="បង្កើត"

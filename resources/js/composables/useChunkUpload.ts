@@ -6,14 +6,6 @@ const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024
 // Files smaller than this threshold use the normal single-request upload
 export const CHUNK_UPLOAD_THRESHOLD = 10 * 1024 * 1024 // 10 MB
 
-interface UploadMeta {
-  upload_id: string
-  filename: string
-  total_size: number
-  total_chunks: number
-  created_at: string
-}
-
 interface InitResponse {
   upload_id: string
   chunk_size: number
@@ -52,11 +44,6 @@ export interface UploadProgress {
   error: string | null
   speed: number          // bytes per second
   estimatedTimeLeft: number // seconds
-}
-
-function getCsrfToken(): string {
-  const meta = document.querySelector('meta[name="csrf-token"]')
-  return meta?.getAttribute('content') ?? ''
 }
 
 function getApiBase(): string {

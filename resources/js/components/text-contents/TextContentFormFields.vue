@@ -10,12 +10,13 @@ interface Category {
 }
 
 defineProps<{
-    form: Form<any>
     categories: Category[]
     processing: boolean
     submitLabel: string
     isEdit?: boolean
 }>()
+
+const form = defineModel<Form<any>>('form', { required: true })
 </script>
 
 <template>

@@ -3,10 +3,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 
-defineProps<{
-    breadcrumbs?: BreadcrumbItem[];
-}>();
-
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Log Viewer',

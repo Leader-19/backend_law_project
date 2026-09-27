@@ -32,7 +32,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Attempts', href: '#' },
 ]
 
-const props = defineProps<{
+defineProps<{
     attempts: { data: Attempt[] } & Pagination
 }>()
 

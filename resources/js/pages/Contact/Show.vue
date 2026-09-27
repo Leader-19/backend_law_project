@@ -20,7 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Message', href: '#' },
 ]
 
-const props = defineProps<{
+defineProps<{
     message: ContactMessage
 }>()
 

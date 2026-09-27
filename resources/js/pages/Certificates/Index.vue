@@ -28,7 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Certificates', href: '/certificates' },
 ]
 
-const props = defineProps<{
+defineProps<{
     certificates: { data: Certificate[] } & Pagination
 }>()
 

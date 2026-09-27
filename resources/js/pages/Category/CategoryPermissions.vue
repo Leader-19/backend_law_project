@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { type BreadcrumbItem } from '@/types'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import ConfirmModal from '@/components/ConfirmModal.vue'
@@ -78,14 +77,6 @@ function assignSelectedUsers() {
 
 function assignTeam() {
     teamForm.post(route('categories.team-permissions.store', props.category.id), { onSuccess: () => teamForm.reset('role_id') })
-}
-
-function updateUser(user: Person, permission: string) {
-    router.put(route('categories.permissions.update', [props.category.id, user.id]), { permission }, { preserveScroll: true })
-}
-
-function changeUserPermission(user: Person, event: Event) {
-    updateUser(user, (event.target as HTMLSelectElement).value)
 }
 
 function removeUser(user: Person) {

@@ -2,8 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, watch, computed } from 'vue';
-import { Trash2, Search, Filter, X, AlertTriangle, AlertCircle, Info, CheckCircle, Database, RefreshCw } from '@lucide/vue';
+import { ref, computed } from 'vue';
+import { Trash2, Search, X, AlertTriangle, AlertCircle, Info, Database, RefreshCw } from '@lucide/vue';
 import DataTable from '@/components/ui/data-table/DataTable.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 

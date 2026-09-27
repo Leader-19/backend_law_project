@@ -31,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Reading History', href: '/reading-history' },
 ]
 
-const props = defineProps<{
+defineProps<{
     history: { data: HistoryItem[] } & Pagination
 }>()
 

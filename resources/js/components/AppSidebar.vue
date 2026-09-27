@@ -12,13 +12,11 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link, usePage } from '@inertiajs/vue3';
-import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck, ScrollText, Upload, CreditCard, CalendarCheck, UserPlus, Banknote, Activity, FolderTree, CreditCardIcon, BookOpen, BookMarked, Clock, ClipboardList, Trophy, Award, MessageSquare, UserCheck } from '@lucide/vue';
+import { Link } from '@inertiajs/vue3';
+import { Calendar, FileText, LayoutGrid, BriefcaseBusiness, Notebook, Users, Download, ShieldCheck, Upload, CreditCard, CalendarCheck, UserPlus, Banknote, Activity, FolderTree, CreditCardIcon, BookOpen, BookMarked, Clock, ClipboardList, Trophy, Award, MessageSquare, UserCheck } from '@lucide/vue';
 import AppLogo from './AppLogo.vue';
 import { can } from '@/lib/can';
 import { computed } from 'vue'
-
-const page = usePage()
 
 const hasAnyPermission = (permissions: string[]) => permissions.some((permission) => can(permission));
 
@@ -37,8 +35,6 @@ const hasAdminPermission = hasAnyPermission([
     'category.view', 'category.create', 'category.edit', 'category.delete',
     'document.view', 'document.create', 'document.edit', 'document.delete',
 ]);
-
-const sidebarCategories = computed(() => (page.props.sidebarCategories as any[]) || [])
 
 const mainNavItems = computed<NavItem[]>(() => [
     ...(hasDashboardPermission ? [{

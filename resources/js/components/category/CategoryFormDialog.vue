@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import {
@@ -94,3 +94,37 @@ const closeDialog = () => {
   emit('close')
 }
 </script>
+
+<template>
+  <Dialog :open="isOpen" @update:open="isOpen = $event">
+    <DialogTrigger as-child>
+      <Button type="button">{{ isEditMode ? 'Edit category' : 'Create category' }}</Button>
+    </DialogTrigger>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{{ isEditMode ? 'Edit category' : 'Create category' }}</DialogTitle>
+        <DialogDescription>Enter the category details below.</DialogDescription>
+      </DialogHeader>
+      <form class="space-y-4" @submit.prevent="submit">
+        <div class="space-y-2">
+          <Label for="category-title">Title</Label>
+          <Input id="category-title" v-model="form.title" />
+          <p v-if="form.errors.title" class="text-sm text-red-600">{{ form.errors.title }}</p>
+        </div>
+        <div class="space-y-2">
+          <Label for="category-description">Description</Label>
+          <Textarea id="category-description" v-model="form.description" />
+          <p v-if="form.errors.description" class="text-sm text-red-600">{{ form.errors.description }}</p>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="closeDialog">
+            <X class="mr-2 size-4" /> Cancel
+          </Button>
+          <Button type="submit" :disabled="form.processing">
+            {{ form.processing ? 'Saving...' : 'Save category' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
+</template>
