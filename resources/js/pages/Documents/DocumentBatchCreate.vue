@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, AlertCircle, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, AlertCircle, RotateCcw } from '@lucide/vue'
 import { ref, computed } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 import DocumentBatchForm from '@/components/documents/DocumentBatchForm.vue'

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link } from '@inertiajs/vue3'
-import { ArrowLeft, Pencil, ShieldCheck } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, ShieldCheck } from '@lucide/vue'
 import { route } from 'ziggy-js'
 
 const props = defineProps<{ role: { id: number; name: string }; rolePermissions: string[] }>()

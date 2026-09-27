@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { can } from '@/lib/can'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
-import { CheckCircle2, RefreshCw, ShieldCheck, Search, X } from 'lucide-vue-next'
+import { CheckCircle2, RefreshCw, ShieldCheck, Search, X } from '@lucide/vue'
 import { ref } from 'vue'
 import { route } from 'ziggy-js'
 

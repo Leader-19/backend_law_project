@@ -9,7 +9,7 @@ import {
     Plus,
     Pencil,
     Trash2
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { can } from '@/lib/can';
 
 

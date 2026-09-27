@@ -2,7 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { ArrowLeft, Check, Eye, EyeOff, RefreshCw, Save, Shield } from 'lucide-vue-next'
+// import { ArrowLeft, Check, Eye, EyeOff, RefreshCw, Save, Shield } from '@lucide/vue'
+import { ArrowLeft, Check, Eye, EyeOff, RefreshCw, Save, Shield } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { route } from 'ziggy-js'
 

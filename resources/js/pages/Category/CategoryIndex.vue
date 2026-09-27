@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Plus, Pencil, Trash2, Eye, Filter, ShieldCheck } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, Eye, Filter, ShieldCheck } from '@lucide/vue'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
 import { can } from '@/lib/can'
 import { type BreadcrumbItem } from '@/types'

@@ -8,7 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
 import { Form, Head } from '@inertiajs/vue3';
-import { Eye, EyeOff, LockKeyhole, Mail, User as UserIcon, CheckCircle2, AlertCircle } from 'lucide-vue-next';
+import { Eye, EyeOff, LockKeyhole, Mail, User as UserIcon, CheckCircle2, AlertCircle } from '@lucide/vue';
 import { ref, computed } from 'vue';
 
 const passwordVisible = ref(false);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Trash2, X } from 'lucide-vue-next'
+import { Trash2, X } from '@lucide/vue'
 import { computed } from 'vue'
 import { type QuizOption } from '@/types'
 

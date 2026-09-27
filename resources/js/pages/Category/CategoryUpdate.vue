@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import roles from '@/routes/roles';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { User } from 'lucide-vue-next';
+import { User } from '@lucide/vue';
 import { route } from 'ziggy-js';
 import CategoryPicker from '@/components/CategoryPicker.vue';
 

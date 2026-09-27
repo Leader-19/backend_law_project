@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head } from '@inertiajs/vue3'
-import { Trophy, Medal, User } from 'lucide-vue-next'
+import { Trophy, Medal, User } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface LeaderboardEntry {

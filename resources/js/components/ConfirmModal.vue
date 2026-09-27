@@ -7,7 +7,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle } from 'lucide-vue-next';
+import { AlertTriangle } from '@lucide/vue';
 
 interface Props {
     open: boolean;

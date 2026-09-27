@@ -3,7 +3,7 @@ import PermissionSelector from '@/components/PermissionSelector.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { ArrowLeft, KeyRound, Save, ShieldCheck } from 'lucide-vue-next'
+import { ArrowLeft, KeyRound, Save, ShieldCheck } from '@lucide/vue'
 import { route } from 'ziggy-js'
 
 const props = defineProps<{ permissions: string[] }>()

@@ -1,21 +1,37 @@
-import '../css/app.css';
+import '../css/app.css'
 
-import { createInertiaApp, router } from '@inertiajs/vue3';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import type { DefineComponent } from 'vue';
-import { createApp, h } from 'vue';
-import { initializeTheme } from './composables/useAppearance';
+import { createInertiaApp, router } from '@inertiajs/vue3'
+// import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers'
+import type { DefineComponent } from 'vue'
+import { createApp, h } from 'vue'
+import { initializeTheme } from './composables/useAppearance'
 
-import { ZiggyVue } from 'ziggy-js';
-import { Ziggy } from './ziggy';
+import { ZiggyVue } from 'ziggy-js'
+import { Ziggy } from './ziggy'
 
-// ADD PINIA
+import { registerSW } from 'virtual:pwa-register'
+
+// Pinia
 import { createPinia } from 'pinia'
 
-// IMPORT STORE
-import { useLoadingStore } from './pages/stores/LoadingPage';
+// Loading store
+import { useLoadingStore } from './pages/stores/LoadingPage'
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'SPRITUP'
+
+/*
+|--------------------------------------------------------------------------
+| Service Worker
+|--------------------------------------------------------------------------
+|
+| vite-plugin-pwa handles the service worker registration.
+| Do NOT manually call navigator.serviceWorker.register().
+|
+*/
+registerSW({
+    immediate: true,
+})
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -27,23 +43,20 @@ createInertiaApp({
         ),
 
     setup({ el, App, props, plugin }) {
-
         const pinia = createPinia()
 
         const vueApp = createApp({
-            render: () => h(App, props)
+            render: () => h(App, props),
         })
 
         vueApp
             .use(plugin)
-            .use(pinia) // register pinia
+            .use(pinia)
             .use(ZiggyVue, Ziggy)
             .mount(el)
 
-        //  AFTER APP MOUNT → use store
         const loading = useLoadingStore()
 
-        //  Inertia events
         router.on('start', () => {
             loading.start()
         })
@@ -56,14 +69,6 @@ createInertiaApp({
     progress: {
         color: '#4B5563',
     },
-});
+})
 
-initializeTheme();
-
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
-            console.error('Service Worker registration failed:', err);
-        })
-    })
-}
+initializeTheme()

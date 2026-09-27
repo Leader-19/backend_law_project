@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import { Check, Plus, Search, X } from 'lucide-vue-next'
+// import { Check, Plus, Search, X } from '@lucide/vue'
+import { Check, Plus, Search, X } from '@lucide/vue'
 
 interface Plan {
     id?: number

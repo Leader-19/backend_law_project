@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
-import { Pencil, Trash2, Plus } from 'lucide-vue-next';
+import { Pencil, Trash2, Plus } from '@lucide/vue';
 import DataTable from '@/components/ui/data-table/DataTable.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import { ref } from 'vue';

@@ -3,7 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { ArrowLeft, Shield, FolderTree, Pencil, Trash2, CreditCard } from 'lucide-vue-next'
+// import { ArrowLeft, Shield, FolderTree, Pencil, Trash2, CreditCard } from '@lucide/vue'
+import { ArrowLeft, Shield, FolderTree, Pencil, Trash2, CreditCard } from '@lucide/vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
 interface User {

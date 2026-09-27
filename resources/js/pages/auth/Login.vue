@@ -10,7 +10,7 @@ import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
-import { Eye, EyeOff, LockKeyhole, Mail, AlertCircle } from 'lucide-vue-next';
+import { Eye, EyeOff, LockKeyhole, Mail, AlertCircle } from '@lucide/vue';
 import { ref } from 'vue';
 
 defineProps<{

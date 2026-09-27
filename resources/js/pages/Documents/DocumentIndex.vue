@@ -8,7 +8,7 @@ import {
     Pencil,
     Trash2,
     Upload
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 import { computed, ref } from 'vue'
 import { can } from '@/lib/can'

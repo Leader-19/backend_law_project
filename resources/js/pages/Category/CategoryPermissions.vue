@@ -5,7 +5,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { ref } from 'vue'
-import { Eye, Pencil, Trash2 } from 'lucide-vue-next'
+import { Eye, Pencil, Trash2 } from '@lucide/vue'
 
 type Person = { id: number; name: string; email: string; permission?: string }
 type Team = { id: number; name: string; permission?: string }

@@ -15,7 +15,7 @@ import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
 import Label from '@/components/ui/label/Label.vue'
 import Textarea from '@/components/ui/textarea/Textarea.vue'
-import { X } from 'lucide-vue-next'
+import { X } from '@lucide/vue'
 
 interface Category {
   id?: number

@@ -2,7 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
-import { Check, FolderTree, Save, Search, X } from 'lucide-vue-next'
+// import { Check, FolderTree, Save, Search, X } from '@lucide/vue'
+import { Check, FolderTree, Save, Search, X } from '@lucide/vue'
 import { computed, ref } from 'vue'
 
 interface Category { id: number; title: string; parent_id: number | null }

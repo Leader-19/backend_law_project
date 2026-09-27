@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, CheckCircle, XCircle, Trophy } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle, XCircle, Trophy } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface Attempt {

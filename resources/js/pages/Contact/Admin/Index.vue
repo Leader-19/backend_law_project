@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { MessageSquare, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-vue-next'
+import { MessageSquare, CheckCircle, Clock, XCircle, Trash2 } from '@lucide/vue'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
 import { type BreadcrumbItem } from '@/types'
 

@@ -3,7 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
-import { FolderTree, Search, X, Check, Trash2, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+// import { FolderTree, Search, X, Check, Trash2, ChevronLeft, ChevronRight } from '@lucide/vue'
+import { FolderTree, Search, X, Check, Trash2, ChevronLeft, ChevronRight } from '@lucide/vue'
 
 interface User {
     id: number

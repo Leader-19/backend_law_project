@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Clock, FileText } from 'lucide-vue-next'
+import { Clock, FileText } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface HistoryItem {

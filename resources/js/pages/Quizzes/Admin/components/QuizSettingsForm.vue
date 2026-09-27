@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Save, CheckCircle2 } from 'lucide-vue-next'
+import { Save, CheckCircle2 } from '@lucide/vue'
 import { useForm } from '@inertiajs/vue3'
 import FormField from '@/components/form/FormField.vue'
 import FormCheckbox from '@/components/form/FormCheckbox.vue'

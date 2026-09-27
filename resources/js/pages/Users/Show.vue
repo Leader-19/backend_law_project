@@ -2,7 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link } from '@inertiajs/vue3'
-import { ArrowLeft, Mail, Pencil, UserRound } from 'lucide-vue-next'
+// import { ArrowLeft, Mail, Pencil, UserRound } from '@lucide/vue'
+import { ArrowLeft, Mail, Pencil, UserRound } from '@lucide/vue'
 import { route } from 'ziggy-js'
 
 const props = defineProps<{ user: { id: number; name: string; email: string; roles?: { name: string }[] } }>()

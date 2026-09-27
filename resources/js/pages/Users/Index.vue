@@ -2,7 +2,8 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Users as UsersIcon, Plus, Pencil, Trash2, Eye, Shield, Search, X } from 'lucide-vue-next';
+// import { Users as UsersIcon, Plus, Pencil, Trash2, Eye, Shield, Search, X } from '@lucide/vue';
+import { Users as UsersIcon, Plus, Pencil, Trash2, Eye, Shield, Search, X } from '@lucide/vue';
 import { route } from 'ziggy-js';
 import { can } from '@/lib/can';
 import ConfirmModal from '@/components/ConfirmModal.vue';

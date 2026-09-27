@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileArchive } from 'lucide-vue-next'
+import { FileArchive } from '@lucide/vue'
 
 defineProps<{
     activeTab: 'files' | 'zip'

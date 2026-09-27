@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft } from '@lucide/vue'
 import { ref, onMounted, computed } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 import QuizSettingsForm from './components/QuizSettingsForm.vue'

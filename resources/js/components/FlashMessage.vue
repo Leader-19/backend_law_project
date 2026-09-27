@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { CheckCircle2, XCircle } from 'lucide-vue-next'
+// import { CheckCircle2, XCircle } from '@lucide/vue'
+import { CheckCircle2, XCircle } from '@lucide/vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import type { AppPageProps } from '@/types'

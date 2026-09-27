@@ -13,7 +13,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck, ScrollText, Upload, CreditCard, CalendarCheck, UserPlus, Banknote, Activity, FolderTree, CreditCardIcon, BookOpen, BookMarked, Clock, ClipboardList, Trophy, Award, MessageSquare, UserCheck } from 'lucide-vue-next';
+import { Calendar, FileText, LayoutGrid, Phone, MessagesSquare, BriefcaseBusiness, Notebook, Presentation, Users, Download, ShieldCheck, ScrollText, Upload, CreditCard, CalendarCheck, UserPlus, Banknote, Activity, FolderTree, CreditCardIcon, BookOpen, BookMarked, Clock, ClipboardList, Trophy, Award, MessageSquare, UserCheck } from '@lucide/vue';
 import AppLogo from './AppLogo.vue';
 import { can } from '@/lib/can';
 import { computed } from 'vue'

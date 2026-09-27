@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, Clock, CheckCircle } from 'lucide-vue-next'
+import { ArrowLeft, Clock, CheckCircle } from '@lucide/vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 

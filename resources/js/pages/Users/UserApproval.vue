@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { UserCheck, UserX, CheckCircle, XCircle, Users } from 'lucide-vue-next'
+import { UserCheck, UserX, CheckCircle, XCircle, Users } from '@lucide/vue'
 import { ref } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { MessageSquare, Send, CheckCircle, Clock, XCircle } from 'lucide-vue-next'
+import { MessageSquare, Send, CheckCircle, Clock, XCircle } from '@lucide/vue'
 import { ref } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 

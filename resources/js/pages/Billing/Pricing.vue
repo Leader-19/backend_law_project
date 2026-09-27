@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { Check, Sparkles } from 'lucide-vue-next';
+import { Check, Sparkles } from '@lucide/vue';
 
 type Plan = { id: number; name: string; slug: string; description: string; currency: string; monthly_price_cents: number | null; yearly_price_cents: number | null; max_documents: number | null; features: string[] | null };
 const props = defineProps<{ plans: Plan[]; current_plan: string }>();

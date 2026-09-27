@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link, router } from '@inertiajs/vue3'
-import { ArrowLeft, FileText, Plus, Pencil, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, FileText, Plus, Pencil, Trash2 } from '@lucide/vue'
 import { route } from 'ziggy-js'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { ref } from 'vue'

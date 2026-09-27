@@ -26,7 +26,7 @@ import {
     Filter,
     Check,
     ChevronDown,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 
