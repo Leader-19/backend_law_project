@@ -2,7 +2,6 @@
 import BrandLogo from '@/components/BrandLogo.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, CheckCircle2, ShieldCheck, Sparkles } from '@lucide/vue';
 
 defineProps<{
     title?: string;

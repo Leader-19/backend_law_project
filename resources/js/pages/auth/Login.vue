@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
-import { Eye, EyeOff, LockKeyhole, Mail, AlertCircle } from '@lucide/vue';
+import { AlertCircle, Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';
 
 defineProps<{
@@ -61,7 +59,7 @@ const passwordVisible = ref(false);
         <Form
             v-bind="store.form()"
             :reset-on-success="['password']"
-            v-slot="{ errors, processing }"
+            v-slot="{ errors }"
             class="space-y-4"
         >
             <div
