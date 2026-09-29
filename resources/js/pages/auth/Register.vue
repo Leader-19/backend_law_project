@@ -28,10 +28,10 @@ const passwordsMatch = computed(() => {
         <Head title="Register" />
 
         <div
-            class="flex flex-col gap-5 rounded-2xl border border-slate-100 bg-white p-7 shadow-xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+            class="flex flex-col gap-5 rounded-[5px] border border-slate-100 bg-white p-7 shadow-xl shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
             <!-- Google Sign-In Button -->
             <a href="/auth/google/redirect?source=backend"
-                class="inline-flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 hover:shadow active:scale-[0.99] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/80 dark:hover:text-white">
+                class="inline-flex h-11 w-full items-center justify-center gap-3 rounded-[5px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 hover:shadow active:scale-[0.99] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/80 dark:hover:text-white">
                 <svg class="size-5 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4"
                         d="M21.35 12.23c0-.71-.06-1.39-.18-2.05H12v3.87h5.24a4.48 4.48 0 0 1-1.94 2.94v2.51h3.14c1.84-1.7 2.91-4.2 2.91-7.27Z" />
@@ -66,7 +66,7 @@ const passwordsMatch = computed(() => {
                             class="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                         <Input id="name" type="text" required autofocus :tabindex="1" autocomplete="name" name="name"
                             placeholder="John Doe"
-                            class="h-11 pl-10 rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
+                            class="h-11 pl-10 rounded-[5px] bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
                     </div>
                     <InputError :message="errors.name" />
                 </div>
@@ -79,7 +79,7 @@ const passwordsMatch = computed(() => {
                             class="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                         <Input id="email" type="email" required :tabindex="2" autocomplete="email" name="email"
                             placeholder="name@example.com"
-                            class="h-11 pl-10 rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
+                            class="h-11 pl-10 rounded-[5px] bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
                     </div>
                     <InputError :message="errors.email" />
                 </div>
@@ -93,7 +93,7 @@ const passwordsMatch = computed(() => {
                         <Input id="password" :type="passwordVisible ? 'text' : 'password'" required :tabindex="3"
                             autocomplete="new-password" name="password" placeholder="យ៉ាងតិច ៨ តួអក្សរ"
                             v-model="passwordValue"
-                            class="h-11 px-10 rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
+                            class="h-11 px-10 rounded-[5px] bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
                         <button type="button"
                             class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition"
                             :aria-label="passwordVisible ? 'Hide password' : 'Show password'"
@@ -125,7 +125,7 @@ const passwordsMatch = computed(() => {
                         <Input id="password_confirmation" :type="confirmationVisible ? 'text' : 'password'" required
                             :tabindex="4" autocomplete="new-password" name="password_confirmation"
                             placeholder="បញ្ចូលពាក្យសម្ងាត់ម្តងទៀត" v-model="confirmationValue"
-                            class="h-11 px-10 rounded-xl bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
+                            class="h-11 px-10 rounded-[5px] bg-slate-50/70 border-slate-200 focus:bg-white dark:bg-slate-800/60 dark:border-slate-700 dark:focus:bg-slate-800" />
                         <button type="button"
                             class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition"
                             :aria-label="confirmationVisible ? 'Hide password' : 'Show password'"
@@ -138,7 +138,7 @@ const passwordsMatch = computed(() => {
                 </div>
 
                 <Button type="submit"
-                    class="mt-2 h-11 w-full rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 active:scale-[0.99] transition-all"
+                    class="mt-2 h-11 w-full rounded-[5px] bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 active:scale-[0.99] transition-all"
                     size="lg" tabindex="5" :disabled="processing" data-test="register-user-button">
                     <Spinner v-if="processing" class="mr-2" />
                     បង្កើតគណនីថ្មី (Create Account)

@@ -29,7 +29,7 @@ defineProps<{
             {{ status }}
         </div>
 
-        <div class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <div class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-[5px] border border-gray-100 dark:border-gray-800">
             <Form v-bind="email.form()" v-slot="{ errors, processing }">
                 <div class="grid gap-2">
                     <Label for="email" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Email address</Label>

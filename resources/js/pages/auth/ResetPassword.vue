@@ -29,7 +29,7 @@ const inputEmail = ref(props.email);
             :transform="(data) => ({ ...data, token, email })"
             :reset-on-success="['password', 'password_confirmation']"
             v-slot="{ errors, processing }"
-            class="grid gap-5 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
+            class="grid gap-5 bg-white dark:bg-gray-900 p-8 rounded-[5px] border border-gray-100 dark:border-gray-800"
         >
             <div class="grid gap-2">
                 <Label for="email" class="text-sm font-semibold text-gray-700 dark:text-gray-300">Email</Label>

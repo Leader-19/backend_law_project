@@ -126,7 +126,7 @@ function clearSelection() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header Section -->
-            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div>
                     <div class="flex items-center gap-2">
                         <FolderTree class="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -141,7 +141,7 @@ function clearSelection() {
                         v-if="selectedCount > 0"
                         type="button"
                         @click="clearSelection"
-                        class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+                        class="inline-flex items-center gap-2 rounded-[5px] border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
                     >
                         <X class="h-4 w-4" />
                         Clear ({{ selectedCount }})
@@ -150,7 +150,7 @@ function clearSelection() {
                         type="button"
                         :disabled="selectedCount === 0"
                         @click="saveAssignments"
-                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
                     >
                         <CheckCircle2 class="h-4 w-4" />
                         Save Assignments
@@ -160,13 +160,13 @@ function clearSelection() {
             </section>
 
             <!-- Currently Assigned Categories -->
-            <section v-if="assignedCategories.length" class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section v-if="assignedCategories.length" class="rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-4">Currently Assigned Categories ({{ pagination.total }})</h2>
                 <div class="flex flex-wrap gap-2">
                     <div
                         v-for="cat in assignedCategories"
                         :key="cat.id"
-                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 dark:bg-emerald-950 dark:border-emerald-800"
+                        class="inline-flex items-center gap-2 rounded-[5px] bg-emerald-50 border border-emerald-200 px-3 py-2 dark:bg-emerald-950 dark:border-emerald-800"
                     >
                         <FolderTree class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">{{ cat.title }}</span>
@@ -178,7 +178,7 @@ function clearSelection() {
             </section>
 
             <!-- Category Selection Matrix -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="overflow-hidden rounded-[5px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <!-- Search Bar -->
                 <div class="border-b border-slate-100 dark:border-slate-800 px-6 py-4">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -189,7 +189,7 @@ function clearSelection() {
                                 v-model="categorySearch"
                                 type="text"
                                 placeholder="Search categories..."
-                                class="w-full rounded-xl border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-[5px] border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <button
                                 v-if="categorySearch"

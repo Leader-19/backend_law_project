@@ -119,7 +119,7 @@ function submit() {
 
 <template>
     <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="w-full max-w-lg rounded-[5px] bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                 <h2 class="text-lg font-bold text-slate-900 dark:text-white">
                     {{ props.plan?.id ? 'Edit Subscription Plan' : 'Create New Subscription Plan' }}

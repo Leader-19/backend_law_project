@@ -79,7 +79,7 @@ const canManage = props.user_permissions.some(p => {
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <span class="inline-flex items-center gap-2 rounded-[5px] border border-slate-200 bg-white px-4 py-2 text-sm font-medium shadow-sm dark:border-slate-700 dark:bg-slate-900">
                         <FileText class="h-4 w-4 text-blue-500" />
                         {{ props.category.documents_count }} items
                     </span>
@@ -90,7 +90,7 @@ const canManage = props.user_permissions.some(p => {
                 </div>
             </div>
 
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <section class="overflow-hidden rounded-[5px] border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
                         <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">

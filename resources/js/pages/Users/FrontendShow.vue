@@ -59,7 +59,7 @@ function deleteUser() {
                 <Link href="/frontend-users" class="text-sm text-blue-600 hover:text-blue-700">&larr; Back to Frontend Users</Link>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div class="flex items-center gap-4 mb-6">
                     <img v-if="user.avatar_url" :src="user.avatar_url" class="h-16 w-16 rounded-full object-cover shadow-sm" />
                     <div v-else class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-xl shadow-sm">
@@ -77,11 +77,11 @@ function deleteUser() {
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+                    <div class="rounded-[5px] border border-slate-200 dark:border-slate-800 p-4">
                         <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Registration Source</p>
                         <p class="text-sm font-medium text-slate-900 dark:text-white capitalize">{{ user.registration_source }}</p>
                     </div>
-                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+                    <div class="rounded-[5px] border border-slate-200 dark:border-slate-800 p-4">
                         <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Assigned Categories</p>
                         <p class="text-sm font-medium text-slate-900 dark:text-white">{{ user.categories.length }}</p>
                     </div>
@@ -89,7 +89,7 @@ function deleteUser() {
                     <div v-if="user.subscriptions?.length" class="col-span-full mt-2">
                         <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Active Plans</p>
                         <div class="space-y-2">
-                            <div v-for="sub in user.subscriptions" :key="sub.id" class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 p-4">
+                            <div v-for="sub in user.subscriptions" :key="sub.id" class="rounded-[5px] border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 p-4">
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="font-semibold text-emerald-900 dark:text-emerald-100">{{ sub.plan?.name || 'Unknown Plan' }}</p>
@@ -108,17 +108,17 @@ function deleteUser() {
                 </div>
 
                 <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
-                    <Link :href="`/frontend-users/${user.id}/categories`" class="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition-colors">
+                    <Link :href="`/frontend-users/${user.id}/categories`" class="inline-flex items-center gap-2 rounded-[5px] bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition-colors">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                         Manage Categories
                     </Link>
-                    <button @click="isDeleteOpen = true" class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors">
+                    <button @click="isDeleteOpen = true" class="inline-flex items-center gap-2 rounded-[5px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors">
                         Delete User
                     </button>
                 </div>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
+            <section class="rounded-[5px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
                 <div class="border-b border-slate-100 p-6 dark:border-slate-800">
                     <h2 class="text-base font-bold text-slate-900 dark:text-white">Assigned Categories</h2>
                     <p class="text-xs text-slate-500">Categories this user has access to.</p>

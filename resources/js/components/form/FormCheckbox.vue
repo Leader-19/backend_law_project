@@ -15,8 +15,8 @@ const emit = defineEmits<{
             type="checkbox"
             :checked="modelValue"
             @change="emit('update:modelValue', ($event.target as HTMLInputElement).checked)"
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            class="w-4 h-4 rounded-[5px] border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-slate-900 transition-colors focus:ring-2 focus:ring-slate-900/20 dark:text-white dark:focus:ring-white/20"
         />
-        <span class="text-sm text-gray-700">{{ label }}</span>
+        <span class="text-sm text-slate-700 dark:text-slate-300">{{ label }}</span>
     </label>
 </template>

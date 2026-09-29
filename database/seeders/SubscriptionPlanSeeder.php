@@ -130,6 +130,8 @@ class SubscriptionPlanSeeder extends Seeder
 
         foreach ($plans as $plan) {
             SubscriptionPlan::updateOrCreate(['slug' => $plan['slug']], $plan);
+        }
+
         $allCategoryIds = \App\Models\Category::pluck('id')->all();
         $pivotData = collect($allCategoryIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all();
 

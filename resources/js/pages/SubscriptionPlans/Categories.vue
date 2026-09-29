@@ -104,7 +104,7 @@ function clearSearch() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header Section -->
-            <section class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
+            <section class="flex flex-col gap-4 rounded-[5px] border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
                 <div>
                     <div class="flex items-center gap-2">
                         <FolderTree class="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -112,7 +112,7 @@ function clearSearch() {
                     </div>
                     <p class="mt-1 text-sm text-slate-500">Subscribers can view documents in every selected category.</p>
                 </div>
-                <button :disabled="saving" @click="save" class="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                <button :disabled="saving" @click="save" class="inline-flex items-center justify-center gap-2 rounded-[5px] bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors">
                     <Save class="h-4 w-4" />
                     {{ saving ? 'Saving...' : 'Save categories' }}
                     <span v-if="selectedIds.length" class="rounded-full bg-white/20 px-2 py-0.5 text-xs">{{ selectedIds.length }}</span>
@@ -120,7 +120,7 @@ function clearSearch() {
             </section>
 
             <!-- Assigned Categories Summary -->
-            <section v-if="plan.categories.length" class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section v-if="plan.categories.length" class="rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3">Currently Assigned ({{ plan.categories.length }})</h2>
                 <div class="flex flex-wrap gap-2">
                     <span v-for="cat in plan.categories" :key="cat.id" class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-950 dark:border-purple-800 dark:text-purple-300">
@@ -131,7 +131,7 @@ function clearSearch() {
             </section>
 
             <!-- Category Selection List -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <section class="overflow-hidden rounded-[5px] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <!-- Search Bar -->
                 <div class="border-b border-slate-100 dark:border-slate-800 px-6 py-4">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -162,7 +162,7 @@ function clearSearch() {
                                 @input="onSearchInput"
                                 type="text"
                                 placeholder="Search categories..."
-                                class="w-full rounded-xl border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-[5px] border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <button
                                 v-if="searchQuery"

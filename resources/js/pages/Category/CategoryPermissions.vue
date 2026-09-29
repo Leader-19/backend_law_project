@@ -130,13 +130,13 @@ function parsePermissions(permissionStr: string | undefined): string[] {
     <Head :title="`Category access – ${props.category.title}`" />
     <AppLayout :breadcrumbs="[{ title: 'Categories', href: '/categories' }, { title: 'Access', href: '#' }]">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
-            <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+            <section class="rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                 <h1 class="text-xl font-bold">Category access: {{ props.category.title }}</h1>
                 <p class="mt-1 text-sm text-slate-500">Assign an individual or a team (role). Members only see categories assigned to them or their team.</p>
             </section>
 
             <section class="grid gap-6 lg:grid-cols-2">
-                <form class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900" @submit.prevent="assignSelectedUsers">
+                <form class="rounded-[5px] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900" @submit.prevent="assignSelectedUsers">
                     <h2 class="font-semibold">Assign users</h2>
                     <p class="mt-1 text-xs text-slate-500">Check users to assign, then select permissions and save.</p>
                     <div class="mt-4 max-h-80 overflow-y-auto space-y-2">
@@ -172,7 +172,7 @@ function parsePermissions(permissionStr: string | undefined): string[] {
                         <button type="submit" :disabled="Object.keys(selectedUsers).length === 0" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Save selected</button>
                     </div>
                 </form>
-                <form class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900" @submit.prevent="assignTeam">
+                <form class="rounded-[5px] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900" @submit.prevent="assignTeam">
                     <h2 class="font-semibold">Add a team</h2>
                     <div class="mt-4 grid gap-3 sm:grid-cols-2"><select v-model="teamForm.role_id" required class="rounded-lg border p-2 dark:bg-slate-800"><option value="">Select team / role</option><option v-for="team in availableTeams" :key="team.id" :value="team.id">{{ team.name }}</option></select><select v-model="teamForm.permission" class="rounded-lg border p-2 dark:bg-slate-800"><option v-for="permission in permissions" :key="permission" :value="permission">{{ permission }}</option></select></div>
                     <button :disabled="teamForm.processing" class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Assign team</button>
@@ -180,7 +180,7 @@ function parsePermissions(permissionStr: string | undefined): string[] {
                 </form>
             </section>
 
-            <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+            <section class="rounded-[5px] border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="font-semibold">Assigned users</h2>
                     <span class="text-sm text-slate-500">{{ users.total }} users</span>

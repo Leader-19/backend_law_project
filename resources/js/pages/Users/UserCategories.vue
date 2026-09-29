@@ -73,7 +73,7 @@ function confirmRemoveCategory() {
     <Head title="User Categories" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
-            <section class="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+            <section class="rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 class="text-xl font-bold text-slate-900 dark:text-white">User Categories</h1>
@@ -88,7 +88,7 @@ function confirmRemoveCategory() {
                 </div>
             </section>
 
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <section class="overflow-hidden rounded-[5px] border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
                         <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">

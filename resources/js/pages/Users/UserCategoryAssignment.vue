@@ -114,7 +114,7 @@ function removeAssignment(userId: number, categoryId: number) {
     <Head title="Category Assignment" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
-            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                 <div>
                     <h1 class="text-xl font-bold text-slate-900 dark:text-white">Category Assignment</h1>
                     <p class="mt-1 text-sm text-slate-500">Assign categories to users by checking the boxes below. Select permissions for each assignment.</p>
@@ -123,13 +123,13 @@ function removeAssignment(userId: number, categoryId: number) {
                     type="button"
                     :disabled="Object.keys(selected).length === 0"
                     @click="saveAssignments"
-                    class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                     Save Assignments
                 </button>
             </section>
 
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <section class="overflow-hidden rounded-[5px] border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
                         <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">

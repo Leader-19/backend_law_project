@@ -26,7 +26,7 @@ function toggleGroup(groupPermissions: string[]) {
 
 <template>
     <div class="space-y-3">
-        <div v-for="(groupPermissions, group) in groups" :key="group" class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+        <div v-for="(groupPermissions, group) in groups" :key="group" class="rounded-[5px] border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
             <div class="mb-3 flex items-center justify-between">
                 <h3 class="font-semibold capitalize text-slate-800 dark:text-slate-100">{{ group }}</h3>
                 <button type="button" class="text-xs font-medium text-blue-600 hover:text-blue-700" @click="toggleGroup(groupPermissions)">

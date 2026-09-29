@@ -103,7 +103,7 @@ function clearSearch() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header section -->
-            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div>
                     <div class="flex items-center gap-2">
                         <UsersIcon class="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
@@ -119,7 +119,7 @@ function clearSearch() {
                             @input="onSearchInput"
                             type="text"
                             placeholder="Search users..."
-                            class="w-full rounded-xl border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="w-full rounded-[5px] border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button
                             v-if="searchQuery"

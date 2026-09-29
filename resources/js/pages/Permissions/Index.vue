@@ -56,7 +56,7 @@ function scanRoutes() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
             <!-- Header Section -->
-            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div>
                     <div class="flex items-center gap-2">
                         <ShieldCheck class="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -64,20 +64,20 @@ function scanRoutes() {
                     </div>
                     <p class="mt-1 text-sm text-slate-500">Permissions are created from named application routes. Scanning adds missing permissions.</p>
                 </div>
-                <button v-if="can('roles.edit')" :disabled="scanning" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 transition-colors" @click="scanRoutes">
+                <button v-if="can('roles.edit')" :disabled="scanning" class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 transition-colors" @click="scanRoutes">
                     <RefreshCw :class="['h-4 w-4', { 'animate-spin': scanning }]" />
                     {{ scanning ? 'Scanning...' : 'Scan Routes' }}
                 </button>
             </section>
 
             <!-- Notice Banner -->
-            <div v-if="notice" class="flex items-center gap-2 rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300">
+            <div v-if="notice" class="flex items-center gap-2 rounded-[5px] bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300">
                 <CheckCircle2 class="h-5 w-5 flex-shrink-0" />
                 {{ notice }}
             </div>
 
             <!-- Permissions Table -->
-            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="overflow-hidden rounded-[5px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <!-- Search Bar -->
                 <div class="border-b border-slate-100 dark:border-slate-800 px-6 py-4">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -89,7 +89,7 @@ function scanRoutes() {
                                 @input="onSearchInput"
                                 type="text"
                                 placeholder="Search permissions..."
-                                class="w-full rounded-xl border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-[5px] border border-slate-300 pl-9 pr-9 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <button
                                 v-if="search"

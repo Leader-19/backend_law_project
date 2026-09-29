@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import BrandLogo from '@/components/BrandLogo.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-vue-next';
 
 defineProps<{
     title?: string;
@@ -10,71 +10,46 @@ defineProps<{
 </script>
 
 <template>
-    <div class="min-h-svh bg-slate-50 dark:bg-slate-950 lg:grid lg:grid-cols-2">
-        <aside class="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-indigo-700 to-violet-900 p-12 text-white lg:flex lg:flex-col justify-between">
-            <!-- Ambient glow patterns -->
-            <div class="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_20%_20%,white_0,transparent_25%),radial-gradient(circle_at_80%_75%,white_0,transparent_30%)]" />
-            <div class="absolute -bottom-24 -left-24 size-96 rounded-full bg-blue-500/20 blur-3xl pointer-events-none" />
-            <div class="absolute -top-24 -right-24 size-96 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
+    <div class="auth-page flex h-screen items-center justify-center overflow-hidden bg-zinc-50 dark:bg-zinc-950 lg:grid lg:grid-cols-2">
+        <!-- Left Panel -->
+        <aside class="relative hidden h-full min-h-screen flex-col justify-end overflow-hidden p-10 lg:flex">
+            <img
+                src="/images/book-removebg-preview.png"
+                alt=""
+                class="pointer-events-none absolute -left-8 -top-8 w-64 max-w-none select-none"
+            />
 
-            <Link :href="home()" class="relative z-10 flex items-center gap-3 text-xl font-bold tracking-tight">
-                <img src="/logo.jpg" alt="SPRITUP" class="size-11 rounded-xl object-contain bg-white p-1 shadow-lg shadow-indigo-950/30" />
-                <span>SPRITUP</span>
-            </Link>
-
-            <div class="relative z-10 my-auto max-w-lg space-y-8">
-                <div class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider backdrop-blur-md">
-                    <Sparkles class="size-3.5 text-amber-300" />
-                    <span>Legal Learning & Knowledge Platform</span>
+            <div class="relative z-10">
+                <div class="flex items-center gap-3">
+                    <Link :href="home()">
+                        <BrandLogo />
+                    </Link>
+                    <span class="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+                        Welcome back
+                    </span>
                 </div>
+                <p class="mt-4 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+                    ចូលរួមរៀនសូត្រ និងស្វែងរកឯកសារច្បាប់យ៉ាងងាយស្រួល តាមរយៈបណ្ណាល័យឯកសារ ការធ្វើតេស្ត និងការតាមដានសមត្ថភាពផ្ទាល់ខ្លួន។
+                </p>
 
-                <div class="space-y-4">
-                    <h2 class="text-4xl font-extrabold leading-tight tracking-tight text-white">
-                        ចូលរួមរៀនសូត្រ និងស្វែងរកឯកសារច្បាប់យ៉ាងងាយស្រួល
-                    </h2>
-                    <p class="text-base leading-relaxed text-blue-100/90">
-                        SPRITUP provides unified access to legal documents, interactive practice tests, reading resources, and real-time learning analytics.
-                    </p>
-                </div>
-
-                <!-- Feature highlights -->
-                <div class="space-y-3 pt-2">
-                    <div class="flex items-center gap-3 text-sm text-blue-100">
-                        <div class="flex size-7 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm">
-                            <BookOpen class="size-4 text-emerald-300" />
-                        </div>
-                        <span>បណ្ណាល័យឯកសារច្បាប់ និងអត្ថបទសិក្សាសម្បូរបែប</span>
-                    </div>
-                    <div class="flex items-center gap-3 text-sm text-blue-100">
-                        <div class="flex size-7 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm">
-                            <ShieldCheck class="size-4 text-emerald-300" />
-                        </div>
-                        <span>ប្រព័ន្ធសុវត្ថិភាព និងការគ្រប់គ្រងគណនីទំនើប</span>
-                    </div>
-                    <div class="flex items-center gap-3 text-sm text-blue-100">
-                        <div class="flex size-7 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm">
-                            <CheckCircle2 class="size-4 text-emerald-300" />
-                        </div>
-                        <span>ការធ្វើតេស្តសាកល្បង និងតាមដានសមត្ថភាពផ្ទាល់ខ្លួន</span>
-                    </div>
+                <div class="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-zinc-400 dark:text-zinc-500">
+                    <span>© {{ new Date().getFullYear() }} SPRITUP. All rights reserved.</span>
                 </div>
             </div>
-
-            <p class="relative z-10 text-xs text-blue-200/80">
-                © {{ new Date().getFullYear() }} SPRITUP. All rights reserved.
-            </p>
         </aside>
 
-        <main class="flex min-h-svh items-center justify-center p-6 sm:p-10">
-            <div class="w-full max-w-md">
-                <Link :href="home()" class="mb-8 flex items-center gap-3 font-bold text-slate-900 dark:text-white lg:hidden">
-                    <img src="/logo.jpg" alt="SPRITUP" class="size-10 rounded-xl object-contain shadow-md" />
-                    <span class="text-xl">SPRITUP</span>
+        <!-- Right Form Section -->
+        <main class="flex h-full w-full items-center justify-center overflow-y-auto p-6 sm:p-10">
+            <div class="w-full max-w-sm">
+                <Link :href="home()" class="mb-8 lg:hidden">
+                    <BrandLogo />
                 </Link>
-                <div class="mb-6 space-y-1.5">
-                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{{ title }}</h1>
-                    <p class="text-sm leading-6 text-slate-500 dark:text-slate-400">{{ description }}</p>
+
+                <div class="mb-6">
+                    <h1 class="font-display text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">{{ title }}</h1>
+                    <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ description }}</p>
                 </div>
+
                 <slot />
             </div>
         </main>

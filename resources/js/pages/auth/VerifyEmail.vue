@@ -27,7 +27,7 @@ defineProps<{
             provided during registration.
         </div>
 
-        <div class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <div class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-[5px] border border-gray-100 dark:border-gray-800">
             <Form
                 v-bind="send.form()"
                 class="space-y-6 text-center"

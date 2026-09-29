@@ -183,7 +183,7 @@ const permissionBadgeClass: Record<string, string> = {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-8 p-4 sm:p-8 max-w-8xl mx-auto w-full">
             <!-- Hero Welcome Card -->
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-500/10">
+            <div class="relative overflow-hidden rounded-[5px] bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 text-white shadow-xl shadow-indigo-500/10">
                 <div class="absolute -right-10 -bottom-10 h-64 w-64 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
                 <div class="absolute right-1/3 -top-10 h-48 w-48 rounded-full bg-purple-400/20 blur-xl pointer-events-none"></div>
 
@@ -205,11 +205,11 @@ const permissionBadgeClass: Record<string, string> = {
                     </div>
 
                     <div class="flex items-center gap-3 flex-wrap">
-                        <Link v-if="isAdmin" href="/users" class="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2.5 text-xs font-semibold text-white transition-all shadow-sm">
+                        <Link v-if="isAdmin" href="/users" class="inline-flex items-center gap-2 rounded-[5px] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2.5 text-xs font-semibold text-white transition-all shadow-sm">
                             <Users class="h-4 w-4" />
                             Manage Users
                         </Link>
-                        <Link href="/categories" class="inline-flex items-center gap-2 rounded-xl bg-white text-blue-600 hover:bg-blue-50 px-4 py-2.5 text-xs font-bold transition-all shadow-md">
+                        <Link href="/categories" class="inline-flex items-center gap-2 rounded-[5px] bg-white text-blue-600 hover:bg-blue-50 px-4 py-2.5 text-xs font-bold transition-all shadow-md">
                             <Plus class="h-4 w-4" />
                             Explore Categories
                         </Link>
@@ -220,7 +220,7 @@ const permissionBadgeClass: Record<string, string> = {
             <!-- Stats Grid -->
             <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Categories Stat Card -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Categories</p>
@@ -228,7 +228,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_categories }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
                             <FolderTree class="h-6 w-6" />
                         </div>
                     </div>
@@ -242,7 +242,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Users Stat Card (Admin) -->
-                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div v-if="isAdmin" class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Users</p>
@@ -250,7 +250,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_users }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
                             <Users class="h-6 w-6" />
                         </div>
                     </div>
@@ -262,7 +262,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Documents Stat Card -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ isAdmin ? 'Total Items' : 'My Assigned Items' }}</p>
@@ -270,7 +270,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_documents }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
                             <FileText class="h-6 w-6" />
                         </div>
                     </div>
@@ -280,7 +280,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Text Contents Stat Card -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Text Contents</p>
@@ -288,7 +288,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_text_contents }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
                             <BookOpen class="h-6 w-6" />
                         </div>
                     </div>
@@ -298,7 +298,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Pending Approvals Stat Card (Admin) -->
-                <div v-if="isAdmin && stats.pending_approvals > 0" class="group relative overflow-hidden rounded-2xl border border-yellow-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div v-if="isAdmin && stats.pending_approvals > 0" class="group relative overflow-hidden rounded-[5px] border border-yellow-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Pending Approvals</p>
@@ -306,7 +306,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.pending_approvals }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
                             <UserCheck class="h-6 w-6" />
                         </div>
                     </div>
@@ -318,7 +318,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Quizzes Stat Card (Admin) -->
-                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div v-if="isAdmin" class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quizzes</p>
@@ -326,7 +326,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_quizzes }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400">
                             <ClipboardList class="h-6 w-6" />
                         </div>
                     </div>
@@ -336,7 +336,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Certificates Stat Card (Admin) -->
-                <div v-if="isAdmin" class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div v-if="isAdmin" class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Certificates</p>
@@ -344,7 +344,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_certificates }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-yellow-500/10 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400">
                             <Award class="h-6 w-6" />
                         </div>
                     </div>
@@ -356,7 +356,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Open Messages Stat Card (Admin) -->
-                <div v-if="isAdmin && stats.open_messages > 0" class="group relative overflow-hidden rounded-2xl border border-orange-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div v-if="isAdmin && stats.open_messages > 0" class="group relative overflow-hidden rounded-[5px] border border-orange-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Open Messages</p>
@@ -364,7 +364,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.open_messages }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400">
                             <MessageSquare class="h-6 w-6" />
                         </div>
                     </div>
@@ -376,7 +376,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Activity Log Stat Card -->
-                <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
+                <div class="group relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:shadow-md transition-all">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">System Logs</p>
@@ -384,7 +384,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 {{ stats.total_activities }}
                             </p>
                         </div>
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
                             <Activity class="h-6 w-6" />
                         </div>
                     </div>
@@ -395,7 +395,7 @@ const permissionBadgeClass: Record<string, string> = {
             </div>
 
             <!-- Categories Overview (admin only) -->
-            <div v-if="isAdmin && categories.length" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <div v-if="isAdmin && categories.length" class="rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
                     <div class="flex items-center gap-2">
                         <FolderTree class="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -411,9 +411,9 @@ const permissionBadgeClass: Record<string, string> = {
                         v-for="category in categories"
                         :key="category.id"
                         :href="`/categories/${category.id}/dashboard`"
-                        class="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors group"
+                        class="flex items-center gap-3 p-4 rounded-[5px] bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors group"
                     >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex-shrink-0">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-[5px] bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex-shrink-0">
                             <FolderTree class="h-5 w-5" />
                         </div>
                         <div class="flex-1 min-w-0">
@@ -429,10 +429,10 @@ const permissionBadgeClass: Record<string, string> = {
             </div>
 
             <!-- Subscription Plan Card (non-admin only) -->
-            <div v-if="!isAdmin" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <div v-if="!isAdmin" class="rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
                             <CreditCard class="h-6 w-6" />
                         </div>
                         <div>
@@ -451,7 +451,7 @@ const permissionBadgeClass: Record<string, string> = {
                         </div>
                         <Link
                             href="/subscription"
-                            class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
+                            class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 transition-colors shadow-sm"
                         >
                             {{ document_usage?.at_limit ? 'Upgrade Plan' : 'Manage Plan' }}
                         </Link>
@@ -464,7 +464,7 @@ const permissionBadgeClass: Record<string, string> = {
             </div>
 
             <!-- My Assigned Categories (non-admin only) -->
-            <div v-if="!isAdmin && categories.length" class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <div v-if="!isAdmin && categories.length" class="rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
                     <div class="flex items-center gap-2">
                         <FolderTree class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -479,9 +479,9 @@ const permissionBadgeClass: Record<string, string> = {
                         v-for="category in categories"
                         :key="category.id"
                         :href="`/categories/${category.id}/dashboard`"
-                        class="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors group"
+                        class="flex items-center gap-3 p-4 rounded-[5px] bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors group"
                     >
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex-shrink-0">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-[5px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex-shrink-0">
                             <FolderTree class="h-5 w-5" />
                         </div>
                         <div class="flex-1 min-w-0">
@@ -502,7 +502,7 @@ const permissionBadgeClass: Record<string, string> = {
             <!-- Two-Column Grid for Recent Activity & Documents -->
             <div class="grid gap-6 lg:grid-cols-2">
                 <!-- Recent Activity Panel -->
-                <div class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+                <div class="rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
                         <div class="flex items-center gap-2">
                             <Activity class="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -522,7 +522,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 @input="onActivitySearchInput"
                                 type="text"
                                 placeholder="Search activities..."
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-9 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-[5px] border border-slate-200 bg-slate-50 py-2 pl-9 pr-9 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <button
                                 v-if="activitySearch"
@@ -536,8 +536,8 @@ const permissionBadgeClass: Record<string, string> = {
 
                     <div v-if="recent_activity.length" class="space-y-3">
                         <div v-for="activity in recent_activity" :key="activity.id"
-                            class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors">
-                            <div :class="['flex h-9 w-9 items-center justify-center rounded-xl font-bold text-xs flex-shrink-0', getActionClass(activity.action)]">
+                            class="flex items-center gap-3.5 p-3.5 rounded-[5px] bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                            <div :class="['flex h-9 w-9 items-center justify-center rounded-[5px] font-bold text-xs flex-shrink-0', getActionClass(activity.action)]">
                                 <component :is="getActionIcon(activity.action)" class="w-4 h-4" />
                             </div>
                             <div class="flex-1 min-w-0">
@@ -565,7 +565,7 @@ const permissionBadgeClass: Record<string, string> = {
                 </div>
 
                 <!-- Recent Items Panel -->
-                <div class="rounded-3xl border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+                <div class="rounded-[5px] border border-slate-200/80 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                     <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 mb-4">
                         <div class="flex items-center gap-2">
                             <FileText class="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -578,8 +578,8 @@ const permissionBadgeClass: Record<string, string> = {
 
                     <div v-if="recent_documents.length" class="space-y-3">
                         <div v-for="doc in recent_documents" :key="doc.id"
-                            class="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors">
-                            <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 font-bold text-xs flex-shrink-0">
+                            class="flex items-center gap-3.5 p-3.5 rounded-[5px] bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-[5px] bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 font-bold text-xs flex-shrink-0">
                                 <FileText class="w-4 h-4" />
                             </div>
                             <div class="flex-1 min-w-0">
@@ -591,7 +591,7 @@ const permissionBadgeClass: Record<string, string> = {
                                 </p>
                             </div>
                             <Link :href="`/documents/${doc.id}`"
-                                class="flex-shrink-0 rounded-xl p-2 text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition-colors">
+                                class="flex-shrink-0 rounded-[5px] p-2 text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition-colors">
                                 <ArrowUpRight class="w-4 h-4" />
                             </Link>
                         </div>

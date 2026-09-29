@@ -21,7 +21,7 @@ import { Head } from '@inertiajs/vue3';
                 </p>
                 <Link
                     href="/dashboard"
-                    class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/25"
+                    class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/25"
                 >
                     <Home class="h-4 w-4" />
                     Back to Dashboard

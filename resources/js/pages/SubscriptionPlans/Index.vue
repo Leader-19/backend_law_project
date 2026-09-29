@@ -127,7 +127,7 @@ function userPlanCount(userId: number): number {
     <AppLayout :breadcrumbs="breadcrumbs">
         <main class="mx-auto max-w-8xl space-y-8 p-4 sm:p-6">
             <!-- Header Section -->
-            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
                 <div>
                     <div class="flex items-center gap-2">
                         <CreditCard class="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -135,7 +135,7 @@ function userPlanCount(userId: number): number {
                     </div>
                     <p class="mt-1 text-sm text-slate-500">Manage public-facing membership tiers, pricing currencies (USD, KHR, THB), and user subscriptions.</p>
                 </div>
-                <button type="button" @click="openCreateModal" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors">
+                <button type="button" @click="openCreateModal" class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors">
                     <Plus class="h-4 w-4" />
                     New Plan
                 </button>
@@ -143,7 +143,7 @@ function userPlanCount(userId: number): number {
 
             <!-- Cards Grid for Subscription Plans -->
             <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div v-for="plan in plans" :key="plan.id" class="relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-500 transition-all">
+                <div v-for="plan in plans" :key="plan.id" class="relative flex flex-col justify-between rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-500 transition-all">
                     <div>
                         <div class="flex items-center justify-between">
                             <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
@@ -186,7 +186,7 @@ function userPlanCount(userId: number): number {
             </section>
 
             <!-- User Subscriptions List -->
-            <section class="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
+            <section class="rounded-[5px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
                 <div class="border-b border-slate-100 p-6 dark:border-slate-800">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>

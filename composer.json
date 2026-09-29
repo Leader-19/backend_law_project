@@ -22,6 +22,7 @@
         "phpoffice/phppresentation": "^1.2",
         "phpoffice/phpspreadsheet": "^3.10",
         "phpoffice/phpword": "^1.4",
+        "resend/resend-laravel": "^1.5",
         "smalot/pdfparser": "^2.12",
         "spatie/laravel-permission": "^6.23",
         "stripe/stripe-php": "16.0",

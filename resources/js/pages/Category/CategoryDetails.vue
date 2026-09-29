@@ -211,9 +211,9 @@ function changeItemsPerPage(perPage: number) {
                 ត្រឡប់ក្រោយ
             </Link>
 
-            <div class="mb-6 mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div class="mb-6 mt-3 overflow-hidden rounded-[5px] border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="bg-gradient-to-r from-blue-700 to-indigo-700 p-6 text-white">
-                    <div class="flex items-start gap-4"><div class="rounded-xl bg-white/15 p-3"><FolderTree class="h-6 w-6" /></div><div><p class="text-sm text-blue-100">ព័ត៌មានប្រភេទ</p><h1 class="text-2xl font-bold">{{ props.category.title }}</h1><p v-if="props.category.description" class="mt-2 text-sm text-blue-100">{{ props.category.description }}</p></div></div>
+                    <div class="flex items-start gap-4"><div class="rounded-[5px] bg-white/15 p-3"><FolderTree class="h-6 w-6" /></div><div><p class="text-sm text-blue-100">ព័ត៌មានប្រភេទ</p><h1 class="text-2xl font-bold">{{ props.category.title }}</h1><p v-if="props.category.description" class="mt-2 text-sm text-blue-100">{{ props.category.description }}</p></div></div>
                 </div>
             </div>
 

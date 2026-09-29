@@ -18,15 +18,15 @@ const form = useForm({ name: '', permissions: [] as string[] })
             <Link :href="route('roles.index')" class="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-600 dark:text-slate-300">
                 <ArrowLeft class="h-4 w-4" /> Back to roles
             </Link>
-            <form class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-950" @submit.prevent="form.post(route('roles.store'))">
+            <form class="mt-5 overflow-hidden rounded-[5px] border border-slate-200 bg-slate-50 shadow-sm dark:border-slate-700 dark:bg-slate-950" @submit.prevent="form.post(route('roles.store'))">
                 <div class="border-b border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                     <div class="flex items-start gap-4">
-                        <div class="rounded-xl bg-blue-100 p-3 text-blue-700 dark:bg-blue-950 dark:text-blue-300"><ShieldCheck class="h-6 w-6" /></div>
+                        <div class="rounded-[5px] bg-blue-100 p-3 text-blue-700 dark:bg-blue-950 dark:text-blue-300"><ShieldCheck class="h-6 w-6" /></div>
                         <div><h1 class="text-xl font-bold text-slate-900 dark:text-white">Create a role</h1><p class="mt-1 text-sm text-slate-500">Name the role and choose exactly what it can access.</p></div>
                     </div>
                     <div class="mt-6 max-w-xl">
                         <label for="role-name" class="text-sm font-semibold text-slate-700 dark:text-slate-200">Role name</label>
-                        <div class="relative mt-2"><KeyRound class="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input id="role-name" v-model="form.name" class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800" placeholder="Example: Document manager" /></div>
+                        <div class="relative mt-2"><KeyRound class="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input id="role-name" v-model="form.name" class="w-full rounded-[5px] border border-slate-300 bg-white py-2.5 pl-10 pr-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-600 dark:bg-slate-800" placeholder="Example: Document manager" /></div>
                         <p v-if="form.errors.name" class="mt-2 text-sm text-red-600">{{ form.errors.name }}</p>
                     </div>
                 </div>
