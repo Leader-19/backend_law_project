@@ -59,7 +59,7 @@ const codeValue = computed<string>(() => code.value.join(''));
             <template v-if="!showRecoveryInput">
                 <Form
                     v-bind="store.form()"
-                    class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
+                    class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-[5px] border border-gray-100 dark:border-gray-800"
                     reset-on-error
                     @error="code = []"
                     #default="{ errors, processing, clearErrors }"
@@ -106,7 +106,7 @@ const codeValue = computed<string>(() => code.value.join(''));
             <template v-else>
                 <Form
                     v-bind="store.form()"
-                    class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800"
+                    class="space-y-6 bg-white dark:bg-gray-900 p-8 rounded-[5px] border border-gray-100 dark:border-gray-800"
                     reset-on-error
                     #default="{ errors, processing, clearErrors }"
                 >

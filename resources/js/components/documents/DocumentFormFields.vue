@@ -79,7 +79,7 @@ function handleImageUpload(e: Event) {
             <input
                 type="text"
                 v-model="form.doc_name"
-                class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                class="block w-full rounded-[5px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                 placeholder="e.g. Law on Education"
             />
             <p v-if="form.errors.doc_name" class="text-red-500 text-xs mt-1.5">{{ form.errors.doc_name }}</p>
@@ -93,7 +93,7 @@ function handleImageUpload(e: Event) {
             <input
                 type="text"
                 v-model="form.doc_title"
-                class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                class="block w-full rounded-[5px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                 placeholder="e.g. Education Law No. 138"
             />
             <p v-if="form.errors.doc_title" class="text-red-500 text-xs mt-1.5">{{ form.errors.doc_title }}</p>
@@ -119,7 +119,7 @@ function handleImageUpload(e: Event) {
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                     required
                     @change="handleFileUpload"
-                    class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900 cursor-pointer"
+                    class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-[5px] file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900 cursor-pointer"
                 />
             </div>
             <div v-if="form.doc_upload && !docError" class="mt-2 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
@@ -143,10 +143,10 @@ function handleImageUpload(e: Event) {
                 type="file"
                 accept="image/*"
                 @change="handleImageUpload"
-                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 dark:file:bg-purple-950 dark:file:text-purple-300 hover:file:bg-purple-100 dark:hover:file:bg-purple-900 cursor-pointer"
+                class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-[5px] file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 dark:file:bg-purple-950 dark:file:text-purple-300 hover:file:bg-purple-100 dark:hover:file:bg-purple-900 cursor-pointer"
             />
             <div v-if="imagePreview" class="mt-3 relative inline-block">
-                <img :src="imagePreview" class="w-32 h-32 object-cover rounded-xl border border-slate-200 dark:border-slate-700" />
+                <img :src="imagePreview" class="w-32 h-32 object-cover rounded-[5px] border border-slate-200 dark:border-slate-700" />
                 <button
                     type="button"
                     @click="imagePreview = null; form.image = null"
@@ -165,7 +165,7 @@ function handleImageUpload(e: Event) {
             <textarea
                 v-model="form.description"
                 rows="3"
-                class="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-90 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
+                class="block w-full rounded-[5px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-90 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none"
                 placeholder="Brief description of this document..."
             ></textarea>
             <p v-if="form.errors.description" class="text-red-500 text-xs mt-1.5">{{ form.errors.description }}</p>
@@ -176,7 +176,7 @@ function handleImageUpload(e: Event) {
             <button
                 type="submit"
                 :disabled="processing"
-                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                class="w-full inline-flex items-center justify-center gap-2 rounded-[5px] bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
                 <svg v-if="processing" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

@@ -378,7 +378,7 @@ onMounted(async () => {
                 <div class="mt-6 flex justify-end">
                     <button
                         @click="finishQuiz"
-                        class="px-6 py-2.5 text-sm font-semibold bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors"
+                        class="px-6 py-2.5 text-sm font-semibold bg-brand-600 text-white rounded-[5px] hover:bg-brand-700 transition-colors"
                     >
                         Finish & View Quizzes
                     </button>

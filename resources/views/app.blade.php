@@ -33,12 +33,14 @@
 
     <title inertia>{{ config('app.name', 'SPRITUP') }}</title>
 
-    <link rel="icon" href="/logo.jpg" sizes="any">
-    <link rel="icon" href="/logo.jpg" type="">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="icon" href="/logo.jpg" type="image/jpeg">
+    <link rel="apple-touch-icon" href="/logo.jpg">
     <link rel="logo" href="/logo.jpg">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#ffffff">
     <link href="https://fonts.googleapis.com/css2?family=Battambang&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
