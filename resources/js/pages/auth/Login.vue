@@ -132,6 +132,6 @@ const passwordVisible = ref(false);
                     ចុះឈ្មោះឥឡូវនេះ (Sign up)
                 </TextLink>
             </div> -->
-        </div>
+        </Form>
     </AuthBase>
 </template>
