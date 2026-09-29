@@ -103,11 +103,6 @@ function saveAssignments() {
     })
 }
 
-function removeAssignment(userId: number, categoryId: number) {
-    router.delete(`/categories/${categoryId}/permissions/${userId}`, {
-        preserveScroll: true,
-    })
-}
 </script>
 
 <template>

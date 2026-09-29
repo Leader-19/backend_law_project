@@ -16,8 +16,9 @@ class CleanupStaleChunks extends Command
         $hours = (int) $this->option('older-than');
         $chunkBase = storage_path('app/chunks');
 
-        if (!File::isDirectory($chunkBase)) {
+        if (! File::isDirectory($chunkBase)) {
             $this->info('No chunks directory found — nothing to clean.');
+
             return self::SUCCESS;
         }
 
@@ -25,7 +26,7 @@ class CleanupStaleChunks extends Command
         $removed = 0;
 
         foreach (File::directories($chunkBase) as $dir) {
-            $metaPath = $dir . '/meta.json';
+            $metaPath = $dir.'/meta.json';
 
             // Use directory modification time if meta.json is missing
             $dirTime = File::exists($metaPath)
@@ -39,6 +40,7 @@ class CleanupStaleChunks extends Command
         }
 
         $this->info("Cleaned up {$removed} stale chunk directory(ies) older than {$hours}h.");
+
         return self::SUCCESS;
     }
 }

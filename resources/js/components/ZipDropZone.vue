@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { FileArchive, CheckCircle2 } from 'lucide-vue-next'
+import { FileArchive, CheckCircle2 } from '@lucide/vue'
 
 defineProps<{
     modelValue: File | null

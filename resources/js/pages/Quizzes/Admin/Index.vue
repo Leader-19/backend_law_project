@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Plus, Pencil, Trash2, ClipboardList, Users } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, ClipboardList } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface Quiz {

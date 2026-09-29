@@ -44,7 +44,7 @@ class CertificateController extends Controller
         return response()->json([
             'status' => 'success',
             'certificate' => $certificate,
-            'pdf_url' => $certificate->pdf_path ? asset('storage/' . $certificate->pdf_path) : null,
+            'pdf_url' => $certificate->pdf_path ? asset('storage/'.$certificate->pdf_path) : null,
         ]);
     }
 
@@ -68,8 +68,8 @@ class CertificateController extends Controller
         ]);
 
         // Save PDF to storage for future use
-        $filename = 'certificates/' . $certificate->certificate_number . '.pdf';
-        $storagePath = storage_path('app/public/' . $filename);
+        $filename = 'certificates/'.$certificate->certificate_number.'.pdf';
+        $storagePath = storage_path('app/public/'.$filename);
 
         $directory = dirname($storagePath);
         if (! is_dir($directory)) {
@@ -85,7 +85,7 @@ class CertificateController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'download_url' => asset('storage/' . $filename),
+            'download_url' => asset('storage/'.$filename),
         ]);
     }
 }

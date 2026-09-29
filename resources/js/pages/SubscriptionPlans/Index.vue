@@ -3,7 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { CreditCard, Plus, Pencil, Trash2, CheckCircle2, ShieldCheck, XCircle } from 'lucide-vue-next'
+// import { CreditCard, Plus, Pencil, Trash2, CheckCircle2, Users, XCircle, FolderTree } from '@lucide/vue'
+import { CreditCard, Plus, Pencil, Trash2, CheckCircle2, Users, XCircle, FolderTree } from '@lucide/vue'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
 import FormModal from './FormModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
@@ -101,6 +102,13 @@ function formatPrice(price: number | string, currency: string) {
     return `${symbol}${numericPrice.toFixed(2)}`
 }
 
+function initials(name: string) {
+    const parts = (name ?? '').trim().split(/\s+/).filter(Boolean)
+    if (parts.length === 0) return '?'
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 const statusFilter = ref<string>('')
 
 function applyStatusFilter(status: string) {
@@ -125,56 +133,82 @@ function userPlanCount(userId: number): number {
 <template>
     <Head title="Subscription Plans" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-8xl space-y-8 p-4 sm:p-6">
-            <!-- Header Section -->
-            <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div>
-                    <div class="flex items-center gap-2">
-                        <CreditCard class="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                        <h1 class="text-xl font-bold text-slate-900 dark:text-white">Subscription & Pricing Plans</h1>
+        <main class="mx-auto w-full max-w-none space-y-8 p-4 sm:p-6 lg:p-8">
+            <!-- Header -->
+            <section class="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+                <div class="flex items-center gap-4">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                        <CreditCard class="h-5 w-5" />
                     </div>
-                    <p class="mt-1 text-sm text-slate-500">Manage public-facing membership tiers, pricing currencies (USD, KHR, THB), and user subscriptions.</p>
+                    <div>
+                        <h1 class="text-xl font-semibold text-slate-900 dark:text-white">Subscription plans</h1>
+                        <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                            Manage membership tiers, pricing currencies, and user subscriptions.
+                        </p>
+                    </div>
                 </div>
-                <button type="button" @click="openCreateModal" class="inline-flex items-center gap-2 rounded-[5px] bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors">
+                <button
+                    type="button"
+                    @click="openCreateModal"
+                    class="inline-flex shrink-0 items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                >
                     <Plus class="h-4 w-4" />
-                    New Plan
+                    New plan
                 </button>
             </section>
 
-            <!-- Cards Grid for Subscription Plans -->
-            <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div v-for="plan in plans" :key="plan.id" class="relative flex flex-col justify-between rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-500 transition-all">
+            <!-- Plan cards -->
+            <section class="grid grid-cols-1 gap-5 md:grid-cols-3">
+                <div
+                    v-for="plan in plans"
+                    :key="plan.id"
+                    class="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+                >
                     <div>
                         <div class="flex items-center justify-between">
-                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {{ plan.currency }} Code
+                            <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                {{ plan.currency }}
                             </span>
-                            <span :class="['inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium', plan.is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800']">
+                            <span
+                                class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                :class="plan.is_active
+                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                    : 'bg-slate-100 text-slate-500 dark:bg-slate-800'"
+                            >
                                 {{ plan.is_active ? 'Active' : 'Inactive' }}
                             </span>
                         </div>
 
-                        <h2 class="mt-3 text-lg font-bold text-slate-900 dark:text-white">{{ plan.name }}</h2>
-                        <p class="mt-1 text-xs text-slate-500 line-clamp-2">{{ plan.description || 'No description provided.' }}</p>
+                        <h2 class="mt-3 text-lg font-semibold text-slate-900 dark:text-white">{{ plan.name }}</h2>
+                        <p class="mt-1 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">{{ plan.description || 'No description provided.' }}</p>
 
                         <div class="mt-4 flex items-baseline gap-1">
-                            <span class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">{{ formatPrice(plan.price, plan.currency) }}</span>
-                            <span class="text-xs text-slate-500">/ {{ plan.duration_days ? `${plan.duration_days} days` : 'lifetime' }}</span>
+                            <span class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">{{ formatPrice(plan.price, plan.currency) }}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">/ {{ plan.duration_days ? `${plan.duration_days} days` : 'lifetime' }}</span>
                         </div>
 
                         <ul class="mt-6 space-y-2 text-xs text-slate-600 dark:text-slate-400">
                             <li v-for="(feature, idx) in plan.features" :key="idx" class="flex items-center gap-2">
-                                <CheckCircle2 class="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                                <CheckCircle2 class="h-4 w-4 shrink-0 text-emerald-500" />
                                 <span>{{ feature }}</span>
                             </li>
-                            <li v-if="!plan.features?.length" class="text-slate-400 italic">Standard access limits</li>
+                            <li v-if="!plan.features?.length" class="italic text-slate-400">Standard access limits</li>
                         </ul>
                     </div>
 
-                    <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
                         <div class="flex items-center gap-3">
-                            <a :href="`/subscription-plans/${plan.id}/categories`" class="text-xs font-semibold text-purple-600 hover:text-purple-700">Categories</a>
-                            <button type="button" @click="openEditModal(plan)" class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700">
+                            <a
+                                :href="`/subscription-plans/${plan.id}/categories`"
+                                class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                            >
+                                <FolderTree class="h-3.5 w-3.5" /> Categories
+                            </a>
+                            <button
+                                type="button"
+                                @click="openEditModal(plan)"
+                                class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                            >
                                 <Pencil class="h-3.5 w-3.5" /> Edit
                             </button>
                         </div>
@@ -185,38 +219,52 @@ function userPlanCount(userId: number): number {
                 </div>
             </section>
 
-            <!-- User Subscriptions List -->
-            <section class="rounded-[5px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
+            <!-- User subscriptions -->
+            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
                 <div class="border-b border-slate-100 p-6 dark:border-slate-800">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h2 class="text-base font-bold text-slate-900 dark:text-white">User Subscriptions</h2>
-                            <p class="text-xs text-slate-500">Manage and review all user subscription records.</p>
+                            <h2 class="text-base font-semibold text-slate-900 dark:text-white">User subscriptions</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Manage and review all user subscription records.</p>
                         </div>
-                        <!-- Multi-plan stats -->
                         <div class="flex items-center gap-4 text-xs">
-                            <div class="flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 dark:bg-emerald-950/30">
-                                <CheckCircle2 class="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                                <span class="font-semibold text-emerald-700 dark:text-emerald-300">{{ subscriptionStats.total_active }} active</span>
+                            <div class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-800">
+                                <CheckCircle2 class="h-3.5 w-3.5 text-emerald-500" />
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">{{ subscriptionStats.total_active }} active</span>
                             </div>
-                            <div v-if="subscriptionStats.multi_plan_users > 0" class="flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 dark:bg-blue-950/30">
-                                <ShieldCheck class="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                                <span class="font-semibold text-blue-700 dark:text-blue-300">{{ subscriptionStats.multi_plan_users }} multi-plan user{{ subscriptionStats.multi_plan_users > 1 ? 's' : '' }}</span>
+                            <div v-if="subscriptionStats.multi_plan_users > 0" class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 dark:border-slate-700 dark:bg-slate-800">
+                                <Users class="h-3.5 w-3.5 text-slate-400" />
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">
+                                    {{ subscriptionStats.multi_plan_users }} multi-plan user{{ subscriptionStats.multi_plan_users > 1 ? 's' : '' }}
+                                </span>
                             </div>
                         </div>
                     </div>
+
                     <!-- Status filter -->
                     <div class="mt-4 flex flex-wrap gap-2">
                         <button
                             @click="applyStatusFilter('')"
-                            :class="['rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors', !statusFilter ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']">
+                            :class="[
+                                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                                !statusFilter
+                                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700',
+                            ]"
+                        >
                             All
                         </button>
                         <button
                             v-for="s in ['active', 'pending', 'cancelled', 'expired']"
                             :key="s"
                             @click="applyStatusFilter(s)"
-                            :class="['rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors', statusFilter === s ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700']">
+                            :class="[
+                                'rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors',
+                                statusFilter === s
+                                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700',
+                            ]"
+                        >
                             {{ s }}
                         </button>
                     </div>
@@ -233,53 +281,69 @@ function userPlanCount(userId: number): number {
                     <template #header-price>Price</template>
                     <template #header-receipt>Receipt</template>
                     <template #header-status>Status</template>
-                    <template #header-date>Subscribed Date</template>
+                    <template #header-date>Subscribed date</template>
                     <template #header-action>Action</template>
 
                     <template #user="{ item }">
-                        <div>
-                            <div class="font-medium text-slate-900 dark:text-white">{{ item.user?.name || 'User #' + item.id }}</div>
-                            <div class="text-xs text-slate-400">{{ item.user?.email }}</div>
-                            <span
-                                v-if="userPlanCount(item.user?.id) > 1"
-                                class="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {{ userPlanCount(item.user?.id) }} plans
-                            </span>
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white dark:bg-white dark:text-slate-900">
+                                {{ initials(item.user?.name || '') }}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="truncate font-medium text-slate-900 dark:text-white">{{ item.user?.name || 'User #' + item.id }}</div>
+                                <div class="truncate text-xs text-slate-500 dark:text-slate-400">{{ item.user?.email }}</div>
+                                <span
+                                    v-if="userPlanCount(item.user?.id) > 1"
+                                    class="mt-1 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                >
+                                    {{ userPlanCount(item.user?.id) }} plans
+                                </span>
+                            </div>
                         </div>
                     </template>
 
                     <template #plan="{ item }">
-                        <span class="font-semibold text-slate-900 dark:text-white">{{ item.plan?.name }}</span>
+                        <span class="font-medium text-slate-900 dark:text-white">{{ item.plan?.name }}</span>
                     </template>
 
                     <template #price="{ item }">
-                        <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ item.plan ? formatPrice(item.plan.price, item.plan.currency) : '-' }}</span>
+                        <span class="font-medium text-slate-900 dark:text-white">{{ item.plan ? formatPrice(item.plan.price, item.plan.currency) : '-' }}</span>
                     </template>
 
                     <template #receipt="{ item }">
-                        <a v-if="item.payments?.[0]?.receipt_path" :href="`/storage/${item.payments[0].receipt_path}`" target="_blank"><img :src="`/storage/${item.payments[0].receipt_path}`" alt="Payment receipt" class="h-12 w-12 rounded-md border object-cover transition hover:scale-150 hover:shadow-lg" /></a><span v-else>—</span>
+                        <a v-if="item.payments?.[0]?.receipt_path" :href="`/storage/${item.payments[0].receipt_path}`" target="_blank">
+                            <img :src="`/storage/${item.payments[0].receipt_path}`" alt="Payment receipt" class="h-12 w-12 rounded-md border border-slate-200 object-cover transition hover:scale-150 hover:shadow-lg dark:border-slate-700" />
+                        </a>
+                        <span v-else class="text-slate-400">—</span>
                     </template>
 
                     <template #status="{ item }">
-                        <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', item.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300']">
+                        <span
+                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+                            :class="item.status === 'active'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'"
+                        >
                             {{ item.status }}
                         </span>
                     </template>
 
                     <template #date="{ item }">
-                        <span class="text-xs text-slate-500">{{ new Date(item.created_at).toLocaleDateString() }}</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">{{ new Date(item.created_at).toLocaleDateString() }}</span>
                     </template>
 
                     <template #action="{ item }">
                         <div v-if="item.status === 'pending'" class="flex justify-end gap-2">
                             <button
                                 @click="router.post(`/subscription-payments/${item.id}/approve`, {}, { preserveScroll: true })"
-                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
+                                class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                            >
                                 <CheckCircle2 class="h-3.5 w-3.5" /> Approve
                             </button>
                             <button
                                 @click="router.post(`/subscription-payments/${item.id}/reject`, {}, { preserveScroll: true })"
-                                class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors dark:border-red-900 dark:hover:bg-red-950">
+                                class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                            >
                                 <XCircle class="h-3.5 w-3.5" /> Reject
                             </button>
                         </div>
@@ -301,8 +365,8 @@ function userPlanCount(userId: number): number {
 
             <ConfirmModal
                 :open="isDeleteOpen"
-                title="Delete Subscription Plan"
-                :description="`Are you sure you want to delete ${deletingPlan?.name}? This action cannot be undone.`"
+                title="Delete subscription plan"
+                :description="`Are you sure you want to delete ${deletingPlan?.name}? This can't be undone.`"
                 confirm-label="Delete"
                 @confirm="deletePlan"
                 @update:open="isDeleteOpen = $event"

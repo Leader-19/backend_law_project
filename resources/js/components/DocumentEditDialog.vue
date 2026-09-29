@@ -12,16 +12,17 @@ import { type Form } from '@inertiajs/vue3'
 
 defineProps<{
     open: boolean
-    form: Form<any>
     processing: boolean
 }>()
+
+const form = defineModel<Form<any>>('form', { required: true })
 
 defineEmits<{
     (e: 'update:open', value: boolean): void
     (e: 'submit'): void
 }>()
 
-function fieldClass(name: string) {
+function fieldClass() {
     return 'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2'
 }
 </script>
@@ -36,12 +37,12 @@ function fieldClass(name: string) {
             <form @submit.prevent="$emit('submit')" class="space-y-4 mt-4">
                 <div>
                     <label class="block text-sm font-medium">ឈ្មោះឯកសារ</label>
-                    <input type="text" v-model="form.doc_name" :class="fieldClass('doc_name')" placeholder="Enter document name" />
+                    <input type="text" v-model="form.doc_name" :class="fieldClass()" placeholder="Enter document name" />
                     <p v-if="form.errors.doc_name" class="text-red-500 text-sm mt-1">{{ form.errors.doc_name }}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium">ចំណងជើង</label>
-                    <input type="text" v-model="form.doc_title" :class="fieldClass('doc_title')" placeholder="Enter title" />
+                    <input type="text" v-model="form.doc_title" :class="fieldClass()" placeholder="Enter title" />
                     <p v-if="form.errors.doc_title" class="text-red-500 text-sm mt-1">{{ form.errors.doc_title }}</p>
                 </div>
                 <div>
@@ -61,7 +62,7 @@ function fieldClass(name: string) {
                 </div>
                 <div>
                     <label class="block text-sm font-medium">រៀបរាប់</label>
-                    <input type="text" v-model="form.description" :class="fieldClass('description')" placeholder="Optional description" />
+                    <input type="text" v-model="form.description" :class="fieldClass()" placeholder="Optional description" />
                     <p v-if="form.errors.description" class="text-red-500 text-sm mt-1">{{ form.errors.description }}</p>
                 </div>
                 <DialogFooter>

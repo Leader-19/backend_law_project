@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { Download } from 'lucide-vue-next';
+import { Head } from '@inertiajs/vue3';
+import { Download } from '@lucide/vue';
 import { type BreadcrumbItem } from '@/types';
 import { ref } from 'vue';
 

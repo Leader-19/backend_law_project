@@ -8,7 +8,7 @@ import {
     Pencil,
     Trash2,
     Upload
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 import { computed, ref } from 'vue'
 import { can } from '@/lib/can'
@@ -265,7 +265,7 @@ function handleSearch() {
             <!-- Edit Dialog -->
             <DocumentEditDialog
                 :open="isEditOpen"
-                :form="editForm"
+                v-model:form="editForm"
                 :processing="editForm.processing"
                 @update:open="isEditOpen = $event"
                 @submit="handleSubmitEdit"
@@ -282,7 +282,7 @@ function handleSearch() {
                 description="បញ្ចូលពត៌មានឯកសារថ្មី"
                 submit-label="បង្កើត"
                 :processing="createForm.processing"
-                :form="createForm"
+                v-model:form="createForm"
                 @update:open="isCreateOpen = $event"
                 @submit="handleSubmitCreate"
             >

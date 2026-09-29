@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
-import { CheckCircle2, ReceiptText, XCircle } from 'lucide-vue-next'
+import { CheckCircle2, ReceiptText, XCircle } from '@lucide/vue'
 import DataTable from '@/components/ui/data-table/DataTable.vue'
 import { ref } from 'vue'
 

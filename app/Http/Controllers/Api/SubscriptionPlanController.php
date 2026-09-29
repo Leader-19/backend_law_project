@@ -10,7 +10,7 @@ class SubscriptionPlanController extends Controller
     public function index()
     {
 
-    // Enum number
+        // Enum number
         $symbolMap = ['USD' => '$', 'KHR' => '៛', 'THB' => '฿'];
 
         // plan query from DB
@@ -26,6 +26,7 @@ class SubscriptionPlanController extends Controller
                 $yearlyCents = $plan->yearly_price_cents ?? ((int) round(((float) $plan->price) * 1200));
                 $yearlyPrice = $yearlyCents / 100;
                 $formattedYearlyPrice = $plan->currency === 'KHR' ? number_format($yearlyPrice).' '.$symbol : $symbol.number_format($yearlyPrice, 2);
+
                 return array_merge($plan->toArray(), [
                     'currency_symbol' => $symbol,
                     'formatted_price' => $formattedPrice,
@@ -33,7 +34,7 @@ class SubscriptionPlanController extends Controller
                 ]);
             });
 
-            // Return result after query success
+        // Return result after query success
         return response()->json([
             'status' => 'success',
             'plans' => $plans,
@@ -44,7 +45,7 @@ class SubscriptionPlanController extends Controller
 
     public function show(string $id)
     {
-        // Enum variable 
+        // Enum variable
         $symbolMap = ['USD' => '$', 'KHR' => '៛', 'THB' => '฿'];
         $plan = SubscriptionPlan::where('is_active', true)->findOrFail($id);
 

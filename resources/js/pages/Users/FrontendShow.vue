@@ -3,6 +3,8 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
+// import { ArrowLeft, Shield, FolderTree, Pencil, Trash2, CreditCard } from '@lucide/vue'
+import { ArrowLeft, Shield, FolderTree, Pencil, Trash2, CreditCard } from '@lucide/vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
 interface User {
@@ -40,6 +42,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const props = defineProps<{ user: User }>()
 
+function initials(name: string) {
+    const parts = name.trim().split(/\s+/).filter(Boolean)
+    if (parts.length === 0) return '?'
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 const isDeleteOpen = ref(false)
 
 function deleteUser() {
@@ -54,101 +63,118 @@ function deleteUser() {
 <template>
     <Head :title="`User: ${user.name}`" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <main class="mx-auto max-w-8xl space-y-6 p-4 sm:p-6">
-            <section class="flex items-center gap-4">
-                <Link href="/frontend-users" class="text-sm text-blue-600 hover:text-blue-700">&larr; Back to Frontend Users</Link>
-            </section>
+        <main class="mx-auto w-full max-w-none space-y-8 p-4 sm:p-6 lg:p-8">
+            <Link href="/frontend-users" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                <ArrowLeft class="h-4 w-4" /> Back to frontend users
+            </Link>
 
-            <section class="rounded-[5px] border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-                <div class="flex items-center gap-4 mb-6">
-                    <img v-if="user.avatar_url" :src="user.avatar_url" class="h-16 w-16 rounded-full object-cover shadow-sm" />
-                    <div v-else class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-xl shadow-sm">
-                        {{ user.name.charAt(0).toUpperCase() }}
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-slate-900 dark:text-white">{{ user.name }}</h1>
-                        <p class="text-sm text-slate-500">{{ user.email }}</p>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                            <span v-for="role in user.roles" :key="role" class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {{ role }}
-                            </span>
+            <!-- Profile header -->
+            <section class="border-b border-slate-200 pb-6 dark:border-slate-800">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-4">
+                        <img v-if="user.avatar_url" :src="user.avatar_url" class="h-14 w-14 shrink-0 rounded-full object-cover" />
+                        <div v-else class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-900 text-lg font-semibold text-white dark:bg-white dark:text-slate-900">
+                            {{ initials(user.name) }}
                         </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="rounded-[5px] border border-slate-200 dark:border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Registration Source</p>
-                        <p class="text-sm font-medium text-slate-900 dark:text-white capitalize">{{ user.registration_source }}</p>
-                    </div>
-                    <div class="rounded-[5px] border border-slate-200 dark:border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Assigned Categories</p>
-                        <p class="text-sm font-medium text-slate-900 dark:text-white">{{ user.categories.length }}</p>
-                    </div>
-
-                    <div v-if="user.subscriptions?.length" class="col-span-full mt-2">
-                        <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Active Plans</p>
-                        <div class="space-y-2">
-                            <div v-for="sub in user.subscriptions" :key="sub.id" class="rounded-[5px] border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 p-4">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="font-semibold text-emerald-900 dark:text-emerald-100">{{ sub.plan?.name || 'Unknown Plan' }}</p>
-                                        <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-1">
-                                            Categories: {{ sub.plan?.max_categories || 'Unlimited' }} | Documents: {{ sub.plan?.max_documents || 'Unlimited' }}
-                                        </p>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">{{ sub.status }}</span>
-                                        <p v-if="sub.ends_at" class="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Expires: {{ sub.ends_at }}</p>
-                                    </div>
-                                </div>
+                        <div>
+                            <h1 class="text-xl font-semibold text-slate-900 dark:text-white">{{ user.name }}</h1>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+                            <div class="mt-2 flex flex-wrap gap-1.5">
+                                <span
+                                    v-for="role in user.roles"
+                                    :key="role"
+                                    class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                >
+                                    <Shield class="h-3 w-3 text-slate-400" /> {{ role }}
+                                </span>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
-                    <Link :href="`/frontend-users/${user.id}/categories`" class="inline-flex items-center gap-2 rounded-[5px] bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition-colors">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                        Manage Categories
-                    </Link>
-                    <button @click="isDeleteOpen = true" class="inline-flex items-center gap-2 rounded-[5px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors">
-                        Delete User
-                    </button>
-                </div>
-            </section>
-
-            <section class="rounded-[5px] border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden shadow-sm">
-                <div class="border-b border-slate-100 p-6 dark:border-slate-800">
-                    <h2 class="text-base font-bold text-slate-900 dark:text-white">Assigned Categories</h2>
-                    <p class="text-xs text-slate-500">Categories this user has access to.</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                        <thead class="border-b text-xs uppercase text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800">
-                            <tr>
-                                <th class="px-6 py-3">Category</th>
-                                <th class="px-6 py-3">Permission</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                            <tr v-for="cat in user.categories" :key="cat.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">{{ cat.title }}</td>
-                                <td class="px-6 py-4">{{ cat.permission }}</td>
-                            </tr>
-                            <tr v-if="!user.categories.length">
-                                <td colspan="2" class="px-6 py-8 text-center text-sm text-slate-400">No categories assigned yet.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="flex flex-wrap gap-2 sm:shrink-0">
+                        <Link :href="`/frontend-users/${user.id}/edit`" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                            <Pencil class="h-4 w-4" /> Edit
+                        </Link>
+                        <Link :href="`/frontend-users/${user.id}/categories`" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                            <FolderTree class="h-4 w-4" /> Categories
+                        </Link>
+                        <button @click="isDeleteOpen = true" class="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50">
+                            <Trash2 class="h-4 w-4" /> Delete
+                        </button>
+                    </div>
                 </div>
             </section>
+
+            <!-- Main content + sidebar -->
+            <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <!-- Sidebar: overview + subscription -->
+                <aside class="space-y-6 lg:col-span-1">
+                    <section class="space-y-3">
+                        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Overview</h2>
+                        <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Registration source</p>
+                            <p class="mt-1 text-sm font-medium capitalize text-slate-900 dark:text-white">{{ user.registration_source }}</p>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">Assigned categories</p>
+                            <p class="mt-1 text-sm font-medium text-slate-900 dark:text-white">{{ user.categories.length }}</p>
+                        </div>
+                    </section>
+
+                    <section v-if="user.subscription">
+                        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Subscription</h2>
+                        <div class="mt-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+                            <div class="flex items-start gap-3">
+                                <CreditCard class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                                <div class="min-w-0">
+                                    <p class="font-medium text-slate-900 dark:text-white">{{ user.subscription.plan?.name ?? 'Unknown plan' }}</p>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                        {{ user.subscription.plan?.max_categories ?? 'Unlimited' }} categories ·
+                                        {{ user.subscription.plan?.max_documents ?? 'Unlimited' }} documents
+                                    </p>
+                                    <span class="mt-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                        {{ user.subscription.status }}
+                                    </span>
+                                    <p v-if="user.subscription.ends_at" class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                        Expires {{ user.subscription.ends_at }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </aside>
+
+                <!-- Main: assigned categories -->
+                <section class="lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-400">Assigned categories</h2>
+                        <span class="text-xs font-medium text-slate-400">{{ user.categories.length }} total</span>
+                    </div>
+                    <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div
+                            v-for="cat in user.categories"
+                            :key="cat.id"
+                            class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-4 py-3 dark:border-slate-800"
+                        >
+                            <span class="flex min-w-0 items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
+                                <FolderTree class="h-4 w-4 shrink-0 text-slate-400" />
+                                <span class="truncate">{{ cat.title }}</span>
+                            </span>
+                            <span class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                {{ cat.permission }}
+                            </span>
+                        </div>
+                        <p v-if="!user.categories.length" class="col-span-full rounded-lg border border-slate-200 px-4 py-12 text-center text-sm text-slate-400 dark:border-slate-800">
+                            No categories assigned yet.
+                        </p>
+                    </div>
+                </section>
+            </div>
 
             <ConfirmModal
                 :open="isDeleteOpen"
-                title="Delete User"
-                :description="`Are you sure you want to delete ${user.name}? This action cannot be undone.`"
-                confirm-label="Delete User"
+                title="Delete user"
+                :description="`Are you sure you want to delete ${user.name}? This can't be undone.`"
+                confirm-label="Delete user"
                 @confirm="deleteUser"
                 @update:open="isDeleteOpen = $event"
             />

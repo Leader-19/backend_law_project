@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ClipboardList, CheckCircle, XCircle, Clock, Trophy } from 'lucide-vue-next'
+import { ClipboardList, CheckCircle, XCircle, Clock, Trophy } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface Quiz {
@@ -31,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Quizzes', href: '/quizzes' },
 ]
 
-const props = defineProps<{
+defineProps<{
     quizzes: { data: Quiz[] } & Pagination
 }>()
 

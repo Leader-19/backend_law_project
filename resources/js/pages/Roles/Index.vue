@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Notebook, Plus, Pencil, Trash2, Eye, ShieldCheck, Search, X } from 'lucide-vue-next';
+import { Notebook, Plus, Pencil, Trash2, Eye, Search, X } from '@lucide/vue';
 import { route } from 'ziggy-js';
 import { can } from '@/lib/can';
 import ConfirmModal from '@/components/ConfirmModal.vue';

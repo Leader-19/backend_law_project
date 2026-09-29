@@ -72,7 +72,7 @@ class ActivityLogController extends Controller
 
         ActivityLog::whereIn('id', $validated['ids'])->delete();
 
-        return back()->with('success', count($validated['ids']) . ' activity log(s) deleted successfully.');
+        return back()->with('success', count($validated['ids']).' activity log(s) deleted successfully.');
     }
 
     public function clearAll()
@@ -117,11 +117,11 @@ class ActivityLogController extends Controller
         } catch (\Exception $e) {
             $issues[] = [
                 'severity' => 'critical',
-                'description' => 'Database connection failed: ' . $e->getMessage(),
+                'description' => 'Database connection failed: '.$e->getMessage(),
                 'details' => [
                     'error' => $e->getMessage(),
                     'driver' => config('database.default'),
-                    'host' => config('database.connections.' . config('database.default') . '.host'),
+                    'host' => config('database.connections.'.config('database.default').'.host'),
                 ],
             ];
         }
@@ -133,7 +133,7 @@ class ActivityLogController extends Controller
             } catch (\Exception $e) {
                 $issues[] = [
                     'severity' => 'critical',
-                    'description' => 'Database query execution failed: ' . $e->getMessage(),
+                    'description' => 'Database query execution failed: '.$e->getMessage(),
                     'details' => [
                         'error' => $e->getMessage(),
                         'query_test' => 'SELECT 1',

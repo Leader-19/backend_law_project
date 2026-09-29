@@ -9,7 +9,7 @@ import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
-import { Eye, EyeOff, AlertCircle } from 'lucide-vue-next';
+import { Eye, EyeOff, LockKeyhole, Mail, AlertCircle } from '@lucide/vue';
 import { ref } from 'vue';
 
 defineProps<{
@@ -123,33 +123,15 @@ const passwordVisible = ref(false);
                 <InputError :message="errors.password" />
             </div>
 
-            <div class="flex items-center gap-2 py-0.5">
-                <Checkbox id="remember" name="remember" :tabindex="3" />
-                <Label for="remember" class="cursor-pointer text-sm font-normal text-zinc-600 dark:text-zinc-400">
-                    ចងចាំខ្ញុំ (Remember me)
-                </Label>
-            </div>
-
-            <button
-                type="submit"
-                :tabindex="4"
-                :disabled="processing"
-                data-test="login-button"
-                class="flex w-full items-center justify-center gap-2 rounded-[5px] bg-zinc-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-                <Spinner v-if="processing" class="size-4" />
-                <span>ចូលគណនី (Sign in)</span>
-            </button>
-        </Form>
-
-        <p v-if="canRegister" class="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            មិនទាន់មានគណនី?
-            <TextLink
-                href="/register"
-                class="ml-1 font-semibold text-zinc-900 underline underline-offset-2 hover:text-zinc-600 dark:text-white dark:hover:text-zinc-300"
-            >
-                ចុះឈ្មោះឥឡូវនេះ (Sign up)
-            </TextLink>
-        </p>
+            <!-- <div v-if="canRegister" class="text-center text-sm text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                មិនទាន់មានគណនី?
+                <TextLink
+                    href="/register"
+                    class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold ml-1"
+                >
+                    ចុះឈ្មោះឥឡូវនេះ (Sign up)
+                </TextLink>
+            </div> -->
+        </div>
     </AuthBase>
 </template>

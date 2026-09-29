@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
-import { Pencil, Trash2, Plus, FolderTree } from 'lucide-vue-next';
+import { Pencil, Trash2, Plus, FolderTree } from '@lucide/vue';
 import DataTable from '@/components/ui/data-table/DataTable.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import { ref } from 'vue';

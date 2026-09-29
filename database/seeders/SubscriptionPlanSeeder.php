@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\SubscriptionPlan;
 use Illuminate\Database\Seeder;
 
@@ -130,18 +131,17 @@ class SubscriptionPlanSeeder extends Seeder
 
         foreach ($plans as $plan) {
             SubscriptionPlan::updateOrCreate(['slug' => $plan['slug']], $plan);
-        }
+            $allCategoryIds = Category::pluck('id')->all();
+            $pivotData = collect($allCategoryIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all();
 
-        $allCategoryIds = \App\Models\Category::pluck('id')->all();
-        $pivotData = collect($allCategoryIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all();
-
-        foreach ($plans as $planData) {
-            $plan = SubscriptionPlan::updateOrCreate(['slug' => $planData['slug']], $planData);
-            if (! empty($pivotData) && $plan->categories()->count() === 0) {
-                $plan->categories()->sync($pivotData);
+            foreach ($plans as $planData) {
+                $plan = SubscriptionPlan::updateOrCreate(['slug' => $planData['slug']], $planData);
+                if (! empty($pivotData) && $plan->categories()->count() === 0) {
+                    $plan->categories()->sync($pivotData);
+                }
             }
-        }
 
-        SubscriptionPlan::clearCache();
+            SubscriptionPlan::clearCache();
+        }
     }
 }

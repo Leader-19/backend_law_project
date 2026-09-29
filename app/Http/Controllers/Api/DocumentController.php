@@ -2,65 +2,40 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Controller;
 use App\Models\Category;
 use App\Models\Document;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Writer\HTML;
 use Smalot\PdfParser\Parser;
 
 class DocumentController extends Controller
 {
-    /**
-     * Public preview: return up to $limit documents per category for guests.
-     * This lets unauthenticated visitors see a sample of each category.
-     */
     public function preview(Request $request)
     {
         $limit = min(max((int) $request->integer('limit', 5), 1), 10);
 
-        $categories = Category::with([
-            'documents' => fn ($q) => $q->latest()->limit($limit),
-            'documents:id,doc_name,doc_title,description,doc_upload,image,category_id,created_at',
-        ])
-            ->withCount('documents')
-            ->orderBy('title')
-            ->get();
+        $cacheKey = "api.documents.preview.{$limit}";
 
-        $childrenMap = [];
-        foreach ($categories as $category) {
-            if ($category->parent_id) {
-                $childrenMap[$category->parent_id][] = $category;
-            }
-        }
+        $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($limit) {
+            $all = Category::with([
+                'documents' => fn ($q) => $q
+                    ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+                    ->latest()
+                    ->limit($limit),
+            ])
+                ->withCount('documents')
+                ->orderBy('title')
+                ->get(['id', 'title', 'description', 'parent_id']);
 
-        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
-            return [
-                'id' => $category->id,
-                'title' => $category->title,
-                'description' => $category->description,
-                'parent_id' => $category->parent_id,
-                'documents_count' => $category->documents_count,
-                'documents' => $category->documents->map(fn ($doc) => [
-                    'id' => $doc->id,
-                    'doc_name' => $doc->doc_name,
-                    'doc_title' => $doc->doc_title,
-                    'description' => $doc->description,
-                    'doc_upload' => $doc->doc_upload,
-                    'image' => $doc->image,
-                ]),
-                'subcategories' => isset($childrenMap[$category->id])
-                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
-                    : [],
-            ];
-        };
-
-        $rootCategories = $categories->whereNull('parent_id');
+            return $this->buildTreeWithDocuments($all);
+        });
 
         return response()->json([
             'status' => 'success',
-            'categories' => $rootCategories->map($mapCategory)->all(),
+            'categories' => $categories,
             'is_preview' => true,
             'preview_limit' => $limit,
         ]);
@@ -69,55 +44,39 @@ class DocumentController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $isAdmin = $user && $user->hasRole('Admin');
+        $viewableIds = $isAdmin ? null : ($user?->getViewableCategoryIds() ?? []);
 
-        $allCategories = Category::with([
-            // This is an API presentation limit: each category returns its
-            // latest ten documents, while documents_count remains the total.
-            'documents' => fn ($query) => $query->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')->latest()->limit(10),
-        ])->withCount('documents')->orderBy('title')->get();
-
-        if ($user && ! $user->hasRole('Admin')) {
-            $viewableIds = $user->getViewableCategoryIds();
-            $allCategories = $allCategories->whereIn('id', $viewableIds);
+        if (! $isAdmin && empty($viewableIds)) {
+            return response()->json([
+                'status' => 'success',
+                'categories' => [],
+                'documents_per_category_limit' => 10,
+            ]);
         }
 
-        $categoriesById = $allCategories->keyBy('id');
+        $cacheKey = $isAdmin
+            ? 'api.documents.index.admin'
+            : 'api.documents.index.'.md5(implode(',', $viewableIds ?? []));
 
-        $childrenMap = [];
-        foreach ($allCategories as $category) {
-            if ($category->parent_id) {
-                $childrenMap[$category->parent_id][] = $category;
-            }
-        }
+        $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($isAdmin, $viewableIds) {
+            $all = Category::with([
+                'documents' => fn ($q) => $q
+                    ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+                    ->latest()
+                    ->limit(10),
+            ])
+                ->withCount('documents')
+                ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
+                ->orderBy('title')
+                ->get(['id', 'title', 'description', 'parent_id']);
 
-        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
-            return [
-                'id' => $category->id,
-                'title' => $category->title,
-                'description' => $category->description,
-                'parent_id' => $category->parent_id,
-                'documents_count' => $category->documents_count,
-                'documents' => collect($category->documents)->map(function ($doc) {
-                    return [
-                        'id' => $doc->id,
-                        'doc_name' => $doc->doc_name,
-                        'doc_title' => $doc->doc_title,
-                        'description' => $doc->description,
-                        'doc_upload' => $doc->doc_upload,
-                        'image' => $doc->image,
-                    ];
-                }),
-                'subcategories' => isset($childrenMap[$category->id])
-                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
-                    : [],
-            ];
-        };
-
-        $rootCategories = $allCategories->whereNull('parent_id');
+            return $this->buildTreeWithDocuments($all);
+        });
 
         return response()->json([
             'status' => 'success',
-            'categories' => $rootCategories->map($mapCategory)->all(),
+            'categories' => $categories,
             'documents_per_category_limit' => 10,
         ]);
     }
@@ -135,8 +94,7 @@ class DocumentController extends Controller
         $plan = $activeSub?->plan;
 
         if (! $plan && ! $isAdmin) {
-            $subService = app(\App\Services\SubscriptionService::class);
-            $plan = $subService->currentPlanFor($user);
+            $plan = app(SubscriptionService::class)->currentPlanFor($user);
         }
 
         $isFreePlan = false;
@@ -145,59 +103,38 @@ class DocumentController extends Controller
 
         if (! $isAdmin) {
             $isFreePlan = ! $plan || $plan->slug === 'free' || (float) ($plan->price ?? 0) === 0.0;
-            // If Free plan or plan has a specific document limit per category
             $limitPerCategory = $isFreePlan ? ($plan->max_documents ?? 5) : ($plan->max_documents ?? null);
         }
 
         $viewableIds = $user->getViewableCategoryIds();
-
         $docLimit = $limitPerCategory ?? 100;
 
-        $categories = Category::with([
-            'documents' => fn ($query) => $query->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
-                ->latest()
-                ->limit($docLimit)
-        ])
-            ->withCount('documents')
-            ->whereIn('id', $viewableIds)
-            ->orderBy('title')
-            ->get();
-
-        $childrenMap = [];
-        foreach ($categories as $category) {
-            if ($category->parent_id) {
-                $childrenMap[$category->parent_id][] = $category;
-            }
+        if (empty($viewableIds) && ! $isAdmin) {
+            return response()->json([
+                'status' => 'success',
+                'categories' => [],
+                'is_free_plan' => $isFreePlan,
+                'plan_name' => $planName,
+                'documents_per_category_limit' => $limitPerCategory,
+            ]);
         }
 
-        $mapCategory = function ($category) use ($childrenMap, &$mapCategory) {
-            return [
-                'id' => $category->id,
-                'title' => $category->title,
-                'description' => $category->description,
-                'parent_id' => $category->parent_id,
-                'documents_count' => $category->documents_count,
-                'documents' => collect($category->documents)->map(function ($doc) {
-                    return [
-                        'id' => $doc->id,
-                        'doc_name' => $doc->doc_name,
-                        'doc_title' => $doc->doc_title,
-                        'description' => $doc->description,
-                        'doc_upload' => $doc->doc_upload,
-                        'image' => $doc->image,
-                    ];
-                }),
-                'subcategories' => isset($childrenMap[$category->id])
-                    ? collect($childrenMap[$category->id])->map($mapCategory)->all()
-                    : [],
-            ];
-        };
+        $categories = Category::with([
+            'documents' => fn ($q) => $q
+                ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+                ->latest()
+                ->limit($docLimit),
+        ])
+            ->withCount('documents')
+            ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
+            ->orderBy('title')
+            ->get(['id', 'title', 'description', 'parent_id']);
 
-        $rootCategories = $categories->whereNull('parent_id');
+        $tree = $this->buildTreeWithDocuments($categories);
 
         return response()->json([
             'status' => 'success',
-            'categories' => $rootCategories->map($mapCategory)->all(),
+            'categories' => $tree,
             'is_free_plan' => $isFreePlan,
             'plan_name' => $planName,
             'documents_per_category_limit' => $limitPerCategory,
@@ -216,11 +153,11 @@ class DocumentController extends Controller
             ], 401);
         }
 
-        $document = Document::with('category')->findOrFail($id);
+        $document = Document::with('category:id,title')->findOrFail($id);
 
         if (! $user->hasRole('Admin')) {
             $viewableCategoryIds = $user->getViewableCategoryIds();
-            if (! in_array($document->category_id, $viewableCategoryIds)) {
+            if (! in_array($document->category_id, $viewableCategoryIds, true)) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'អ្នកមិនមានសិទ្ធិចូលមើលឯកសារនេះទេ (You do not have access to view this document).',
@@ -228,39 +165,12 @@ class DocumentController extends Controller
             }
         }
 
-        $path = storage_path('app/public/'.$document->doc_upload);
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        // Cache extracted content (files don't change often)
+        $cacheKey = "document.content.{$document->id}";
 
-        $content = '';
-        try {
-            if (file_exists($path)) {
-                if ($ext === 'docx') {
-                    $phpWord = IOFactory::load($path);
-                    $writer = new HTML($phpWord);
-                    $tempHtml = tempnam(sys_get_temp_dir(), 'docx').'.html';
-                    $writer->save($tempHtml, 'HTML');
-                    $content = file_get_contents($tempHtml);
-                    unlink($tempHtml);
-                } elseif ($ext === 'pdf') {
-                    $parser = new Parser;
-                    $pdf = $parser->parseFile($path);
-                    $content = $pdf->getText();
-                } elseif ($ext === 'xlsx') {
-                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
-                    foreach ($spreadsheet->getAllSheets() as $sheet) {
-                        foreach ($sheet->getRowIterator() as $row) {
-                            $cells = [];
-                            foreach ($row->getCellIterator() as $cell) {
-                                $cells[] = $cell->getValue();
-                            }
-                            $content .= implode(' ', $cells)."\n";
-                        }
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            $content = 'Could not extract file content: '.$e->getMessage();
-        }
+        $content = Cache::remember($cacheKey, now()->addHours(6), function () use ($document) {
+            return $this->extractContent($document);
+        });
 
         return response()->json([
             'document' => [
@@ -276,7 +186,7 @@ class DocumentController extends Controller
 
     public function show(string $id)
     {
-        $document = Document::with('category')->findOrFail($id);
+        $document = Document::with('category:id,title')->findOrFail($id);
 
         return response()->json([
             'status' => 'success',
@@ -290,5 +200,72 @@ class DocumentController extends Controller
                 'category' => $document->category,
             ],
         ]);
+    }
+
+    private function buildTreeWithDocuments($categories, $parentId = null)
+    {
+        return $categories
+            ->where('parent_id', $parentId)
+            ->values()
+            ->map(function ($category) use ($categories) {
+                return [
+                    'id' => $category->id,
+                    'title' => $category->title,
+                    'description' => $category->description,
+                    'parent_id' => $category->parent_id,
+                    'documents_count' => $category->documents_count,
+                    'documents' => $category->documents->map(fn ($doc) => [
+                        'id' => $doc->id,
+                        'doc_name' => $doc->doc_name,
+                        'doc_title' => $doc->doc_title,
+                        'description' => $doc->description,
+                        'doc_upload' => $doc->doc_upload,
+                        'image' => $doc->image,
+                    ])->values(),
+                    'subcategories' => $this->buildTreeWithDocuments($categories, $category->id),
+                ];
+            })
+            ->all();
+    }
+
+    private function extractContent(Document $document): string
+    {
+        $path = storage_path('app/public/'.$document->doc_upload);
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $content = '';
+
+        try {
+            if (! file_exists($path)) {
+                return 'File not found.';
+            }
+
+            if ($ext === 'docx') {
+                $phpWord = IOFactory::load($path);
+                $writer = new HTML($phpWord);
+                $tempHtml = tempnam(sys_get_temp_dir(), 'docx').'.html';
+                $writer->save($tempHtml, 'HTML');
+                $content = file_get_contents($tempHtml);
+                @unlink($tempHtml);
+            } elseif ($ext === 'pdf') {
+                $parser = new Parser;
+                $pdf = $parser->parseFile($path);
+                $content = $pdf->getText();
+            } elseif (in_array($ext, ['xlsx', 'xls'], true)) {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+                foreach ($spreadsheet->getAllSheets() as $sheet) {
+                    foreach ($sheet->getRowIterator() as $row) {
+                        $cells = [];
+                        foreach ($row->getCellIterator() as $cell) {
+                            $cells[] = $cell->getValue();
+                        }
+                        $content .= implode(' ', $cells)."\n";
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $content = 'Could not extract file content: '.$e->getMessage();
+        }
+
+        return $content;
     }
 }

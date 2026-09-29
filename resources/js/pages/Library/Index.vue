@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { BookMarked, Trash2, FileText } from 'lucide-vue-next'
+import { BookMarked, Trash2, FileText } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface LibraryItem {
@@ -27,7 +27,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'My Library', href: '/library' },
 ]
 
-const props = defineProps<{
+defineProps<{
     libraryItems: { data: LibraryItem[] } & Pagination
 }>()
 

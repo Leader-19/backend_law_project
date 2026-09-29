@@ -22,7 +22,9 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        if (! $user->hasRole('Admin')) app(SubscriptionService::class)->ensureFreeSubscription($user);
+        if (! $user->hasRole('Admin')) {
+            app(SubscriptionService::class)->ensureFreeSubscription($user);
+        }
         $activitySearch = trim((string) $request->query('activity_search', ''));
         $activityLimit = min(max((int) $request->integer('activity_limit', 5), 1), 20);
 

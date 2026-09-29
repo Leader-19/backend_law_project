@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import roles from '@/routes/roles';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { User } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import CategoryPicker from '@/components/CategoryPicker.vue';
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search } from 'lucide-vue-next'
+import { Search } from '@lucide/vue'
 
 const searchQuery = defineModel<string>('searchQuery', { default: '' })
 

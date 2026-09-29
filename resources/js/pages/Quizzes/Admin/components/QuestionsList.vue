@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
+import { Pencil, Trash2 } from '@lucide/vue'
 import { type QuizQuestion } from '@/types'
 
 defineProps<{

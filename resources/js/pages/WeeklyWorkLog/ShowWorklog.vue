@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 
 
@@ -12,7 +12,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const props = defineProps({
+defineProps({
     worklog: Object
 });
 

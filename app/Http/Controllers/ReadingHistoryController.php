@@ -12,10 +12,12 @@ class ReadingHistoryController extends Controller
 {
     public function index(Request $request): Response
     {
-        $user = $request->user();
-
-        $history = $user->readingHistory()
-            ->with('document.category')
+        $history = $request->user()
+            ->readingHistory()
+            ->with([
+                'document:id,doc_name,doc_title,category_id,image',
+                'document.category:id,title',
+            ])
             ->latest('last_opened_at')
             ->paginate(12);
 
@@ -33,9 +35,11 @@ class ReadingHistoryController extends Controller
         ]);
 
         $user = $request->user();
+        $totalPages = (int) $request->input('total_pages');
+        $lastPage = (int) $request->input('last_page');
 
-        $progress = ($request->input('total_pages') > 0)
-            ? round(($request->input('last_page') / $request->input('total_pages')) * 100, 2)
+        $progress = $totalPages > 0
+            ? round(($lastPage / $totalPages) * 100, 2)
             : 0;
 
         $history = ReadingHistory::updateOrCreate(
@@ -44,8 +48,8 @@ class ReadingHistoryController extends Controller
                 'document_id' => $request->input('document_id'),
             ],
             [
-                'last_page' => $request->input('last_page'),
-                'total_pages' => $request->input('total_pages'),
+                'last_page' => $lastPage,
+                'total_pages' => $totalPages,
                 'progress_percent' => $progress,
                 'last_opened_at' => now(),
             ]
@@ -59,11 +63,9 @@ class ReadingHistoryController extends Controller
 
     public function getProgress(Request $request, int $documentId): JsonResponse
     {
-        $user = $request->user();
-
-        $history = ReadingHistory::where('user_id', $user->id)
+        $history = ReadingHistory::where('user_id', $request->user()->id)
             ->where('document_id', $documentId)
-            ->first();
+            ->first(['last_page', 'total_pages', 'progress_percent']);
 
         return response()->json([
             'last_page' => $history?->last_page ?? 1,

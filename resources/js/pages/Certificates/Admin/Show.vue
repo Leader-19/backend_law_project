@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, Award, RefreshCw } from 'lucide-vue-next'
+import { ArrowLeft, Award } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface Certificate {
@@ -29,7 +29,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Certificate', href: '#' },
 ]
 
-const props = defineProps<{
+defineProps<{
     certificate: Certificate
 }>()
 </script>

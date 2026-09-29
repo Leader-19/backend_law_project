@@ -11,12 +11,13 @@ interface Category {
 }
 
 defineProps<{
-    form: Form<any>
     categories: Category[]
     processing: boolean
     submitLabel: string
     isEdit?: boolean
 }>()
+
+const form = defineModel<Form<any>>('form', { required: true })
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const MAX_DOC_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB hard limit
@@ -39,13 +40,13 @@ function handleFileUpload(e: Event) {
         const file = target.files[0]
         if (file.size > MAX_DOC_BYTES) {
             docError.value = `File is too large (${formatFileSize(file.size)}). Maximum allowed is 2 GB.`
-            form.doc_upload = null
+            form.value.doc_upload = null
             target.value = ''
             isLargeFile.value = false
             return
         }
         docError.value = null
-        form.doc_upload = file
+        form.value.doc_upload = file
         isLargeFile.value = file.size > CHUNK_UPLOAD_THRESHOLD
     }
 }
@@ -56,13 +57,13 @@ function handleImageUpload(e: Event) {
         const file = target.files[0]
         if (file.size > MAX_IMAGE_BYTES) {
             imageError.value = `Image is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 5 MB.`
-            form.image = null
+            form.value.image = null
             imagePreview.value = null
             target.value = ''
             return
         }
         imageError.value = null
-        form.image = file
+        form.value.image = file
         imagePreview.value = URL.createObjectURL(file)
     }
 }

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, Clock, CheckCircle } from 'lucide-vue-next'
+import { ArrowLeft, Clock, CheckCircle } from '@lucide/vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 
@@ -44,7 +44,6 @@ const isSubmitting = ref(false)
 const totalQuestions = computed(() => props.quiz.questions.length)
 const question = computed(() => props.quiz.questions[currentQuestion.value])
 const isLastQuestion = computed(() => currentQuestion.value === totalQuestions.value - 1)
-const allAnswered = computed(() => props.quiz.questions.every(q => answers.value[q.id]?.length > 0))
 
 function selectOption(questionId: number, optionId: number) {
     if (!answers.value[questionId]) {

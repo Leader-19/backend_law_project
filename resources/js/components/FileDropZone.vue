@@ -7,7 +7,7 @@ import {
     X,
     CheckCircle2,
     AlertCircle
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024 // 2 GB — matches backend limit

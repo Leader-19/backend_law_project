@@ -12,7 +12,10 @@ use App\Policies\DocumentPolicy;
 use App\Policies\UserPolicy;
 use App\Repositories\Categories\CategoriesRepository;
 use App\Repositories\Documents\DocumentsRepository;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -58,5 +61,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+
+        RateLimiter::for('backup-download', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Optional: general API limiter (if you use it)
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

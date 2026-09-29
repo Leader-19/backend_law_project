@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, AlertCircle, RotateCcw } from 'lucide-vue-next'
+import { ArrowLeft, AlertCircle, RotateCcw } from '@lucide/vue'
 import { ref, computed } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 import DocumentBatchForm from '@/components/documents/DocumentBatchForm.vue'
@@ -62,7 +62,6 @@ const zipUploading = ref(false)
 const zipProgress = ref('')
 
 const showFileErrors = computed(() => Object.keys(fileErrors.value).length > 0)
-const hasFailedFiles = computed(() => failedFilesMap.value.size > 0)
 
 function fileNameWithoutExt(name: string): string {
     return name.replace(/\.[^/.]+$/, '')
@@ -184,7 +183,6 @@ async function retryFailedFiles() {
     if (failed.length === 0) return
 
     isRetrying.value = true
-    const prevFailed = failedFilesMap.value
     const newFailed = new Map<number, FailedFile>()
 
     batchTotalFiles.value = failed.length

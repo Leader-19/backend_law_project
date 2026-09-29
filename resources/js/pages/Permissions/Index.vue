@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { can } from '@/lib/can'
 import { type BreadcrumbItem } from '@/types'
 import { Head, router } from '@inertiajs/vue3'
-import { CheckCircle2, RefreshCw, ShieldCheck, Search, X } from 'lucide-vue-next'
+import { CheckCircle2, RefreshCw, ShieldCheck, Search, X } from '@lucide/vue'
 import { ref } from 'vue'
 import { route } from 'ziggy-js'
 
@@ -21,10 +21,6 @@ function onSearchInput() {
     searchTimeout = setTimeout(() => {
         router.get(route('permissions.index'), { search: search.value, page: 1 }, { preserveState: true, replace: true })
     }, 400)
-}
-
-function submitSearch() {
-    router.get(route('permissions.index'), { search: search.value, page: 1 }, { preserveState: true, replace: true })
 }
 
 function clearSearch() {

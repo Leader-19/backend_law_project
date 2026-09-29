@@ -6,23 +6,37 @@ use App\Models\Category;
 use App\Models\Quiz;
 use App\Models\QuizOption;
 use App\Models\QuizQuestion;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class QuizManagementController extends Controller
 {
+    private function getCategories()
+    {
+        return Cache::remember('categories.list.simple', now()->addMinutes(30), function () {
+            return Category::orderBy('title')->get(['id', 'title', 'parent_id']);
+        });
+    }
+
     public function index(Request $request): Response
     {
-        $search = $request->query('search', '');
+        $search = trim((string) $request->query('search', ''));
 
-        $quizzes = Quiz::with(['category', 'creator'])
+        $quizzes = Quiz::query()
+            ->with([
+                'category:id,title',
+                'creator:id,name',
+            ])
             ->withCount(['questions', 'attempts'])
-            ->when($search, fn ($q) => $q->where('title', 'like', "%{$search}%"))
+            ->when($search !== '', fn ($q) => $q->where('title', 'like', "%{$search}%"))
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return Inertia::render('Quizzes/Admin/Index', [
             'quizzes' => $quizzes,
@@ -32,14 +46,12 @@ class QuizManagementController extends Controller
 
     public function create(): Response
     {
-        $categories = Category::orderBy('title')->get(['id', 'title', 'parent_id']);
-
         return Inertia::render('Quizzes/Admin/Create', [
-            'categories' => $categories,
+            'categories' => $this->getCategories(),
         ]);
     }
 
-    public function store(Request $request): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -74,13 +86,11 @@ class QuizManagementController extends Controller
 
     public function edit(Quiz $quiz): Response
     {
-        $quiz->load(['questions.options', 'category']);
-
-        $categories = Category::orderBy('title')->get(['id', 'title', 'parent_id']);
+        $quiz->load(['questions.options', 'category:id,title']);
 
         return Inertia::render('Quizzes/Admin/Edit', [
             'quiz' => $quiz,
-            'categories' => $categories,
+            'categories' => $this->getCategories(),
         ]);
     }
 
@@ -114,7 +124,7 @@ class QuizManagementController extends Controller
             ->with('success', 'Quiz deleted successfully.');
     }
 
-    public function storeQuestion(Request $request, Quiz $quiz): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+    public function storeQuestion(Request $request, Quiz $quiz): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string|max:1000',
@@ -136,14 +146,18 @@ class QuizManagementController extends Controller
                 'sort_order' => $maxOrder + 1,
             ]);
 
+            $options = [];
             foreach ($validated['options'] as $index => $option) {
-                QuizOption::create([
+                $options[] = [
                     'question_id' => $question->id,
                     'option_text' => $option['option_text'],
                     'is_correct' => $option['is_correct'],
                     'sort_order' => $index,
-                ]);
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+            QuizOption::insert($options);
 
             DB::commit();
 
@@ -156,20 +170,21 @@ class QuizManagementController extends Controller
             }
 
             return back()->with('success', 'Question added successfully.');
-
         } catch (\Exception $e) {
             DB::rollBack();
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Failed to add question.',
                 ], 422);
             }
+
             return back()->with('error', 'Failed to add question.');
         }
     }
 
-    public function updateQuestion(Request $request, Quiz $quiz, QuizQuestion $question): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+    public function updateQuestion(Request $request, Quiz $quiz, QuizQuestion $question): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'question' => 'required|string|max:1000',
@@ -192,14 +207,18 @@ class QuizManagementController extends Controller
 
             $question->options()->delete();
 
+            $options = [];
             foreach ($validated['options'] as $index => $option) {
-                QuizOption::create([
+                $options[] = [
                     'question_id' => $question->id,
                     'option_text' => $option['option_text'],
                     'is_correct' => $option['is_correct'],
                     'sort_order' => $index,
-                ]);
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+            QuizOption::insert($options);
 
             DB::commit();
 
@@ -212,15 +231,16 @@ class QuizManagementController extends Controller
             }
 
             return back()->with('success', 'Question updated successfully.');
-
         } catch (\Exception $e) {
             DB::rollBack();
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Failed to update question.',
                 ], 422);
             }
+
             return back()->with('error', 'Failed to update question.');
         }
     }
@@ -234,7 +254,7 @@ class QuizManagementController extends Controller
         return back()->with('success', 'Question deleted successfully.');
     }
 
-    public function reorderQuestions(Request $request, Quiz $quiz): \Illuminate\Http\JsonResponse
+    public function reorderQuestions(Request $request, Quiz $quiz): JsonResponse
     {
         $request->validate([
             'question_ids' => 'required|array',
@@ -252,18 +272,28 @@ class QuizManagementController extends Controller
 
     public function attempts(Quiz $quiz): Response
     {
-        $quiz->load('category');
+        $quiz->load('category:id,title');
 
         $attempts = $quiz->attempts()
-            ->with('user')
+            ->with('user:id,name,email')
             ->latest('completed_at')
             ->paginate(20);
 
+        $statsRow = $quiz->attempts()
+            ->selectRaw('
+                COUNT(*) as total_attempts,
+                ROUND(AVG(score), 1) as average_score,
+                SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed_count
+            ')
+            ->first();
+
+        $total = (int) ($statsRow->total_attempts ?? 0);
+
         $stats = [
-            'total_attempts' => $quiz->attempts()->count(),
-            'average_score' => round($quiz->attempts()->avg('score') ?? 0, 1),
-            'pass_rate' => $quiz->attempts()->count() > 0
-                ? round(($quiz->attempts()->where('passed', true)->count() / $quiz->attempts()->count()) * 100, 1)
+            'total_attempts' => $total,
+            'average_score' => (float) ($statsRow->average_score ?? 0),
+            'pass_rate' => $total > 0
+                ? round(($statsRow->passed_count / $total) * 100, 1)
                 : 0,
         ];
 

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { type BreadcrumbItem } from '@/types'
 import { Head, Link } from '@inertiajs/vue3'
-import { ArrowLeft, Download, FileText, FolderOpen, Image as ImageIcon } from 'lucide-vue-next'
+import { ArrowLeft, Download, FileText, FolderOpen, Image as ImageIcon } from '@lucide/vue'
 import { route } from 'ziggy-js'
 
 interface Document { id: number; doc_name: string; doc_title: string; doc_upload: string; image: string | null; description: string | null; category?: { id: number; title: string } }

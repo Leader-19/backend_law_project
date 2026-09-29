@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Storage;
 class DocumentsService
 {
     private const MAX_ZIP_FILES = 100;
+
     private const MAX_ZIP_UNCOMPRESSED_BYTES = 2 * 1024 * 1024 * 1024;
+
     protected $repo;
 
     public function __construct(DocumentsInterface $repo)
@@ -195,6 +197,7 @@ class DocumentsService
 
             if (! in_array($ext, $allowedExts)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -203,12 +206,14 @@ class DocumentsService
                     'file' => $name,
                     'error' => 'ZIP import limit exceeded.',
                 ];
+
                 continue;
             }
 
             $source = $zip->getStream($name);
             if ($source === false) {
                 $failures[] = ['file' => $name, 'error' => 'Unable to read ZIP entry.'];
+
                 continue;
             }
 
@@ -219,6 +224,7 @@ class DocumentsService
             if ($destination === false) {
                 fclose($source);
                 $failures[] = ['file' => $name, 'error' => 'Unable to create temporary file.'];
+
                 continue;
             }
             stream_copy_to_stream($source, $destination);

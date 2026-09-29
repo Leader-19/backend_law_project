@@ -7,7 +7,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle } from 'lucide-vue-next';
+import { AlertTriangle } from '@lucide/vue';
 
 interface Props {
     open: boolean;
@@ -19,7 +19,7 @@ interface Props {
     variant?: 'danger' | 'warning' | 'info';
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     title: 'Are you sure?',
     description: 'This action cannot be undone.',
     confirmLabel: 'Confirm',

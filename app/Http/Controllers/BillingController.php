@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Api\StoreReceiptPaymentRequest;
 use App\Models\SubscriptionPlan;
 use App\Services\DocumentLimitService;
+use App\Services\ReceiptPaymentService;
 use App\Services\StripePaymentService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +26,7 @@ class BillingController extends Controller
     public function subscription(Request $request): Response
     {
         $subscription = app(SubscriptionService::class)->currentSubscriptionFor($request->user());
+
         return Inertia::render('Billing/Subscription', [
             'subscription' => $subscription,
             'usage' => app(DocumentLimitService::class)->usage($request->user()),
@@ -35,22 +38,25 @@ class BillingController extends Controller
     {
         $data = $request->validate(['plan_id' => ['required', 'integer', 'exists:subscription_plans,id'], 'interval' => ['required', 'in:monthly,yearly']]);
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
+
         return redirect()->away($stripe->checkout($request->user(), $plan, $data['interval']));
     }
 
     public function receipt(Request $request): Response
     {
         $plan = SubscriptionPlan::where('is_active', true)->findOrFail($request->integer('plan_id'));
+
         return Inertia::render('Billing/ReceiptPayment', [
             'plan' => $plan,
             'qr_code_url' => config('services.payments.qr_code_url'),
         ]);
     }
 
-    public function storeReceipt(\App\Http\Requests\Api\StoreReceiptPaymentRequest $request, \App\Services\ReceiptPaymentService $payments): RedirectResponse
+    public function storeReceipt(StoreReceiptPaymentRequest $request, ReceiptPaymentService $payments): RedirectResponse
     {
         $data = $request->validated();
         $payments->submit($request->user(), SubscriptionPlan::findOrFail($data['plan_id']), $request->file('receipt'), $data['reference'] ?? null);
+
         return redirect()->route('billing.subscription')->with('success', 'Receipt sent for approval.');
     }
 

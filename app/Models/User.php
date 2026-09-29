@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -22,7 +23,8 @@ class User extends Authenticatable
      * The attributes that are mass assignable.
      *
      * @var list<string>
-     */    protected $fillable = [
+     */
+    protected $fillable = [
         'name',
         'email',
         'status',
@@ -62,8 +64,11 @@ class User extends Authenticatable
 
     // Account status constants
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_REJECTED = 'rejected';
+
     public const STATUS_INACTIVE = 'inactive';
 
     public const STATUSES = [
@@ -172,7 +177,7 @@ class User extends Authenticatable
      * Get all active plans, using cache to avoid repeated queries.
      * Returns a Collection of SubscriptionPlan models.
      */
-    public function getActivePlans(): \Illuminate\Support\Collection
+    public function getActivePlans(): Collection
     {
         $subscriptions = $this->activeSubscriptions()->get();
 

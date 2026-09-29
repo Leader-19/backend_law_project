@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { Award, ExternalLink } from 'lucide-vue-next'
+import { Award, ExternalLink } from '@lucide/vue'
 import { type BreadcrumbItem } from '@/types'
 
 interface Certificate {
@@ -28,7 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Certificates', href: '/certificates' },
 ]
 
-const props = defineProps<{
+defineProps<{
     certificates: { data: Certificate[] } & Pagination
 }>()
 
