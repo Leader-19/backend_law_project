@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -40,10 +42,22 @@ const passwordVisible = ref(false);
             class="flex w-full items-center justify-center gap-3 rounded-[5px] border border-zinc-300 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500"
         >
             <svg class="size-5 shrink-0" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M21.35 12.23c0-.71-.06-1.39-.18-2.05H12v3.87h5.24a4.48 4.48 0 0 1-1.94 2.94v2.51h3.14c1.84-1.7 2.91-4.2 2.91-7.27Z"/>
-                <path fill="#34A853" d="M12 21.75c2.63 0 4.84-.87 6.45-2.36l-3.14-2.51c-.87.58-1.98.92-3.31.92-2.54 0-4.7-1.72-5.47-4.03H3.29v2.59A9.75 9.75 0 0 0 12 21.75Z"/>
-                <path fill="#FBBC05" d="M6.53 13.77A5.84 5.84 0 0 1 6.22 12c0-.61.11-1.2.31-1.77V7.64H3.29A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.05 1.04 4.36l3.24-2.59Z"/>
-                <path fill="#EA4335" d="M12 6.2c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.29 14.63 2.25 12 2.25a9.75 9.75 0 0 0-8.71 5.39l3.24 2.59C7.3 7.92 9.46 6.2 12 6.2Z"/>
+                <path
+                    fill="#4285F4"
+                    d="M21.35 12.23c0-.71-.06-1.39-.18-2.05H12v3.87h5.24a4.48 4.48 0 0 1-1.94 2.94v2.51h3.14c1.84-1.7 2.91-4.2 2.91-7.27Z"
+                />
+                <path
+                    fill="#34A853"
+                    d="M12 21.75c2.63 0 4.84-.87 6.45-2.36l-3.14-2.51c-.87.58-1.98.92-3.31.92-2.54 0-4.7-1.72-5.47-4.03H3.29v2.59A9.75 9.75 0 0 0 12 21.75Z"
+                />
+                <path
+                    fill="#FBBC05"
+                    d="M6.53 13.77A5.84 5.84 0 0 1 6.22 12c0-.61.11-1.2.31-1.77V7.64H3.29A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.05 1.04 4.36l3.24-2.59Z"
+                />
+                <path
+                    fill="#EA4335"
+                    d="M12 6.2c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.83 3.29 14.63 2.25 12 2.25a9.75 9.75 0 0 0-8.71 5.39l3.24 2.59C7.3 7.92 9.46 6.2 12 6.2Z"
+                />
             </svg>
             <span>បន្តជាមួយ Google</span>
         </a>
@@ -59,7 +73,7 @@ const passwordVisible = ref(false);
         <Form
             v-bind="store.form()"
             :reset-on-success="['password']"
-            v-slot="{ errors }"
+            v-slot="{ errors, processing }"
             class="space-y-4"
         >
             <div
@@ -71,7 +85,11 @@ const passwordVisible = ref(false);
             </div>
 
             <div>
-                <Label for="email" class="text-xs font-medium text-zinc-600 dark:text-zinc-400">អ៊ីមែល (Email)</Label>
+                <Label
+                    for="email"
+                    class="text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                    >អ៊ីមែល (Email)</Label
+                >
                 <Input
                     id="email"
                     type="email"
@@ -87,7 +105,11 @@ const passwordVisible = ref(false);
 
             <div>
                 <div class="flex items-center justify-between">
-                    <Label for="password" class="text-xs font-medium text-zinc-600 dark:text-zinc-400">ពាក្យសម្ងាត់ (Password)</Label>
+                    <Label
+                        for="password"
+                        class="text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                        >ពាក្យសម្ងាត់ (Password)</Label
+                    >
                     <TextLink
                         v-if="canResetPassword"
                         :href="request()"
@@ -110,8 +132,10 @@ const passwordVisible = ref(false);
                     />
                     <button
                         type="button"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition"
-                        :aria-label="passwordVisible ? 'Hide password' : 'Show password'"
+                        class="absolute top-1/2 right-3 -translate-y-1/2 text-zinc-400 transition hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                        :aria-label="
+                            passwordVisible ? 'Hide password' : 'Show password'
+                        "
                         @click="passwordVisible = !passwordVisible"
                     >
                         <EyeOff v-if="passwordVisible" class="size-4" />
@@ -120,6 +144,17 @@ const passwordVisible = ref(false);
                 </div>
                 <InputError :message="errors.password" />
             </div>
+
+            <Button
+                type="submit"
+                class="h-auto w-full rounded-[5px] bg-zinc-900 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+                :tabindex="6"
+                :disabled="processing"
+                data-test="login-button"
+            >
+                <Spinner v-if="processing" class="mr-2" />
+                ចូលប្រព័ន្ធ (Log in)
+            </Button>
 
             <!-- <div v-if="canRegister" class="text-center text-sm text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                 មិនទាន់មានគណនី?
