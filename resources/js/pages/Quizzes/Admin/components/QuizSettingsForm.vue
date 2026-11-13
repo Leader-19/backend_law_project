@@ -29,7 +29,7 @@ const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm f
         <h1 class="text-xl font-bold text-gray-900 mb-4">Quiz Settings</h1>
 
         <form @submit.prevent="$emit('submit')" class="space-y-5">
-            <FormField label="Title" :error="form.errors.title" required>
+            <FormField label="Title" :error="form.errors?.title" required>
                 <input
                     v-model="form.title"
                     type="text"
@@ -47,7 +47,7 @@ const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm f
                 ></textarea>
             </FormField>
 
-            <FormField label="Category" :error="form.errors.category_id" required>
+            <FormField label="Category" :error="form.errors?.category_id" required>
                 <select
                     v-model="form.category_id"
                     :class="inputClass"

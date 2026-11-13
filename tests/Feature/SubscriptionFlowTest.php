@@ -9,6 +9,7 @@ use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class SubscriptionFlowTest extends TestCase
@@ -65,14 +66,14 @@ class SubscriptionFlowTest extends TestCase
         ]);
 
         // Create categories (user_id is required)
-        $this->category1 = Category::create(['title' => 'Legal Documents', 'description' => 'Legal docs', 'user_id' => $this->admin->id]);
-        $this->category2 = Category::create(['title' => 'Contracts', 'description' => 'Contract templates', 'user_id' => $this->admin->id]);
+        $this->category1 = Category::create(['title' => 'Legal Documents', 'description' => 'Legal docs', 'user_id' => $this->admin->id, 'access_type' => 'plan']);
+        $this->category2 = Category::create(['title' => 'Contracts', 'description' => 'Contract templates', 'user_id' => $this->admin->id, 'access_type' => 'plan']);
 
         // Assign categories to the plan
         $this->plan->categories()->attach([$this->category1->id, $this->category2->id]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_assign_plan_to_frontend_user_via_web(): void
     {
         $response = $this->actingAs($this->admin)
@@ -104,7 +105,7 @@ class SubscriptionFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function admin_can_update_subscription_and_sync_plan_categories(): void
     {
         // First assign the plan
@@ -116,7 +117,7 @@ class SubscriptionFlowTest extends TestCase
         ]);
 
         // Add a third category and assign to plan
-        $category3 = Category::create(['title' => 'Court Filings', 'user_id' => $this->admin->id]);
+        $category3 = Category::create(['title' => 'Court Filings', 'user_id' => $this->admin->id, 'access_type' => 'plan']);
         $this->plan->categories()->attach($category3->id);
 
         // Update the subscription
@@ -137,7 +138,7 @@ class SubscriptionFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function existing_category_permission_is_not_overwritten(): void
     {
         // Manually assign a category with 'edit' permission
@@ -160,7 +161,7 @@ class SubscriptionFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function user_can_see_only_assigned_categories_on_dashboard(): void
     {
         // Grant dashboard.view permission
@@ -176,7 +177,7 @@ class SubscriptionFlowTest extends TestCase
         $this->assertNotContains($this->category2->id, $viewableIds);
     }
 
-    /** @test */
+    #[Test]
     public function plan_categories_returned_in_api_response(): void
     {
         $planCategories = $this->plan->categories;
@@ -185,7 +186,7 @@ class SubscriptionFlowTest extends TestCase
         $this->assertTrue($planCategories->contains('id', $this->category2->id));
     }
 
-    /** @test */
+    #[Test]
     public function user_without_plan_cannot_create_categories(): void
     {
         // A frontend user without a subscription cannot create
@@ -193,7 +194,7 @@ class SubscriptionFlowTest extends TestCase
         $this->assertFalse($this->frontendUser->canCreateDocument());
     }
 
-    /** @test */
+    #[Test]
     public function user_with_plan_can_create_up_to_limit(): void
     {
         // Create the plan subscription
@@ -220,7 +221,7 @@ class SubscriptionFlowTest extends TestCase
         $this->assertFalse($this->frontendUser->canCreateCategory());
     }
 
-    /** @test */
+    #[Test]
     public function admin_has_no_subscription_limits(): void
     {
         $this->assertNull($this->admin->categoryLimit());
@@ -229,7 +230,7 @@ class SubscriptionFlowTest extends TestCase
         $this->assertTrue($this->admin->canCreateDocument());
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_user_cannot_assign_plan(): void
     {
         $regularUser = User::factory()->create(['registration_source' => 'frontend']);
@@ -244,19 +245,19 @@ class SubscriptionFlowTest extends TestCase
         $response->assertForbidden();
     }
 
-    /** @test */
-    public function viewable_category_ids_include_ancestors(): void
+    #[Test]
+    public function viewable_category_ids_do_not_include_plan_only_parent(): void
     {
-        $parent = Category::create(['title' => 'Parent Category', 'user_id' => $this->admin->id]);
-        $child = Category::create(['title' => 'Child Category', 'parent_id' => $parent->id, 'user_id' => $this->admin->id]);
+        $parent = Category::create(['title' => 'Parent Category', 'user_id' => $this->admin->id, 'access_type' => 'plan']);
+        $child = Category::create(['title' => 'Child Category', 'parent_id' => $parent->id, 'user_id' => $this->admin->id, 'access_type' => 'plan']);
 
         // Assign only the child to the user
         $child->users()->attach($this->frontendUser->id, ['permission' => 'view']);
 
         $viewableIds = $this->frontendUser->getViewableCategoryIds();
 
-        // User should be able to see both child AND parent (ancestor)
+        // Sharing the child must not expose its plan-only parent.
         $this->assertContains($child->id, $viewableIds);
-        $this->assertContains($parent->id, $viewableIds);
+        $this->assertNotContains($parent->id, $viewableIds);
     }
 }

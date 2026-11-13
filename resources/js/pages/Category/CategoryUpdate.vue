@@ -11,6 +11,7 @@ const props = defineProps<{
         title: string;
         description: string;
         parent_id: number | null;
+        access_type: 'public' | 'plan';
     };
     parents?: { id: number; title: string }[];
 }>();
@@ -26,6 +27,7 @@ const form = useForm({
     title: props.category.title,
     description: props.category.description,
     parent_id: props.category.parent_id,
+    access_type: props.category.access_type || 'plan',
 })
 
 </script>
@@ -79,6 +81,15 @@ const form = useForm({
                     <p class="text-red-500 text-xs" v-if="form.errors.parent_id">
                         {{ form.errors.parent_id }}
                     </p>
+                </div>
+
+                <div class="grid gap-1">
+                    <label class="text-sm font-medium">Access</label>
+                    <select v-model="form.access_type" class="block w-full rounded-md border-gray-300 px-3 py-2">
+                        <option value="public">Public — available to all registered users</option>
+                        <option value="plan">Plan — requires an assigned active plan</option>
+                    </select>
+                    <p class="text-red-500 text-xs" v-if="form.errors.access_type">{{ form.errors.access_type }}</p>
                 </div>
 
                 <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium rounded px-4 py-3">

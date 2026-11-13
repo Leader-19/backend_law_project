@@ -32,7 +32,7 @@ class CategoryController extends Controller
                 ->withCount('documents')
                 ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
                 ->orderBy('title')
-                ->get(['id', 'title', 'description', 'parent_id']);
+                ->get(['id', 'title', 'description', 'parent_id', 'access_type']);
 
             return $this->buildTree($all);
         });
@@ -62,7 +62,7 @@ class CategoryController extends Controller
 
         $categories = Category::whereIn('id', $viewableIds)
             ->orderBy('title')
-            ->get(['id', 'title', 'description', 'parent_id']);
+            ->get(['id', 'title', 'description', 'parent_id', 'access_type']);
 
         return response()->json([
             'status' => 'success',
@@ -70,17 +70,24 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
+        $user = $request->user();
         $category = Category::with(['parent:id,title'])
             ->withCount('documents')
             ->findOrFail($id);
 
+        if (! $user->hasRole('Admin') && ! $user->hasCategoryPermission('view', $category)) {
+            return response()->json(['status' => 'error', 'message' => 'You do not have access to view this category.'], 403);
+        }
+
         // Only load direct children (not the whole tree)
+        $viewableIds = $user->hasRole('Admin') ? null : $user->getViewableCategoryIds();
         $subcategories = Category::where('parent_id', $category->id)
+            ->when($viewableIds !== null, fn ($q) => $q->whereIn('id', $viewableIds))
             ->withCount('documents')
             ->orderBy('title')
-            ->get(['id', 'title', 'description', 'parent_id']);
+            ->get(['id', 'title', 'description', 'parent_id', 'access_type']);
 
         // Latest documents only (limit 20)
         $documents = $category->documents()
@@ -96,6 +103,7 @@ class CategoryController extends Controller
                 'title' => $category->title,
                 'description' => $category->description,
                 'parent_id' => $category->parent_id,
+                'access_type' => $category->access_type,
                 'parent' => $category->parent ? [
                     'id' => $category->parent->id,
                     'title' => $category->parent->title,
@@ -107,6 +115,7 @@ class CategoryController extends Controller
                     'title' => $sub->title,
                     'description' => $sub->description,
                     'parent_id' => $sub->parent_id,
+                    'access_type' => $sub->access_type,
                     'documents_count' => $sub->documents_count,
                 ]),
             ],
@@ -117,6 +126,7 @@ class CategoryController extends Controller
     {
         $category = Category::create([
             ...$request->validated(),
+            'access_type' => $request->validated('access_type', 'plan'),
             'user_id' => $request->user()->id,
         ]);
 
@@ -156,7 +166,9 @@ class CategoryController extends Controller
     private function buildTree($categories, $parentId = null)
     {
         return $categories
-            ->where('parent_id', $parentId)
+            ->filter(fn ($category) => $parentId === null
+                ? ($category->parent_id === null || ! $categories->contains('id', $category->parent_id))
+                : $category->parent_id === $parentId)
             ->values()
             ->map(function ($category) use ($categories) {
                 return [
@@ -164,6 +176,7 @@ class CategoryController extends Controller
                     'title' => $category->title,
                     'description' => $category->description,
                     'parent_id' => $category->parent_id,
+                    'access_type' => $category->access_type,
                     'documents_count' => $category->documents_count,
                     'documents' => [], // loaded on demand in show()
                     'subcategories' => $this->buildTree($categories, $category->id),

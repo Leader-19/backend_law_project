@@ -25,6 +25,7 @@ class CategoryRequest extends FormRequest
                 'integer',
                 Rule::exists('categories', 'id'),
             ],
+            'access_type' => ['sometimes', 'required', Rule::in(['public', 'plan'])],
         ];
 
         if ($isUpdate && $categoryId) {

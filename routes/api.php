@@ -39,12 +39,12 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middle
 Route::get('/subscription-plans', [SubscriptionPlanController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/subscription-plans/{id}', [SubscriptionPlanController::class, 'show'])->middleware('throttle:60,1');
 
-Route::get('/documents', [DocumentController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/documents/preview', [DocumentController::class, 'preview'])->middleware('throttle:30,1');
-Route::get('/documents/{id}', [DocumentController::class, 'show'])->middleware('throttle:60,1');
-Route::get('/documents/{id}/content', [DocumentController::class, 'getContent'])->middleware('throttle:30,1');
-Route::get('/categories', [CategoryController::class, 'index'])->middleware('throttle:60,1');
-Route::get('/categories/{id}', [CategoryController::class, 'show'])->middleware('throttle:60,1');
+Route::get('/documents', [DocumentController::class, 'index'])->middleware(['auth:sanctum', 'throttle:60,1']);
+Route::get('/documents/preview', [DocumentController::class, 'preview'])->middleware(['auth:sanctum', 'throttle:30,1']);
+Route::get('/documents/{id}', [DocumentController::class, 'show'])->middleware(['auth:sanctum', 'throttle:60,1']);
+Route::get('/documents/{id}/content', [DocumentController::class, 'getContent'])->middleware(['auth:sanctum', 'throttle:30,1']);
+Route::get('/categories', [CategoryController::class, 'index'])->middleware(['auth:sanctum', 'throttle:60,1']);
+Route::get('/categories/{id}', [CategoryController::class, 'show'])->middleware(['auth:sanctum', 'throttle:60,1']);
 Route::get('/text-contents', [TextContentController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/text-contents/{id}', [TextContentController::class, 'show'])->middleware('throttle:60,1');
 

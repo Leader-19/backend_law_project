@@ -350,6 +350,10 @@ class User extends Authenticatable
             return true;
         }
 
+        if ($permission === 'view' && $category->access_type === 'public') {
+            return true;
+        }
+
         // Get all ancestor IDs (including the category itself) in one query
         $candidateIds = $this->getCategoryAndAncestorIds($category);
 
@@ -400,37 +404,26 @@ class User extends Authenticatable
         return $ids;
     }
 
-    // Get all category IDs this user can view (including inherited)
-    // Get all category IDs this user can view (including ancestors & descendants)
+    // Get categories accessible through public access, plans, or explicit sharing.
     public function getViewableCategoryIds(): array
     {
         if ($this->hasRole('Admin')) {
             return Category::pluck('id')->all();
         }
 
-        $activePlans = $this->getActivePlans();
+        $publicCategoryIds = Category::where('access_type', 'public')->pluck('id')->all();
+        $categoryIds = [];
 
-        // If user has any active plan with unlimited categories (max_categories === null)
-        // and no specific restrictive categories assigned, grant all categories
-        foreach ($activePlans as $plan) {
-            if ($plan->max_categories === null && $plan->categories->isEmpty()) {
-                return Category::pluck('id')->all();
-            }
-        }
-
-        $categoryIds = $this->activeSubscriptions()->get()
+        $planCategoryIds = $this->activeSubscriptions()
+            ->whereHas('plan', fn ($query) => $query->where('slug', '!=', 'free')->where('price', '>', 0))
+            ->get()
             ->flatMap(fn ($sub) => SubscriptionPlan::getPlanCategoryIds($sub->subscription_plan_id))
             ->unique()
             ->values()
             ->all();
+        $categoryIds = [...$categoryIds, ...$planCategoryIds];
 
-        // If the user has an active subscription but the plan has no explicit categories assigned yet,
-        // fall back to all categories so documents remain accessible
-        if (empty($categoryIds) && $activePlans->isNotEmpty()) {
-            $categoryIds = Category::pluck('id')->all();
-        }
-
-        $categoryIds = [...$categoryIds, ...$this->categoryPermissions()
+        $permissionCategoryIds = $this->categoryPermissions()
             ->where(function ($query) {
                 $query->where('permission', 'view')
                     ->orWhere('permission', 'manage')
@@ -442,7 +435,8 @@ class User extends Authenticatable
                     ->orWhere('permission', 'like', '%,manage');
             })
             ->pluck('category_id')
-            ->all()];
+            ->all();
+        $categoryIds = [...$categoryIds, ...$permissionCategoryIds, ...$publicCategoryIds];
 
         $roleIds = $this->roles()->pluck('id');
         if ($roleIds->isNotEmpty()) {
@@ -453,43 +447,16 @@ class User extends Authenticatable
                 ->pluck('id')
                 ->all();
             $categoryIds = [...$categoryIds, ...$teamCategoryIds];
+            $permissionCategoryIds = [...$permissionCategoryIds, ...$teamCategoryIds];
         }
 
+        $allDescendantIds = [];
         if ($categoryIds !== []) {
             $categoryIdsSet = array_flip($categoryIds);
-
-            // 1. Find all ancestors (parents) of viewable categories
-            $allAncestorIds = [];
-            $allAncestorIdsSet = [];
-            $pendingAncestors = Category::whereIn('id', $categoryIds)
-                ->pluck('parent_id')
-                ->filter()
-                ->values()
-                ->all();
-
-            while (! empty($pendingAncestors)) {
-                $found = Category::whereIn('id', $pendingAncestors)
-                    ->select('id', 'parent_id')
-                    ->get();
-
-                foreach ($found as $cat) {
-                    if (! isset($allAncestorIdsSet[$cat->id]) && ! isset($categoryIdsSet[$cat->id])) {
-                        $allAncestorIds[] = $cat->id;
-                        $allAncestorIdsSet[$cat->id] = true;
-                    }
-                }
-
-                $pendingAncestors = $found->pluck('parent_id')
-                    ->filter()
-                    ->reject(fn ($id) => isset($allAncestorIdsSet[$id]) || isset($categoryIdsSet[$id]))
-                    ->values()
-                    ->all();
-            }
-
-            // 2. Find all descendants (children, grandchildren) of viewable categories
-            $allDescendantIds = [];
+            // Include descendants only for plan or explicitly shared categories.
             $allDescendantIdsSet = [];
-            $pendingDescendants = Category::whereIn('parent_id', $categoryIds)
+            $inheritanceSourceIds = array_values(array_unique([...$planCategoryIds, ...$permissionCategoryIds]));
+            $pendingDescendants = Category::whereIn('parent_id', $inheritanceSourceIds)
                 ->pluck('id')
                 ->values()
                 ->all();
@@ -515,10 +482,11 @@ class User extends Authenticatable
                     ->all();
             }
 
-            $categoryIds = [...$categoryIds, ...$allAncestorIds, ...$allDescendantIds];
         }
 
-        return array_values(array_unique($categoryIds));
+        // Ancestors are deliberately excluded: a visible public child must not
+        // make its plan-only parent (or the parent's documents) visible.
+        return array_values(array_unique([...$categoryIds, ...$allDescendantIds]));
     }
 
     private function hasTeamCategoryPermission(string $permission, array $candidateIds): bool
@@ -538,7 +506,9 @@ class User extends Authenticatable
 
     private function hasPlanCategoryAccess(Category $category): bool
     {
-        $activeSubscriptions = $this->activeSubscriptions()->get();
+        $activeSubscriptions = $this->activeSubscriptions()
+            ->whereHas('plan', fn ($query) => $query->where('slug', '!=', 'free')->where('price', '>', 0))
+            ->get();
         if ($activeSubscriptions->isEmpty()) {
             return false;
         }

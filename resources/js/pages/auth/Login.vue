@@ -165,6 +165,13 @@ const passwordVisible = ref(false);
                     ចុះឈ្មោះឥឡូវនេះ (Sign up)
                 </TextLink>
             </div> -->
+            <button
+                type="submit"
+                :disabled="processing"
+                class="flex w-full items-center justify-center rounded-[5px] bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+                {{ processing ? 'កំពុងចូល...' : 'ចូលគណនី (Log in)' }}
+            </button>
         </Form>
     </AuthBase>
 </template>

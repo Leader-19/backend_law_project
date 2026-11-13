@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AdministratorBookCategoryController;
+use App\Http\Controllers\AdministratorBookController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CategoryController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\CertificateManagementController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FrontendUserController;
 use App\Http\Controllers\GoogleAuthController;
@@ -293,6 +296,14 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
         Route::post('/', [DocumentController::class, 'store'])->middleware(['throttle:30,1', 'subscription.limit:document'])->name('store');
     });
 
+    Route::prefix('documents/upload')->name('documents.upload.')->middleware('permission:document.create')->group(function () {
+        Route::post('/init', [ChunkedUploadController::class, 'init'])->middleware('throttle:30,1')->name('init');
+        Route::post('/{uploadId}/chunk', [ChunkedUploadController::class, 'chunk'])->middleware('throttle:120,1')->name('chunk');
+        Route::post('/{uploadId}/complete', [ChunkedUploadController::class, 'complete'])->middleware('throttle:10,1')->name('complete');
+        Route::get('/{uploadId}/status', [ChunkedUploadController::class, 'status'])->middleware('throttle:30,1')->name('status');
+        Route::delete('/{uploadId}/cancel', [ChunkedUploadController::class, 'cancel'])->middleware('throttle:30,1')->name('cancel');
+    });
+
     Route::middleware('permission:document.edit')->prefix('documents')->name('documents.')->group(function () {
         Route::get('/{document}/edit', [DocumentController::class, 'edit'])->middleware('throttle:30,1')->name('edit');
         Route::put('/{document}', [DocumentController::class, 'update'])->middleware('throttle:30,1')->name('update');
@@ -331,6 +342,52 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     Route::middleware('permission:text_content.view')->prefix('text-contents')->name('text-contents.')->group(function () {
         Route::get('/', [TextContentController::class, 'index'])->middleware('throttle:60,1')->name('index');
         Route::get('/{textContent}', [TextContentController::class, 'show'])->middleware('throttle:60,1')->name('show');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Administrator Books
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:administrator-books.create')->prefix('administrator-books')->name('administrator-books.')->group(function () {
+        Route::get('/create', [AdministratorBookController::class, 'create'])->middleware('throttle:30,1')->name('create');
+        Route::post('/', [AdministratorBookController::class, 'store'])->middleware('throttle:30,1')->name('store');
+    });
+
+    Route::middleware('permission:administrator-books.edit')->prefix('administrator-books')->name('administrator-books.')->group(function () {
+        Route::get('/{administrator_book}/edit', [AdministratorBookController::class, 'edit'])->middleware('throttle:30,1')->name('edit');
+        Route::put('/{administrator_book}', [AdministratorBookController::class, 'update'])->middleware('throttle:30,1')->name('update');
+    });
+
+    Route::middleware('permission:administrator-books.delete')->prefix('administrator-books')->name('administrator-books.')->group(function () {
+        Route::delete('/{administrator_book}', [AdministratorBookController::class, 'destroy'])->middleware('throttle:10,1')->name('destroy');
+    });
+
+    Route::middleware('permission:administrator-books.view')->prefix('administrator-books')->name('administrator-books.')->group(function () {
+        Route::get('/', [AdministratorBookController::class, 'index'])->middleware('throttle:60,1')->name('index');
+        Route::get('/{administrator_book}/read', [AdministratorBookController::class, 'read'])->middleware('throttle:30,1')->name('read');
+        Route::get('/{administrator_book}', [AdministratorBookController::class, 'show'])->middleware('throttle:60,1')->name('show');
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Administrator Book Categories
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware('permission:administrator-book-categories.create')->prefix('administrator-book-categories')->name('administrator-book-categories.')->group(function () {
+        Route::post('/', [AdministratorBookCategoryController::class, 'store'])->middleware('throttle:30,1')->name('store');
+    });
+
+    Route::middleware('permission:administrator-book-categories.edit')->prefix('administrator-book-categories')->name('administrator-book-categories.')->group(function () {
+        Route::put('/{administrator_book_category}', [AdministratorBookCategoryController::class, 'update'])->middleware('throttle:30,1')->name('update');
+    });
+
+    Route::middleware('permission:administrator-book-categories.delete')->prefix('administrator-book-categories')->name('administrator-book-categories.')->group(function () {
+        Route::delete('/{administrator_book_category}', [AdministratorBookCategoryController::class, 'destroy'])->middleware('throttle:10,1')->name('destroy');
+    });
+
+    Route::middleware('permission:administrator-book-categories.view')->prefix('administrator-book-categories')->name('administrator-book-categories.')->group(function () {
+        Route::get('/', [AdministratorBookCategoryController::class, 'index'])->middleware('throttle:60,1')->name('index');
     });
 
     /*

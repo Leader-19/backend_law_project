@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-law
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-law
+  template:
+    metadata:
+      labels:
+        app: backend-law
+    spec:
+      containers:
+        - name: backend-law
+          image: ghcr.io/leader-19/backend_law_project:latest
+          ports:
+            - containerPort: 3000   # change to your app's port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-law
+  namespace: production
+spec:
+  selector:
+    app: backend-law
+  ports:
+    - port: 80
+      targetPort: 3000

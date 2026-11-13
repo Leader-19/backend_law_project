@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileArchive } from '@lucide/vue'
+import { FileArchive, Files } from '@lucide/vue'
 
 defineProps<{
     activeTab: 'files' | 'zip'
@@ -11,23 +11,24 @@ defineEmits<{
 </script>
 
 <template>
-    <div class="flex border-b border-gray-200 mb-6">
+    <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-950">
         <button
             type="button"
             @click="$emit('update:activeTab', 'files')"
-            class="px-4 py-2 text-sm font-medium transition-colors"
-            :class="activeTab === 'files' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+            class="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-all"
+            :class="activeTab === 'files' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-white dark:ring-slate-700' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'"
         >
-            Select Files / Folder
+            <Files class="h-4 w-4" />
+            <span>Select files or folder</span>
         </button>
         <button
             type="button"
             @click="$emit('update:activeTab', 'zip')"
-            class="px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2"
-            :class="activeTab === 'zip' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+            class="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-all"
+            :class="activeTab === 'zip' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-white dark:ring-slate-700' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100'"
         >
-            <FileArchive class="w-4 h-4" />
-            Upload ZIP (for large folders)
+            <FileArchive class="h-4 w-4" />
+            <span>Upload a ZIP archive</span>
         </button>
     </div>
 </template>

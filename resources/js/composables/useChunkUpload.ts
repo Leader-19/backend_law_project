@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 // 5 MB per chunk – safe for most PHP/nginx configs
 const DEFAULT_CHUNK_SIZE = 5 * 1024 * 1024
 
-// Files smaller than this threshold use the normal single-request upload
-export const CHUNK_UPLOAD_THRESHOLD = 10 * 1024 * 1024 // 10 MB
+// Keep ordinary requests small; larger files use the raw 5 MB chunk endpoint.
+export const CHUNK_UPLOAD_THRESHOLD = 5 * 1024 * 1024 // 5 MB
 
 interface InitResponse {
   upload_id: string
@@ -46,18 +46,11 @@ export interface UploadProgress {
   estimatedTimeLeft: number // seconds
 }
 
-function getApiBase(): string {
-  // The Inertia admin panel runs on the same origin
-  return ''
-}
-
 /**
- * Build the correct API URL for the chunked-upload endpoints.
- * When the Inertia admin panel is behind a reverse-proxy the base may differ
- * from the default `/api`, so we detect it from the page URL.
+ * Build a same-origin URL for the authenticated web upload routes.
  */
-function apiUrl(path: string): string {
-  return `${getApiBase()}/api${path}`
+function uploadUrl(path: string): string {
+  return path.replace(/^\/upload/, '/documents/upload')
 }
 
 async function apiFetch<T>(
@@ -168,7 +161,7 @@ export function useChunkUpload() {
       progress.value.status = 'initializing'
       onProgress?.(progress.value)
 
-      const initRes = await apiFetch<InitResponse>(apiUrl('/upload/init'), {
+      const initRes = await apiFetch<InitResponse>(uploadUrl('/upload/init'), {
         method: 'POST',
         body: JSON.stringify({
           filename: file.name,
@@ -189,7 +182,7 @@ export function useChunkUpload() {
       for (let i = 0; i < totalChunks; i++) {
         if (abortController.signal.aborted) {
           // Clean up on server
-          await apiFetch(apiUrl(`/upload/${uploadId}/cancel`), {
+          await apiFetch(uploadUrl(`/upload/${uploadId}/cancel`), {
             method: 'DELETE',
           }).catch(() => {})
           throw new Error('Upload cancelled')
@@ -201,7 +194,7 @@ export function useChunkUpload() {
 
         progress.value.currentChunk = i + 1
 
-        const res = await fetch(apiUrl(`/upload/${uploadId}/chunk`), {
+        const res = await fetch(uploadUrl(`/upload/${uploadId}/chunk`), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -249,7 +242,7 @@ export function useChunkUpload() {
       onProgress?.(progress.value)
 
       const completeRes = await apiFetch<CompleteResponse>(
-        apiUrl(`/upload/${uploadId}/complete`),
+        uploadUrl(`/upload/${uploadId}/complete`),
         {
           method: 'POST',
           headers: {
@@ -289,7 +282,7 @@ export function useChunkUpload() {
    * Check the status of an existing upload (for resume support).
    */
   async function getStatus(uploadId: string): Promise<StatusResponse> {
-    return apiFetch<StatusResponse>(apiUrl(`/upload/${uploadId}/status`))
+    return apiFetch<StatusResponse>(uploadUrl(`/upload/${uploadId}/status`))
   }
 
   /**
@@ -356,7 +349,7 @@ export function useChunkUpload() {
 
       for (let i = startChunk; i < totalChunks; i++) {
         if (abortController.signal.aborted) {
-          await apiFetch(apiUrl(`/upload/${uploadId}/cancel`), {
+          await apiFetch(uploadUrl(`/upload/${uploadId}/cancel`), {
             method: 'DELETE',
           }).catch(() => {})
           throw new Error('Upload cancelled')
@@ -368,7 +361,7 @@ export function useChunkUpload() {
 
         progress.value.currentChunk = i + 1
 
-        const res = await fetch(apiUrl(`/upload/${uploadId}/chunk`), {
+        const res = await fetch(uploadUrl(`/upload/${uploadId}/chunk`), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/octet-stream',
@@ -416,7 +409,7 @@ export function useChunkUpload() {
       onProgress?.(progress.value)
 
       const completeRes = await apiFetch<CompleteResponse>(
-        apiUrl(`/upload/${uploadId}/complete`),
+        uploadUrl(`/upload/${uploadId}/complete`),
         {
           method: 'POST',
           headers: {
@@ -457,7 +450,7 @@ export function useChunkUpload() {
    */
   async function cancelUpload(uploadId: string): Promise<void> {
     cancel()
-    await apiFetch(apiUrl(`/upload/${uploadId}/cancel`), {
+    await apiFetch(uploadUrl(`/upload/${uploadId}/cancel`), {
       method: 'DELETE',
     }).catch(() => {})
   }

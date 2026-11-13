@@ -37,6 +37,7 @@ class CategoryManagementController extends Controller
 
         $documents = Document::query()
             ->with(['category:id,title', 'user:id,name'])
+            ->when(! $isAdmin, fn ($q) => $q->whereIn('category_id', $viewableIds))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($inner) use ($search) {
@@ -65,7 +66,9 @@ class CategoryManagementController extends Controller
     private function buildTree($categories, $parentId = null)
     {
         return $categories
-            ->where('parent_id', $parentId)
+            ->filter(fn ($category) => $parentId === null
+                ? ($category->parent_id === null || ! $categories->contains('id', $category->parent_id))
+                : $category->parent_id === $parentId)
             ->values()
             ->map(function ($category) use ($categories) {
                 $category->children = $this->buildTree($categories, $category->id);

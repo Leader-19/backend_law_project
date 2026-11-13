@@ -13,7 +13,9 @@ class ReadingHistoryController extends Controller
     {
         $user = $request->user();
 
+        $viewableCategoryIds = $user->getViewableCategoryIds();
         $history = $user->readingHistory()
+            ->whereHas('document.category', fn ($q) => $q->whereIn('categories.id', $viewableCategoryIds))
             ->with('document.category')
             ->latest('last_opened_at')
             ->paginate(12);
@@ -39,6 +41,8 @@ class ReadingHistoryController extends Controller
         ]);
 
         $user = $request->user();
+        $document = \App\Models\Document::with('category')->findOrFail($request->input('document_id'));
+        abort_unless($document->category && $user->hasCategoryPermission('view', $document->category), 403);
 
         $progress = ($request->input('total_pages') > 0)
             ? round(($request->input('last_page') / $request->input('total_pages')) * 100, 2)
@@ -67,6 +71,8 @@ class ReadingHistoryController extends Controller
     public function getProgress(Request $request, int $documentId): JsonResponse
     {
         $user = $request->user();
+        $document = \App\Models\Document::with('category')->findOrFail($documentId);
+        abort_unless($document->category && $user->hasCategoryPermission('view', $document->category), 403);
 
         $history = ReadingHistory::where('user_id', $user->id)
             ->where('document_id', $documentId)

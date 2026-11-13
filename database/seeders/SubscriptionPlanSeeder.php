@@ -136,7 +136,7 @@ class SubscriptionPlanSeeder extends Seeder
 
             foreach ($plans as $planData) {
                 $plan = SubscriptionPlan::updateOrCreate(['slug' => $planData['slug']], $planData);
-                if (! empty($pivotData) && $plan->categories()->count() === 0) {
+                if ($plan->slug !== 'free' && ! empty($pivotData) && $plan->categories()->count() === 0) {
                     $plan->categories()->sync($pivotData);
                 }
             }
