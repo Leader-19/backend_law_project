@@ -77,6 +77,7 @@ Route::middleware(['auth:sanctum', 'route.security'])->group(function () {
     Route::get('/my-categories', [CategoryController::class, 'myCategories'])->middleware('throttle:30,1');
     Route::get('/my-documents', [DocumentController::class, 'myDocuments'])->middleware('throttle:30,1');
     Route::get('/documents/{id}/content', [DocumentController::class, 'getContent'])->middleware('throttle:30,1');
+    Route::get('/documents/{id}/file', [DocumentController::class, 'file'])->middleware('throttle:30,1');
 
     // Text Contents
     Route::post('/text-contents', [TextContentController::class, 'store'])->middleware(['throttle:30,1', 'subscription.limit:text_content']);

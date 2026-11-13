@@ -162,9 +162,11 @@ class ChunkedUploadController extends Controller
             return response()->json(['error' => 'File type not allowed.'], 422);
         }
 
-        // Reassemble the file
+        // Reassemble the file. Stored on the private disk - category/subscription
+        // access checks only mean anything if the raw file isn't also reachable
+        // via a public URL, so this must never go under storage/app/public.
         $filename = \safe_filename($meta['filename']);
-        $finalPath = storage_path('app/public/documents/'.$filename);
+        $finalPath = storage_path('app/private/documents/'.$filename);
 
         // Ensure destination directory exists
         File::makeDirectory(dirname($finalPath), 0755, true, true);

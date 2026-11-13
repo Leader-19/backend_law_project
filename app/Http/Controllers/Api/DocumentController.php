@@ -184,6 +184,44 @@ class DocumentController extends Controller
         ]);
     }
 
+    /**
+     * Stream the original document file to an authenticated, authorized user.
+     * The file lives on the private disk - this is the only legitimate way
+     * to reach its bytes (no public URL exists for documents uploaded after
+     * the private-disk migration).
+     */
+    public function file(Request $request, string $id)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Please log in to view this document.',
+            ], 401);
+        }
+
+        $document = Document::findOrFail($id);
+
+        if (! $user->hasRole('Admin')) {
+            $viewableCategoryIds = $user->getViewableCategoryIds();
+            if (! in_array($document->category_id, $viewableCategoryIds, true)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'You do not have access to view this document.',
+                ], 403);
+            }
+        }
+
+        $path = $this->resolveDocumentPath($document);
+
+        if (! $path) {
+            return response()->json(['status' => 'error', 'message' => 'File not found.'], 404);
+        }
+
+        return response()->file($path);
+    }
+
     public function show(string $id)
     {
         $document = Document::with('category:id,title')->findOrFail($id);
@@ -228,14 +266,35 @@ class DocumentController extends Controller
             ->all();
     }
 
+    /**
+     * Resolve a document's file on disk. Checks the private disk first (where
+     * everything is stored since the public-disk exposure was fixed), then
+     * falls back to the legacy public path for documents uploaded before that
+     * migration ran. Returns null if the file isn't found in either location.
+     */
+    private function resolveDocumentPath(Document $document): ?string
+    {
+        $privatePath = storage_path('app/private/'.$document->doc_upload);
+        if (file_exists($privatePath)) {
+            return $privatePath;
+        }
+
+        $legacyPublicPath = storage_path('app/public/'.$document->doc_upload);
+        if (file_exists($legacyPublicPath)) {
+            return $legacyPublicPath;
+        }
+
+        return null;
+    }
+
     private function extractContent(Document $document): string
     {
-        $path = storage_path('app/public/'.$document->doc_upload);
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $path = $this->resolveDocumentPath($document);
+        $ext = strtolower(pathinfo($document->doc_upload, PATHINFO_EXTENSION));
         $content = '';
 
         try {
-            if (! file_exists($path)) {
+            if (! $path) {
                 return 'File not found.';
             }
 
