@@ -33,7 +33,7 @@ spec:
       containers:
         - name: backend-law
 
-          image: ghcr.io/leader-19/backend_law_project:d2752dfb28c2e420601e5e8dd375eb040df391bd
+          image: ghcr.io/leader-19/backend_law_project:03219ede7b40b90110a8c45805f2605448773d1e
 
           imagePullPolicy: IfNotPresent
 
