@@ -1,36 +1,20 @@
 # ==========================================
-# Stage 1: Build Frontend Assets (Node.js)
+# Laravel 12 + Vue Production Dockerfile
+# PHP 8.3 + PHP-FPM + Composer + Node.js
 # ==========================================
-FROM node:22-alpine AS frontend
 
-WORKDIR /app
-
-# Install PHP so Laravel plugins/Wayfinder can run during 'npm run build'
-RUN apk add --no-cache php php-cli php-mbstring php-xml php-tokenizer php-ctype php-session
-
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Copy full application source needed for wayfinder/artisan generation during build
-COPY . .
-
-RUN npm run build
-
-# ==========================================
-# Stage 2: Laravel 12 Production Image
-# PHP 8.3 + PHP-FPM + Composer
-# ==========================================
 FROM php:8.3-fpm-alpine
 
 WORKDIR /var/www/html
 
-# System dependencies (includes nodejs for any runtime JS execution)
+# System dependencies (includes nodejs and npm for Vue/Vite/Wayfinder build)
 RUN apk add --no-cache \
     bash \
     git \
     curl \
     unzip \
     nodejs \
+    npm \
     icu-libs \
     libzip \
     libpng \
@@ -79,11 +63,19 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
-# Copy Laravel application
+# Install Vue / Node dependencies first for caching
+COPY package.json package-lock.json ./
+
+RUN npm ci
+
+# Copy Laravel + Vue application
 COPY . .
 
-# Copy compiled Vite frontend assets from Stage 1
-COPY --from=frontend /app/public/build ./public/build
+# Generate Wayfinder routes, build Vue Vite assets, and clean up node_modules
+RUN php artisan package:discover --ansi \
+    && npm run build \
+    && rm -rf node_modules \
+    && apk del npm
 
 # Laravel directories and permissions
 RUN mkdir -p \
@@ -96,7 +88,6 @@ RUN mkdir -p \
         --no-dev \
         --optimize \
         --no-scripts \
-    && php artisan package:discover --ansi \
     && chown -R www-data:www-data storage bootstrap/cache
 
 # Production PHP configuration
