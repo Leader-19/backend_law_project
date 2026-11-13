@@ -34,6 +34,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Origin sits behind a TLS-terminating proxy (Cloudflare) and only ever
+        // receives plain HTTP on 8080. Without this, Laravel thinks every
+        // request is HTTP and generates http:// asset/route URLs, which the
+        // browser then blocks as mixed content on an https:// page.
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO
+            | Request::HEADER_X_FORWARDED_AWS_ELB);
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->alias([
