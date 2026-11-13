@@ -14,11 +14,11 @@ spec:
 
   tls:
     - hosts:
-        - YOUR_DOMAIN
+        - admin.spritup.site
       secretName: backend-law-tls
 
   rules:
-    - host: YOUR_DOMAIN
+    - host: admin.spritup.site
       http:
         paths:
           - path: /
