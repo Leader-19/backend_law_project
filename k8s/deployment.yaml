@@ -32,16 +32,13 @@ spec:
         - name: laravel-backend
           image: ghcr.io/leader-19/backend_law_project:6dd0080cf6815ce7670a71b840bd65b2d80ee035
           imagePullPolicy: Always
-
           ports:
-            - name: fpm
+            - name: fastcgi
               containerPort: 9000
               protocol: TCP
-
           envFrom:
             - secretRef:
                 name: laravel-secrets
-
           resources:
             requests:
               cpu: 250m
@@ -49,15 +46,45 @@ spec:
             limits:
               cpu: 1000m
               memory: 1Gi
-
           readinessProbe:
             tcpSocket:
               port: 9000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 10
             periodSeconds: 10
-
           livenessProbe:
             tcpSocket:
               port: 9000
             initialDelaySeconds: 30
             periodSeconds: 20
+          volumeMounts:
+            - name: app-files
+              mountPath: /var/www/html
+
+        - name: nginx
+          image: nginx:1.28-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          volumeMounts:
+            - name: app-files
+              mountPath: /var/www/html
+              readOnly: true
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+
+      volumes:
+        - name: app-files
+          emptyDir: {}
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+            defaultMode: 420
