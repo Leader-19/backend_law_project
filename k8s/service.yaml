@@ -1,20 +1,17 @@
-
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-law
-  namespace: production
-  labels:
-    app: backend-law
+  name: laravel-backend-service
+  namespace: backend-law
+
 spec:
-  type: NodePort
+  type: ClusterIP
 
   selector:
-    app: backend-law
+    app: laravel-backend
 
   ports:
     - name: http
       protocol: TCP
       port: 80
       targetPort: 80
-      nodePort: 30080
