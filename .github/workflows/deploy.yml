@@ -2,7 +2,7 @@ name: deploy
 
 on:
   push:
-    branches: [main]
+    branches: [production]
   workflow_dispatch:
 
 concurrency:
@@ -70,7 +70,7 @@ jobs:
 
             echo "▸ Pulling latest code..."
             git fetch origin
-            git reset --hard origin/main
+            git reset --hard origin/production
 
             echo "▸ Installing PHP dependencies..."
             composer install --no-dev --optimize-autoloader --no-interaction
