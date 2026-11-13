@@ -70,14 +70,17 @@ jobs:
 
       # 7. Sync Laravel .env Secret to Rancher K3s
       - name: Sync Laravel .env to K3s Secret
-        run: |
-          printf '%s\n' "${{ secrets.LARAVEL_ENV }}" > .env.k8s
-          kubectl create secret generic laravel-secrets \
-            --from-env-file=.env.k8s \
-            --namespace=backend-law \
-            --dry-run=client -o yaml | kubectl apply -f -
-          rm -f .env.k8s
-          kubectl rollout restart deployment/laravel-backend -n backend-law
+         run: |
+           printf '%s\n' "${{ secrets.LARAVEL_ENV }}" \
+             | tr -d '\r' \
+             | sed -E 's/^[[:space:]]+//; s/[[:space:]]*=[[:space:]]*/=/' \
+             | grep -E '^[A-Za-z_][A-Za-z0-9_.-]*=' > .env.k8s
+           kubectl create secret generic laravel-secrets \
+             --from-env-file=.env.k8s \
+             --namespace=backend-law \
+             --dry-run=client -o yaml | kubectl apply -f -
+           rm -f .env.k8s
+           kubectl rollout restart deployment/laravel-backend -n backend-law
 
       # 8. Update Kubernetes manifest
       - name: Update Kubernetes Image
