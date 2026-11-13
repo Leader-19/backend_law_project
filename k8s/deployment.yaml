@@ -82,9 +82,9 @@ spec:
         - name: backend-law
 
 <<<<<<< HEAD
-          image: ghcr.io/leader-19/backend_law_project:03219ede7b40b90110a8c45805f2605448773d1e
+          image: ghcr.io/leader-19/backend_law_project:b171ebaadc16e4cb1e95bc02934d73edcdad45fb
 =======
-          image: ghcr.io/leader-19/backend_law_project:latest
+          image: ghcr.io/leader-19/backend_law_project:b171ebaadc16e4cb1e95bc02934d73edcdad45fb
 >>>>>>> f4679f7 (add yaml for config)
 
           imagePullPolicy: Always
@@ -160,7 +160,7 @@ spec:
 #       containers:
 #         - name: backend-law
 
-#           image: ghcr.io/leader-19/backend_law_project:d2752dfb28c2e420601e5e8dd375eb040df391bd
+#           image: ghcr.io/leader-19/backend_law_project:b171ebaadc16e4cb1e95bc02934d73edcdad45fb
 
 #           imagePullPolicy: IfNotPresent
 
