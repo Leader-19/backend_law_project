@@ -52,8 +52,7 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -65,22 +64,22 @@ jobs:
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > $HOME/.kube/config
+          echo "${{ secrets.KUBECONFIG_DATA }}" \vert{} base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
       # 7. Sync Laravel .env Secret to Rancher K3s
       - name: Sync Laravel .env to K3s Secret
-         run: |
-           printf '%s\n' "${{ secrets.LARAVEL_ENV }}" \
-             | tr -d '\r' \
-             | sed -E 's/^[[:space:]]+//; s/[[:space:]]*=[[:space:]]*/=/' \
-             | grep -E '^[A-Za-z_][A-Za-z0-9_.-]*=' > .env.k8s
-           kubectl create secret generic laravel-secrets \
-             --from-env-file=.env.k8s \
-             --namespace=backend-law \
-             --dry-run=client -o yaml | kubectl apply -f -
-           rm -f .env.k8s
-           kubectl rollout restart deployment/laravel-backend -n backend-law
+        run: |
+          printf '%s\n' "${{ secrets.LARAVEL_ENV }}" \
+            | tr -d '\r' \
+            | sed -E 's/^[[:space:]]+//; s/[[:space:]]*=[[:space:]]*/=/' \
+            | grep -E '^[A-Za-z_][A-Za-z0-9_.-]*=' > .env.k8s
+          kubectl create secret generic laravel-secrets \
+            --from-env-file=.env.k8s \
+            --namespace=backend-law \
+            --dry-run=client -o yaml | kubectl apply -f -
+          rm -f .env.k8s
+          kubectl rollout restart deployment/laravel-backend -n backend-law
 
       # 8. Update Kubernetes manifest
       - name: Update Kubernetes Image
@@ -110,8 +109,4 @@ jobs:
           git add k8s/deployment.yaml
 
           if ! git diff --cached --quiet; then
-            git commit -m "deploy: update backend image to ${{ github.sha }}"
-            git push origin HEAD:master
-          else
-            echo "No Kubernetes manifest changes."
-          fi
+            git commit -m "deploy:

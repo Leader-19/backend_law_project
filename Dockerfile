@@ -1,19 +1,34 @@
+# ==========================================
+# Stage 1: Build Frontend Assets (Node.js)
+# ==========================================
+FROM node:22-alpine AS frontend
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY resources/ ./resources/
+COPY public/ ./public/
+COPY vite.config.* ./
+
+RUN npm run build
 
 # ==========================================
-# Laravel 12 Production Dockerfile
+# Stage 2: Laravel 12 Production Image
 # PHP 8.3 + PHP-FPM + Composer
 # ==========================================
-
 FROM php:8.3-fpm-alpine
 
 WORKDIR /var/www/html
 
-# System dependencies
+# System dependencies (includes nodejs for any runtime JS execution)
 RUN apk add --no-cache \
     bash \
     git \
     curl \
     unzip \
+    nodejs \
     icu-libs \
     libzip \
     libpng \
@@ -51,7 +66,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
 
-# Install dependencies first for caching
+# Install PHP dependencies first for caching
 COPY composer.json composer.lock ./
 
 RUN composer install \
@@ -64,6 +79,9 @@ RUN composer install \
 
 # Copy Laravel application
 COPY . .
+
+# Copy compiled Vite frontend assets from Stage 1
+COPY --from=frontend /app/public/build ./public/build
 
 # Laravel directories and permissions
 RUN mkdir -p \
