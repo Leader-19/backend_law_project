@@ -1,56 +1,98 @@
+
+# ==========================================
+# Laravel Production Dockerfile
+# PHP 8.3 + PHP-FPM + Composer
+# ==========================================
+
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies
+WORKDIR /var/www/html
+
+# System dependencies
 RUN apk add --no-cache \
-    nginx \
-    supervisor \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    oniguruma-dev \
-    libxml2-dev \
-    libzip-dev \
-    zip \
-    unzip \
+    bash \
+    git \
     curl \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd opcache zip
+    unzip \
+    icu-libs \
+    libzip \
+    libpng \
+    freetype \
+    libjpeg-turbo \
+    oniguruma
+
+# PHP extension build dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
+    icu-dev \
+    libzip-dev \
+    libpng-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    oniguruma-dev \
+    && docker-php-ext-configure gd \
+        --with-freetype \
+        --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo_mysql \
+        mbstring \
+        bcmath \
+        exif \
+        pcntl \
+        gd \
+        zip \
+        intl \
+        opcache \
+    && apk del .build-deps
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www/html
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_NO_INTERACTION=1
 
-# Copy composer files first (better cache)
+# Copy Composer files first for Docker layer caching
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader --no-interaction
 
-# Copy application code
+# Install production dependencies
+RUN composer install \
+    --no-dev \
+    --prefer-dist \
+    --no-interaction \
+    --no-progress \
+    --optimize-autoloader \
+    --no-scripts
+
+# Copy Laravel application
 COPY . .
 
-# Optimize Laravel
-RUN composer dump-autoload --optimize \
-    && php artisan config:cache || true \
-    && php artisan route:cache || true \
-    && php artisan view:cache || true
+# Prepare Laravel directories and autoload files
+RUN mkdir -p \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && composer dump-autoload \
+        --no-dev \
+        --optimize \
+        --no-scripts \
+    && php artisan package:discover --ansi \
+    && chown -R www-data:www-data storage bootstrap/cache
 
-# Permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Production PHP configuration
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Simple nginx + php-fpm config (for single container)
-RUN echo 'server { \
-    listen 80; \
-    root /var/www/html/public; \
-    index index.php; \
-    location / { try_files $uri $uri/ /index.php?$query_string; } \
-    location ~ \.php$ { \
-        fastcgi_pass 127.0.0.1:9000; \
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
-        include fastcgi_params; \
-    } \
-}' > /etc/nginx/http.d/default.conf
+# Enable OPcache
+RUN { \
+    echo "opcache.enable=1"; \
+    echo "opcache.enable_cli=0"; \
+    echo "opcache.memory_consumption=128"; \
+    echo "opcache.interned_strings_buffer=16"; \
+    echo "opcache.max_accelerated_files=20000"; \
+    echo "opcache.validate_timestamps=0"; \
+    } > "$PHP_INI_DIR/conf.d/opcache-recommended.ini"
 
-EXPOSE 80
+EXPOSE 9000
 
-CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
+CMD ["php-fpm"]

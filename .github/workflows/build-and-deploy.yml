@@ -1,46 +1,82 @@
-name: build-and-deploy
+
+name: Build and Deploy Backend
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
     paths-ignore:
-      - 'k8s/**'        # prevents a loop when the workflow commits the new tag
+      - "k8s/**"
+      - "*.md"
   workflow_dispatch:
 
 permissions:
-  contents: write       # to commit the updated manifest
-  packages: write       # to push to GHCR
+  contents: write
+  packages: write
+
+concurrency:
+  group: backend-law-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: leader-19/backend_law_project
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      # 1. Checkout source
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
-      - name: Lowercase image name
-        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+      # 2. Setup Docker Buildx
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
+      # 3. Login to GitHub Container Registry
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
+      # 4. Build and push image
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.IMAGE }}:latest
+            ghcr.io/leader-19/backend_law_project:${{ github.sha }}
+            ghcr.io/leader-19/backend_law_project:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Update image tag in manifest
+      # 5. Update Kubernetes manifest
+      # Change this path if your deployment YAML
+      # has a different filename.
+      - name: Update Kubernetes Image
         run: |
-          sed -i "s|image: ghcr.io/.*|image: ${IMAGE}:${GITHUB_SHA}|" k8s/deployment.yaml
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
+          sed -i -E \
+            's#(image: ghcr.io/leader-19/backend_law_project:).*#\1${{ github.sha }}#' \
+            k8s/deployment.yaml
+
+      # 6. Commit updated manifest for Argo CD
+      - name: Commit Kubernetes Manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add k8s/deployment.yaml
-          git commit -m "deploy: ${GITHUB_SHA::7} [skip ci]" || echo "no changes"
-          git push origin master
+
+          if ! git diff --cached --quiet; then
+            git commit -m "deploy: update backend image to ${{ github.sha }}"
+            git push
+          fi

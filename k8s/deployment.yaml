@@ -1,66 +1,70 @@
+
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: backend-law
   namespace: production
+
 spec:
-  replicas: 1                      # keep 1 until uploads use shared storage
+  replicas: 1
+
+  revisionHistoryLimit: 5
+
   selector:
     matchLabels:
       app: backend-law
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
   template:
     metadata:
       labels:
         app: backend-law
+
     spec:
       imagePullSecrets:
         - name: ghcr-secret
+
       containers:
         - name: backend-law
-          image: ghcr.io/leader-19/backend_law_project:latest
+
+          image: ghcr.io/leader-19/backend_law_project:REPLACE_WITH_IMAGE_TAG
+
+          imagePullPolicy: IfNotPresent
+
           ports:
-            - containerPort: 80    # CHANGE to the port your Dockerfile serves
-          envFrom:
-            - secretRef:
-                name: backend-law-env
+            - name: fastcgi
+              containerPort: 9000
+              protocol: TCP
+
           readinessProbe:
             tcpSocket:
-              port: 80             # same port as above
-            initialDelaySeconds: 15
+              port: 9000
+            initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 128Mi
+
             limits:
-              memory: 768Mi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend-law
-  namespace: production
-spec:
-  selector:
-    app: backend-law
-  ports:
-    - port: 80
-      targetPort: 80               # same port as above
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: backend-law
-  namespace: production
-spec:
-  rules:
-    - host: api.spritup.site       # CHANGE to your domain
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: backend-law
-                port:
-                  number: 80
+              cpu: 1000m
+              memory: 512Mi
+
+      terminationGracePeriodSeconds: 30
