@@ -4,7 +4,7 @@ metadata:
   name: backend-law
   namespace: production
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: backend-law
@@ -13,11 +13,28 @@ spec:
       labels:
         app: backend-law
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: backend-law
           image: ghcr.io/leader-19/backend_law_project:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 3000   # change to your app's port
+            - containerPort: 80          # match your Dockerfile
+          envFrom:
+            - secretRef:
+                name: backend-law-env    # created with kubectl, not in Git
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
 ---
 apiVersion: v1
 kind: Service
@@ -29,4 +46,22 @@ spec:
     app: backend-law
   ports:
     - port: 80
-      targetPort: 3000
+      targetPort: 80                     # same as containerPort
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-law
+  namespace: production
+spec:
+  rules:
+    - host: api.spritup.site            # change to your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-law
+                port:
+                  number: 80
