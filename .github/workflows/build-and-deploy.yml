@@ -1,4 +1,3 @@
-
 name: Build and Deploy Backend
 
 on:
@@ -58,7 +57,29 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 5. Update Kubernetes manifest
+      # 5. Setup kubectl
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      # 6. Configure Kubeconfig for Rancher K3s
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      # 7. Sync Laravel .env Secret to Rancher K3s
+      - name: Sync Laravel .env to K3s Secret
+        run: |
+          printf '%s\n' "${{ secrets.LARAVEL_ENV }}" > .env.k8s
+          kubectl create secret generic laravel-secrets \
+            --from-env-file=.env.k8s \
+            --namespace=backend-law \
+            --dry-run=client -o yaml | kubectl apply -f -
+          rm -f .env.k8s
+          kubectl rollout restart deployment/laravel-backend -n backend-law
+
+      # 8. Update Kubernetes manifest
       - name: Update Kubernetes Image
         env:
           IMAGE_TAG: ${{ github.sha }}
@@ -74,7 +95,7 @@ jobs:
           echo "Updated Kubernetes image:"
           grep -n "image:" k8s/deployment.yaml
 
-      # 6. Commit manifest
+      # 9. Commit manifest
       - name: Commit Kubernetes Manifest
         run: |
           set -euo pipefail
