@@ -1,6 +1,10 @@
 
 .git
+.gitignore
 .github
+.idea
+.vscode
+
 .env
 .env.*
 !.env.example
@@ -15,12 +19,5 @@ storage/framework/views/*
 
 bootstrap/cache/*.php
 
-.phpunit.cache
-.phpunit.result.cache
-
-.idea
-.vscode
-
-Dockerfile*
-docker-compose*
-README.md
+docker-compose.yml
+Dockerfile.nginx
