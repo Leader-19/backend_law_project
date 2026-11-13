@@ -18,11 +18,9 @@ class ChunkedUploadController extends Controller
 
     private const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 * 1024; // 2GB total
 
-<<<<<<< HEAD
-    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
-=======
     private const MAX_CHUNKS = 410;
->>>>>>> 31a3896 (add k8s)
+
+    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
 
     /**
      * Initialize a chunked upload session.
@@ -36,17 +34,16 @@ class ChunkedUploadController extends Controller
             'total_chunks' => ['required', 'integer', 'min:1', 'max:'.self::MAX_CHUNKS],
         ]);
 
-<<<<<<< HEAD
         $extension = strtolower(pathinfo($validated['filename'], PATHINFO_EXTENSION));
         if (! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
             return response()->json([
                 'error' => 'File type not allowed. Allowed types: '.implode(', ', self::ALLOWED_EXTENSIONS).'.',
             ], 422);
-=======
+        }
+
         $expectedChunks = (int) ceil($validated['total_size'] / self::MAX_CHUNK_SIZE);
         if ((int) $validated['total_chunks'] !== $expectedChunks) {
             return response()->json(['error' => 'Chunk count does not match the declared file size.'], 422);
->>>>>>> 31a3896 (add k8s)
         }
 
         $uploadId = Str::uuid()->toString();
@@ -170,34 +167,6 @@ class ChunkedUploadController extends Controller
         $meta = json_decode(File::get($metaPath), true);
         $this->ensureUploadOwner($request, $meta);
 
-        // Validate every expected chunk instead of relying on a count alone.
-        $uploadedChunks = $this->getUploadedChunks($chunkDir, $meta['total_chunks']);
-        $missingChunks = [];
-        for ($i = 0; $i < $meta['total_chunks']; $i++) {
-            if (! File::exists($chunkDir.'/chunk_'.str_pad($i, 6, '0', STR_PAD_LEFT))) {
-                $missingChunks[] = $i;
-            }
-        }
-        if ($missingChunks !== []) {
-            return response()->json([
-                'error' => "Incomplete upload. {$uploadedChunks}/{$meta['total_chunks']} chunks received.",
-                'uploaded_chunks' => $uploadedChunks,
-                'total_chunks' => $meta['total_chunks'],
-            ], 400);
-        }
-
-<<<<<<< HEAD
-        $extension = strtolower(pathinfo($meta['filename'], PATHINFO_EXTENSION));
-        if (! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
-            File::deleteDirectory($chunkDir);
-
-            return response()->json(['error' => 'File type not allowed.'], 422);
-        }
-
-        // Reassemble the file. Stored on the private disk - category/subscription
-        // access checks only mean anything if the raw file isn't also reachable
-        // via a public URL, so this must never go under storage/app/public.
-=======
         // Validate metadata and permissions before assembling a potentially large file.
         $validated = $request->validate([
             'doc_name' => 'required|string|max:255',
@@ -212,7 +181,6 @@ class ChunkedUploadController extends Controller
         }
 
         // Reassemble to disk in bounded memory.
->>>>>>> 31a3896 (add k8s)
         $filename = \safe_filename($meta['filename']);
         $finalPath = storage_path('app/private/documents/'.$filename);
 
