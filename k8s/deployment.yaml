@@ -28,6 +28,22 @@ spec:
       imagePullSecrets:
         - name: ghcr-secret
 
+      initContainers:
+        - name: copy-app-files
+          image: ghcr.io/leader-19/backend_law_project:6dd0080cf6815ce7670a71b840bd65b2d80ee035
+          imagePullPolicy: Always
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              test -f /var/www/html/artisan
+              cp -a /var/www/html/. /shared/
+              echo "Laravel application files copied successfully"
+          volumeMounts:
+            - name: app-files
+              mountPath: /shared
+
       containers:
         - name: laravel-backend
           image: ghcr.io/leader-19/backend_law_project:6dd0080cf6815ce7670a71b840bd65b2d80ee035
