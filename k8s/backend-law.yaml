@@ -1,0 +1,160 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: production
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        root /var/www/html/public;
+        index index.php index.html;
+
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+
+        location ~ \.php$ {
+            try_files $uri =404;
+
+            include fastcgi_params;
+            fastcgi_pass 127.0.0.1:9000;
+
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        }
+
+        location ~ /\. {
+            deny all;
+        }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-law
+  namespace: production
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: backend-law
+
+  template:
+    metadata:
+      labels:
+        app: backend-law
+
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+
+      # Copy Laravel files into the shared volume
+      initContainers:
+        - name: copy-app-files
+          image: ghcr.io/leader-19/backend_law_project:d2752dfb28c2e420601e5e8dd375eb040df391bd
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              test -f /var/www/html/artisan
+              cp -a /var/www/html/. /shared/
+              echo "Laravel application files copied successfully"
+          volumeMounts:
+            - name: app-files
+              mountPath: /shared
+
+      containers:
+
+        # PHP-FPM
+        - name: backend-law
+          image: ghcr.io/leader-19/backend_law_project:d2752dfb28c2e420601e5e8dd375eb040df391bd
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: fastcgi
+              containerPort: 9000
+              protocol: TCP
+
+          volumeMounts:
+            - name: app-files
+              mountPath: /var/www/html
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+        # NGINX
+        - name: nginx
+          image: nginx:1.28-alpine
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          volumeMounts:
+            - name: app-files
+              mountPath: /var/www/html
+              readOnly: true
+
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+
+      volumes:
+        - name: app-files
+          emptyDir: {}
+
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-law
+  namespace: production
+spec:
+  type: NodePort
+
+  selector:
+    app: backend-law
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
