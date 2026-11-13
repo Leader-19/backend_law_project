@@ -4715,18 +4715,6 @@
         },
         {
             "name": "phpseclib/phpseclib",
-<<<<<<< HEAD
-            "version": "4.0.3",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/phpseclib/phpseclib.git",
-                "reference": "6077cecfed9e371993d3aa339b0afeb23f7bf636"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/6077cecfed9e371993d3aa339b0afeb23f7bf636",
-                "reference": "6077cecfed9e371993d3aa339b0afeb23f7bf636",
-=======
             "version": "4.0.2",
             "source": {
                 "type": "git",
@@ -4737,7 +4725,6 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/1fe20b9acb08ce810cec24d8a9d02e7c13426e4c",
                 "reference": "1fe20b9acb08ce810cec24d8a9d02e7c13426e4c",
->>>>>>> 31a3896 (add k8s)
                 "shasum": ""
             },
             "require": {
@@ -4824,11 +4811,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpseclib/phpseclib/issues",
-<<<<<<< HEAD
-                "source": "https://github.com/phpseclib/phpseclib/tree/4.0.3"
-=======
                 "source": "https://github.com/phpseclib/phpseclib/tree/4.0.2"
->>>>>>> 31a3896 (add k8s)
             },
             "funding": [
                 {
@@ -4844,11 +4827,7 @@
                     "type": "tidelift"
                 }
             ],
-<<<<<<< HEAD
-            "time": "2026-11-02T10:46:03+00:00"
-=======
             "time": "2026-10-07T19:55:38+00:00"
->>>>>>> 31a3896 (add k8s)
         },
         {
             "name": "phpstan/phpdoc-parser",
@@ -4895,12 +4874,7 @@
                 "issues": "https://github.com/phpstan/phpdoc-parser/issues",
                 "source": "https://github.com/phpstan/phpdoc-parser/tree/2.4.1"
             },
-<<<<<<< HEAD
-            "time": "2026-10-30T19:36:28+00:00",
-            "published-time": "2026-10-30T19:37:11+00:00"
-=======
             "time": "2026-10-30T19:36:28+00:00"
->>>>>>> 31a3896 (add k8s)
         },
         {
             "name": "pragmarx/google2fa",
@@ -6321,18 +6295,6 @@
         },
         {
             "name": "symfony/console",
-<<<<<<< HEAD
-            "version": "v7.4.23",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/console.git",
-                "reference": "81957c2440c05c962fe8291f318de6e85f8db330"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/symfony/console/zipball/81957c2440c05c962fe8291f318de6e85f8db330",
-                "reference": "81957c2440c05c962fe8291f318de6e85f8db330",
-=======
             "version": "v7.4.22",
             "source": {
                 "type": "git",
@@ -6343,7 +6305,6 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/symfony/console/zipball/8012f842110b414fd1cc641adb0ed8423353b0bb",
                 "reference": "8012f842110b414fd1cc641adb0ed8423353b0bb",
->>>>>>> 31a3896 (add k8s)
                 "shasum": ""
             },
             "require": {
@@ -6408,11 +6369,7 @@
                 "terminal"
             ],
             "support": {
-<<<<<<< HEAD
-                "source": "https://github.com/symfony/console/tree/v7.4.23"
-=======
                 "source": "https://github.com/symfony/console/tree/v7.4.22"
->>>>>>> 31a3896 (add k8s)
             },
             "funding": [
                 {
@@ -6432,12 +6389,7 @@
                     "type": "tidelift"
                 }
             ],
-<<<<<<< HEAD
-            "time": "2026-11-03T21:47:07+00:00",
-            "published-time": "2026-11-04T11:27:31+00:00"
-=======
             "time": "2026-10-28T11:08:27+00:00"
->>>>>>> 31a3896 (add k8s)
         },
         {
             "name": "symfony/css-selector",
@@ -6956,11 +6908,7 @@
             "description": "Defines an object-oriented layer for the HTTP specification",
             "homepage": "https://symfony.com",
             "support": {
-<<<<<<< HEAD
-                "source": "https://github.com/symfony/http-foundation/tree/v7.4.23"
-=======
                 "source": "https://github.com/symfony/http-foundation/tree/v7.4.22"
->>>>>>> 31a3896 (add k8s)
             },
             "funding": [
                 {
