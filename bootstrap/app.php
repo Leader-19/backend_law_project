@@ -11,9 +11,11 @@ use App\Http\Middleware\RouteSecurity;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleRequests;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +24,7 @@ use Spatie\Permission\Exceptions\UnauthorizedException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -95,6 +98,20 @@ return Application::configure(basePath: dirname(__DIR__))
                         'status' => 'error',
                         'message' => 'You do not have permission to perform this action.',
                     ], 403);
+                }
+
+                if ($e instanceof ThrottleRequestsException) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Too many requests. Please slow down and try again shortly.',
+                    ], 429, $e->getHeaders());
+                }
+
+                if ($e instanceof ModelNotFoundException || $e instanceof NotFoundHttpException) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'The requested resource was not found.',
+                    ], 404);
                 }
 
                 return response()->json([

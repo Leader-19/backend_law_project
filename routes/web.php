@@ -27,6 +27,7 @@ use App\Http\Controllers\TextContentController;
 use App\Http\Controllers\UserApprovalController;
 use App\Http\Controllers\UserController;
 use App\Models\Category;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -577,6 +578,13 @@ require __DIR__.'/settings.php';
 | Fallback Route
 |--------------------------------------------------------------------------
 */
-Route::fallback(function () {
+Route::fallback(function (Request $request) {
+    if ($request->is('api/*') || $request->expectsJson()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Endpoint not found.',
+        ], 404);
+    }
+
     return Inertia::render('NotFound');
 })->middleware('web');

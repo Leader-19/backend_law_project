@@ -18,6 +18,8 @@ class ChunkedUploadController extends Controller
 
     private const MAX_UPLOAD_SIZE = 2 * 1024 * 1024 * 1024; // 2GB total
 
+    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
     /**
      * Initialize a chunked upload session.
      * Returns an upload_id the client uses for subsequent chunk requests.
@@ -29,6 +31,13 @@ class ChunkedUploadController extends Controller
             'total_size' => ['required', 'integer', 'min:1', 'max:'.self::MAX_UPLOAD_SIZE],
             'total_chunks' => ['required', 'integer', 'min:1', 'max:4096'],
         ]);
+
+        $extension = strtolower(pathinfo($validated['filename'], PATHINFO_EXTENSION));
+        if (! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            return response()->json([
+                'error' => 'File type not allowed. Allowed types: '.implode(', ', self::ALLOWED_EXTENSIONS).'.',
+            ], 422);
+        }
 
         $uploadId = Str::uuid()->toString();
         $chunkDir = $this->getChunkDir($uploadId);
@@ -144,6 +153,13 @@ class ChunkedUploadController extends Controller
                 'uploaded_chunks' => $uploadedChunks,
                 'total_chunks' => $meta['total_chunks'],
             ], 400);
+        }
+
+        $extension = strtolower(pathinfo($meta['filename'], PATHINFO_EXTENSION));
+        if (! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            File::deleteDirectory($chunkDir);
+
+            return response()->json(['error' => 'File type not allowed.'], 422);
         }
 
         // Reassemble the file
