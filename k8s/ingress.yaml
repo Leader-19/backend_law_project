@@ -1,22 +1,14 @@
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: laravel-backend
   namespace: backend-law
-
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-
 spec:
-  ingressClassName: nginx
-
+  ingressClassName: traefik
   tls:
     - hosts:
         - admin.spritup.site
-      secretName: backend-law-tls
-
+      secretName: admin-spritup-tls
   rules:
     - host: admin.spritup.site
       http:
