@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,79 +30,34 @@ spec:
 
       containers:
         - name: laravel-backend
-
-          image: ghcr.io/leader-19/backend_law_project:d7bd9de8ae1eb186bd38a61597af8ed78f9ce301
-
+          image: ghcr.io/leader-19/backend_law_project:6dd0080cf6815ce7670a71b840bd65b2d80ee035
           imagePullPolicy: Always
 
           ports:
-            - name: http
-              containerPort: 80
+            - name: fpm
+              containerPort: 9000
               protocol: TCP
 
-          env:
-            - name: APP_ENV
-              value: production
-
-            - name: APP_DEBUG
-              value: "false"
-
-            - name: APP_URL
-              value: "https://YOUR_DOMAIN"
-
-            - name: LOG_CHANNEL
-              value: stderr
-
-            - name: DB_CONNECTION
-              value: mysql
-
-            - name: DB_HOST
-              value: YOUR_DATABASE_HOST
-
-            - name: DB_PORT
-              value: "3306"
-
-            - name: DB_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: laravel-secrets
-                  key: DB_DATABASE
-
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: laravel-secrets
-                  key: DB_USERNAME
-
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: laravel-secrets
-                  key: DB_PASSWORD
-
-            - name: APP_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: laravel-secrets
-                  key: APP_KEY
+          envFrom:
+            - secretRef:
+                name: laravel-secrets
 
           resources:
             requests:
               cpu: 250m
               memory: 256Mi
-
             limits:
               cpu: 1000m
               memory: 1Gi
 
           readinessProbe:
             tcpSocket:
-              port: 80
+              port: 9000
             initialDelaySeconds: 15
             periodSeconds: 10
 
           livenessProbe:
             tcpSocket:
-              port: 80
+              port: 9000
             initialDelaySeconds: 30
             periodSeconds: 20
