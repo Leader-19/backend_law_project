@@ -81,11 +81,7 @@ spec:
         # =================================
         - name: backend-law
 
-<<<<<<< HEAD
-          image: ghcr.io/leader-19/backend_law_project:03219ede7b40b90110a8c45805f2605448773d1e
-=======
           image: ghcr.io/leader-19/backend_law_project:latest
->>>>>>> f4679f7 (add yaml for config)
 
           imagePullPolicy: Always
 
