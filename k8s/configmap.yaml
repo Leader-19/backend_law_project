@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-config
-  namespace: production
+  namespace: backend-law
 data:
   default.conf: |
     server {
