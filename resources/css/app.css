@@ -172,6 +172,16 @@
 }
 
 /*
+Edge/IE inject their own password-reveal icon inside type="password" inputs
+via ::-ms-reveal, which sits in the same spot as our custom Eye/EyeOff
+toggle button and renders on top of it. Suppress the native one everywhere.
+*/
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+    display: none;
+}
+
+/*
 Site-wide font pairing: Amazon Ember covers Latin/English text, Kantumruy
 Pro covers the Khmer glyphs Amazon Ember lacks (ships real medium/semibold/
 bold weights, unlike Siemreap/Battambang). Applies to English and Khmer
