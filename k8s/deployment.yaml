@@ -4,7 +4,7 @@ metadata:
   name: backend-law
   namespace: production
 spec:
-  replicas: 2
+  replicas: 1                      # keep 1 until uploads use shared storage
   selector:
     matchLabels:
       app: backend-law
@@ -18,16 +18,15 @@ spec:
       containers:
         - name: backend-law
           image: ghcr.io/leader-19/backend_law_project:latest
-          imagePullPolicy: Always
           ports:
-            - containerPort: 80          # match your Dockerfile
+            - containerPort: 80    # CHANGE to the port your Dockerfile serves
           envFrom:
             - secretRef:
-                name: backend-law-env    # created with kubectl, not in Git
+                name: backend-law-env
           readinessProbe:
             tcpSocket:
-              port: 80
-            initialDelaySeconds: 10
+              port: 80             # same port as above
+            initialDelaySeconds: 15
             periodSeconds: 10
           resources:
             requests:
@@ -46,7 +45,7 @@ spec:
     app: backend-law
   ports:
     - port: 80
-      targetPort: 80                     # same as containerPort
+      targetPort: 80               # same port as above
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -55,7 +54,7 @@ metadata:
   namespace: production
 spec:
   rules:
-    - host: api.spritup.site            # change to your domain
+    - host: api.spritup.site       # CHANGE to your domain
       http:
         paths:
           - path: /
