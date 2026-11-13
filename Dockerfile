@@ -5,12 +5,14 @@ FROM node:22-alpine AS frontend
 
 WORKDIR /app
 
+# Install PHP so Laravel plugins/Wayfinder can run during 'npm run build'
+RUN apk add --no-cache php php-cli php-mbstring php-xml php-tokenizer php-ctype php-session
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY resources/ ./resources/
-COPY public/ ./public/
-COPY vite.config.* ./
+# Copy full application source needed for wayfinder/artisan generation during build
+COPY . .
 
 RUN npm run build
 
