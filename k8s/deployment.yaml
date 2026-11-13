@@ -32,7 +32,7 @@ spec:
       containers:
         - name: laravel-backend
 
-          image: ghcr.io/leader-19/backend_law_project:6dd0080cf6815ce7670a71b840bd65b2d80ee035
+          image: ghcr.io/leader-19/backend_law_project:d7bd9de8ae1eb186bd38a61597af8ed78f9ce301
 
           imagePullPolicy: Always
 
