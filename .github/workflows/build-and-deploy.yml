@@ -58,12 +58,21 @@ jobs:
 
       - name: Configure kubeconfig
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          set -euo pipefail
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+
+      - name: Verify cluster connection
+        run: |
+          set -euo pipefail
+          kubectl config view --minify | grep server
+          kubectl get nodes
 
       - name: Sync Laravel .env to K3s Secret
         run: |
+          set -euo pipefail
           printf '%s\n' "${{ secrets.LARAVEL_ENV }}" \
             | tr -d '\r' \
             | sed -E 's/^[[:space:]]+//; s/[[:space:]]*=[[:space:]]*/=/' \
@@ -73,7 +82,6 @@ jobs:
             --namespace=backend-law \
             --dry-run=client -o yaml | kubectl apply -f -
           rm -f .env.k8s
-          kubectl rollout restart deployment/laravel-backend -n backend-law
 
       - name: Update Kubernetes Image
         env:
@@ -90,6 +98,12 @@ jobs:
           echo "Updated Kubernetes image:"
           grep -n "image:" k8s/deployment.yaml
 
+      - name: Deploy to K3s
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/ -n backend-law
+          kubectl rollout status deployment/laravel-backend -n backend-law --timeout=180s
+
       - name: Commit Kubernetes Manifest
         run: |
           set -euo pipefail
@@ -102,7 +116,12 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "deploy: update backend image to ${{ github.sha }}"
+            git pull --rebase origin master
             git push origin HEAD:master
           else
             echo "No Kubernetes manifest changes."
           fi
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f "$HOME/.kube/config"
