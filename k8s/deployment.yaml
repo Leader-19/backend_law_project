@@ -30,7 +30,7 @@ spec:
 
       initContainers:
         - name: copy-app-files
-          image: ghcr.io/leader-19/backend_law_project:1560ad1f124588a6333b5016b694c5a151ab0f2d
+          image: ghcr.io/leader-19/backend_law_project:26e8598d994a75a4b0fa0387e56e3414d32d98e7
           imagePullPolicy: Always
           command:
             - /bin/sh
@@ -46,7 +46,7 @@ spec:
 
       containers:
         - name: laravel-backend
-          image: ghcr.io/leader-19/backend_law_project:1560ad1f124588a6333b5016b694c5a151ab0f2d
+          image: ghcr.io/leader-19/backend_law_project:26e8598d994a75a4b0fa0387e56e3414d32d98e7
           imagePullPolicy: Always
           ports:
             - name: fastcgi
