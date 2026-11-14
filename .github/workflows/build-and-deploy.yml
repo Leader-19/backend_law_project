@@ -57,10 +57,12 @@ jobs:
         uses: azure/setup-kubectl@v4
 
       - name: Configure kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_DATA }}
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > "$HOME/.kube/config"
+          echo "$KUBECONFIG_DATA" | base64 -d > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
 
@@ -71,9 +73,11 @@ jobs:
           kubectl get nodes
 
       - name: Sync Laravel .env to K3s Secret
+        env:
+          LARAVEL_ENV: ${{ secrets.LARAVEL_ENV }}
         run: |
           set -euo pipefail
-          printf '%s\n' "${{ secrets.LARAVEL_ENV }}" \
+          printf '%s\n' "$LARAVEL_ENV" \
             | tr -d '\r' \
             | sed -E 's/^[[:space:]]+//; s/[[:space:]]*=[[:space:]]*/=/' \
             | grep -E '^[A-Za-z_][A-Za-z0-9_.-]*=' > .env.k8s
