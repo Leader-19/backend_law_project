@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
@@ -144,17 +142,6 @@ const passwordVisible = ref(false);
                 </div>
                 <InputError :message="errors.password" />
             </div>
-
-            <!-- <Button
-                type="submit"
-                class="h-auto w-full rounded-[5px] bg-zinc-900 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-                :tabindex="6"
-                :disabled="processing"
-                data-test="login-button"
-            >
-                <Spinner v-if="processing" class="mr-2" />
-                ចូលប្រព័ន្ធ (Log in)
-            </Button> -->
 
             <!-- <div v-if="canRegister" class="text-center text-sm text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
                 មិនទាន់មានគណនី?
