@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-
+use App\Notifications\VerifyApiEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -14,10 +15,21 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, HasRoles, MustVerifyEmail, Notifiable, TwoFactorAuthenticatable;
+
+    /**
+     * Send the email verification notification. Overridden so the link
+     * points at the API's own signed route (api.verification.verify)
+     * instead of Fortify's session-guarded one, since the public SPA
+     * authenticates with a Bearer token, not a browser session.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyApiEmail);
+    }
 
     /**
      * The attributes that are mass assignable.

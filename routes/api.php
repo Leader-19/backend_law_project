@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\HealthCheckController;
 // use App\Http\Controllers\Api\ReadingHistoryController; // Not needed - using full namespace below
 use App\Http\Controllers\Api\LeaderboardController;
@@ -35,6 +36,11 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('throt
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:6,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:6,1');
+
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('api.verification.verify');
+Route::post('/email/resend-verification', [EmailVerificationController::class, 'resend'])->middleware('throttle:6,1');
 
 Route::get('/subscription-plans', [SubscriptionPlanController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/subscription-plans/{id}', [SubscriptionPlanController::class, 'show'])->middleware('throttle:60,1');

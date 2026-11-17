@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\User;
 use App\Services\SubscriptionService;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -33,7 +34,13 @@ class AuthController extends Controller
         $user->assignRole('Normal');
         app(SubscriptionService::class)->ensureFreeSubscription($user);
 
-        return $this->authenticatedResponse($user, $validated['device_name'] ?? 'registration', 201);
+        event(new Registered($user));
+
+        return $this->success(
+            'Account created. Please check your email to verify your address before signing in.',
+            ['requires_verification' => true],
+            201,
+        );
     }
 
     public function login(Request $request)
@@ -59,6 +66,13 @@ class AuthController extends Controller
             };
 
             return response()->json(['message' => $message], 403);
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json([
+                'message' => 'Please verify your email address before signing in. Check your inbox for the verification link.',
+                'requires_verification' => true,
+            ], 403);
         }
 
         return $this->authenticatedResponse($user, $validated['device_name'] ?? 'api-client');

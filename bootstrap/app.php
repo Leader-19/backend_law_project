@@ -18,6 +18,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Exceptions\UnauthorizedException;
@@ -122,6 +123,13 @@ return Application::configure(basePath: dirname(__DIR__))
                         'status' => 'error',
                         'message' => 'The requested resource was not found.',
                     ], 404);
+                }
+
+                if ($e instanceof InvalidSignatureException) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'This link is invalid or has expired.',
+                    ], 403);
                 }
 
                 return response()->json([
