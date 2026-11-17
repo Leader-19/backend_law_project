@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdministratorBookCategoryController;
 use App\Http\Controllers\AdministratorBookController;
+use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CategoryController;
@@ -13,7 +14,6 @@ use App\Http\Controllers\CertificateManagementController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Api\ChunkedUploadController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FrontendUserController;
 use App\Http\Controllers\GoogleAuthController;

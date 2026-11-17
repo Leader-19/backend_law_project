@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Document;
 use App\Models\ReadingHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,7 @@ class ReadingHistoryController extends Controller
         ]);
 
         $user = $request->user();
-        $document = \App\Models\Document::with('category')->findOrFail($request->input('document_id'));
+        $document = Document::with('category')->findOrFail($request->input('document_id'));
         abort_unless($document->category && $user->hasCategoryPermission('view', $document->category), 403);
         $totalPages = (int) $request->input('total_pages');
         $lastPage = (int) $request->input('last_page');
@@ -67,7 +68,7 @@ class ReadingHistoryController extends Controller
 
     public function getProgress(Request $request, int $documentId): JsonResponse
     {
-        $document = \App\Models\Document::with('category')->findOrFail($documentId);
+        $document = Document::with('category')->findOrFail($documentId);
         abort_unless($document->category && $request->user()->hasCategoryPermission('view', $document->category), 403);
 
         $history = ReadingHistory::where('user_id', $request->user()->id)

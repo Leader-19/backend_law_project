@@ -43,7 +43,7 @@ class AdministratorBook extends Model
      * Admins always have access. The book must belong to a plan the user
      * has an active subscription on (or have no plan restriction at all).
      */
-    public function isAccessibleBy(\App\Models\User $user): bool
+    public function isAccessibleBy(User $user): bool
     {
         if ($user->hasRole('Admin')) {
             return true;
@@ -62,7 +62,7 @@ class AdministratorBook extends Model
     }
 
     /** IDs of all plans for the user's active (non-free) subscriptions. */
-    protected function activeSubscriptionsFor(\App\Models\User $user): array
+    protected function activeSubscriptionsFor(User $user): array
     {
         return $user->activeSubscriptions()
             ->pluck('subscription_plan_id')

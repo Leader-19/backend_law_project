@@ -7,9 +7,9 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class SubscriptionFlowTest extends TestCase

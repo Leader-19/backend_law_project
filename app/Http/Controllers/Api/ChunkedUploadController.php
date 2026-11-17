@@ -120,8 +120,13 @@ class ChunkedUploadController extends Controller
         $input = fopen('php://input', 'rb');
         $output = fopen($chunkFile, 'wb');
         if ($input === false || $output === false) {
-            if (is_resource($input)) fclose($input);
-            if (is_resource($output)) fclose($output);
+            if (is_resource($input)) {
+                fclose($input);
+            }
+            if (is_resource($output)) {
+                fclose($output);
+            }
+
             return response()->json(['error' => 'Unable to store upload chunk.'], 500);
         }
 
@@ -131,10 +136,12 @@ class ChunkedUploadController extends Controller
 
         if ($bytesWritten === false || $bytesWritten === 0) {
             File::delete($chunkFile);
+
             return response()->json(['error' => 'Empty chunk data.'], 400);
         }
         if ($bytesWritten > self::MAX_CHUNK_SIZE || $bytesWritten !== $expectedBytes) {
             File::delete($chunkFile);
+
             return response()->json(['error' => 'Chunk exceeds the 5 MB limit.'], 413);
         }
 
@@ -199,6 +206,7 @@ class ChunkedUploadController extends Controller
             if ($chunkHandle === false) {
                 fclose($handle);
                 @unlink($finalPath);
+
                 return response()->json(['error' => 'A stored upload chunk could not be read.'], 500);
             }
             $copied = stream_copy_to_stream($chunkHandle, $handle);
@@ -206,6 +214,7 @@ class ChunkedUploadController extends Controller
             if ($copied === false) {
                 fclose($handle);
                 @unlink($finalPath);
+
                 return response()->json(['error' => 'Failed to assemble the uploaded file.'], 500);
             }
             $actualSize += $copied;
