@@ -21,7 +21,7 @@ defineEmits<{
             type="button"
             @click="$emit('submit-files')"
             :disabled="formProcessing || selectedFilesCount === 0"
-            class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
             <Upload class="w-5 h-5" />
             {{ formProcessing ? 'Importing...' : `Import ${selectedFilesCount} Document(s)` }}
@@ -33,7 +33,7 @@ defineEmits<{
             type="button"
             @click="$emit('submit-zip')"
             :disabled="zipFormProcessing || !zipFormHasFile"
-            class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
             <FileArchive class="w-5 h-5" />
             {{ zipFormProcessing ? 'Importing...' : 'Import from ZIP' }}

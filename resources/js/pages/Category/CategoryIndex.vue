@@ -28,6 +28,7 @@ interface Category {
     parent_title: string | null
     documents_count: number
     user_permissions: string[]
+    access_type: 'public' | 'plan'
 }
 
 interface Pagination {
@@ -86,12 +87,14 @@ const createForm = useForm({
     title: '',
     description: '',
     parent_id: null as number | null,
+    access_type: 'plan' as 'public' | 'plan',
 })
 
 const editForm = useForm({
     title: '',
     description: '',
     parent_id: null as number | null,
+    access_type: 'plan' as 'public' | 'plan',
 })
 
 function submitCreate() {
@@ -109,6 +112,7 @@ function openEditDialog(item: Category) {
     editForm.title = item.title
     editForm.description = item.description ?? ''
     editForm.parent_id = item.parent_id
+    editForm.access_type = item.access_type || 'plan'
     isEditOpen.value = true
 }
 
@@ -253,6 +257,15 @@ function clearParentFilter() {
                             </p>
                         </div>
 
+                        <div>
+                            <label class="block text-sm font-medium">Access</label>
+                            <select v-model="createForm.access_type" class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2">
+                                <option value="public">Public — all registered users</option>
+                                <option value="plan">Plan — users with an assigned active plan</option>
+                            </select>
+                            <p v-if="createForm.errors.access_type" class="text-red-500 text-sm mt-1">{{ createForm.errors.access_type }}</p>
+                        </div>
+
                         <DialogFooter>
                             <DialogClose as-child>
                                 <button
@@ -337,6 +350,15 @@ function clearParentFilter() {
                             </p>
                         </div>
 
+                        <div>
+                            <label class="block text-sm font-medium">Access</label>
+                            <select v-model="editForm.access_type" class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2">
+                                <option value="public">Public — all registered users</option>
+                                <option value="plan">Plan — users with an assigned active plan</option>
+                            </select>
+                            <p v-if="editForm.errors.access_type" class="text-red-500 text-sm mt-1">{{ editForm.errors.access_type }}</p>
+                        </div>
+
                         <DialogFooter>
                             <DialogClose as-child>
                                 <button
@@ -381,7 +403,7 @@ function clearParentFilter() {
             <DataTable
                 :data="props.categories"
                 :pagination="props.pagination"
-                :columns="['select', 'stt', 'title', 'parent_title', 'description', 'documents_count', 'actions']"
+                :columns="['select', 'stt', 'title', 'access_type', 'parent_title', 'description', 'documents_count', 'actions']"
                 class="mt-3"
                 @page-change="handlePageChange"
                 @per-page-change="handlePerPageChange"
@@ -395,6 +417,7 @@ function clearParentFilter() {
                 <template #header-stt>លរ</template>
                 <template #header-title>ឈ្មោះ</template>
                 <template #header-parent_title>ប្រភេទមេ</template>
+                <template #header-access_type>Access</template>
                 <template #header-description>ការរៀបរាប់</template>
                 <template #header-documents_count>ឯកសារ</template>
                 <template #header-actions>សកម្មភាព</template>
@@ -410,6 +433,12 @@ function clearParentFilter() {
 
                 <template #parent_title="{ item }">
                     {{ item.parent_title || '-' }}
+                </template>
+
+                <template #access_type="{ item }">
+                    <span class="rounded-full px-2 py-1 text-xs font-medium" :class="item.access_type === 'public' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'">
+                        {{ item.access_type === 'public' ? 'Public' : 'Plan' }}
+                    </span>
                 </template>
 
                 <template #description="{ item }">

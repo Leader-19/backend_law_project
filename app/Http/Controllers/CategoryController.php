@@ -79,13 +79,16 @@ class CategoryController extends Controller
                 ->toArray();
         }
 
-        $categories = collect($paginated->items())->map(function ($category) use ($isAdmin, $userPermissions) {
+        $categories = collect($paginated->items())->map(function ($category) use ($isAdmin, $userPermissions, $viewableIds) {
             return [
                 'id' => $category->id,
                 'title' => $category->title,
                 'description' => $category->description,
+                'access_type' => $category->access_type,
                 'parent_id' => $category->parent_id,
-                'parent_title' => $category->parent?->title,
+                'parent_title' => ($isAdmin || in_array($category->parent_id, $viewableIds ?? [], true))
+                    ? $category->parent?->title
+                    : null,
                 'documents_count' => $category->documents_count ?? 0,
                 'user_permissions' => $isAdmin
                     ? ['manage']
@@ -123,6 +126,7 @@ class CategoryController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
             'parent_id' => ['nullable', 'integer', Rule::exists('categories', 'id')],
+            'access_type' => ['required', Rule::in(['public', 'plan'])],
         ]);
 
         $this->service->store($request);
@@ -147,6 +151,7 @@ class CategoryController extends Controller
             ->paginate(10);
 
         $subcategories = Category::where('parent_id', $category->id)
+            ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
             ->withCount('documents')
             ->orderBy('title')
             ->get(['id', 'title', 'description', 'parent_id']);
@@ -206,6 +211,7 @@ class CategoryController extends Controller
                 'id' => $category->id,
                 'title' => $category->title,
                 'description' => $category->description,
+                'access_type' => $category->access_type,
                 'parent_id' => $category->parent_id,
                 'documents_count' => $category->documents_count,
             ],
@@ -251,6 +257,7 @@ class CategoryController extends Controller
                 Rule::exists('categories', 'id'),
                 Rule::notIn($excludeIds),
             ],
+            'access_type' => ['required', Rule::in(['public', 'plan'])],
         ]);
 
         $this->service->update($request, $id);

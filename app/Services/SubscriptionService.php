@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Category;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\UserSubscription;
@@ -24,16 +23,6 @@ class SubscriptionService
             'max_storage_mb' => 100,
             'is_active' => true,
         ]);
-
-        if ($plan->categories()->count() === 0) {
-            $catIds = Category::pluck('id')->all();
-            if (! empty($catIds)) {
-                $plan->categories()->sync(
-                    collect($catIds)->mapWithKeys(fn ($id) => [$id => ['permission' => 'view']])->all()
-                );
-                SubscriptionPlan::clearCache();
-            }
-        }
 
         return $plan;
     }

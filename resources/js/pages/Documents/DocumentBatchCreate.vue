@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
-import { ArrowLeft, AlertCircle, RotateCcw } from '@lucide/vue'
+import { ArrowLeft, AlertCircle, RotateCcw, Layers3, ShieldCheck } from '@lucide/vue'
 import { ref, computed } from 'vue'
 import { type BreadcrumbItem } from '@/types'
 import DocumentBatchForm from '@/components/documents/DocumentBatchForm.vue'
@@ -89,7 +89,8 @@ async function submitFiles() {
     }
 
     // If any file is large, use chunked upload for each
-    if (hasLargeFiles(selectedFiles.value)) {
+    const totalBytes = selectedFiles.value.reduce((total, file) => total + file.size, 0)
+    if (hasLargeFiles(selectedFiles.value) || totalBytes > CHUNK_UPLOAD_THRESHOLD) {
         await submitFilesIndividually(selectedFiles.value)
         return
     }
@@ -161,16 +162,20 @@ async function submitFilesIndividually(filesToUpload: File[]) {
         failedFiles: failedFileNames,
     }
 
-    // Only redirect on full success
-    if (failedFileNames.length === 0) {
-        router.visit(route('documents.index'), {
-            only: [],
-            onFinish: () => {
-                selectedFiles.value = []
-                form.reset()
-            },
-        })
+    // Automatically retry failed files once, using resume for interrupted chunks.
+    if (failedFileNames.length > 0) {
+        batchStatus.value = 'Retrying failed files automatically...'
+        await retryFailedFiles()
+        return
     }
+
+    router.visit(route('documents.index'), {
+        only: [],
+        onFinish: () => {
+            selectedFiles.value = []
+            form.reset()
+        },
+    })
 }
 
 /**
@@ -338,19 +343,36 @@ const handleCancel = () => {
     <Head title="Batch Create Documents" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="max-w-8xl mx-auto p-6 bg-white rounded-lg shadow">
-
-            <div class="mb-6">
+        <div class="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:py-8">
+            <div class="flex flex-wrap items-center justify-between gap-4">
                 <Link
                     :href="route('documents.index')"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                     <ArrowLeft class="w-4 h-4" />
-                    Back
+                    Back to documents
                 </Link>
+                <span class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:ring-blue-900">
+                    <ShieldCheck class="h-3.5 w-3.5" />
+                    Up to 50 files per batch
+                </span>
             </div>
 
-            <h1 class="text-2xl font-bold mb-6">Batch Create Documents</h1>
+            <header class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 px-6 py-7 text-white shadow-lg sm:px-8 sm:py-9">
+                <div class="absolute -right-8 -top-14 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
+                <div class="relative flex items-start gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+                        <Layers3 class="h-6 w-6 text-blue-200" />
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Document library</p>
+                        <h1 class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Batch create documents</h1>
+                        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Upload multiple files at once or import a ZIP archive. Choose a category and add one shared description for the batch.</p>
+                    </div>
+                </div>
+            </header>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900">
 
             <DocumentBatchForm
                 :categories="categories"
@@ -363,13 +385,15 @@ const handleCancel = () => {
                 v-model:is-dragging="isDragging"
             />
 
+            </section>
+
             <!-- Per-file errors -->
-            <div v-if="showFileErrors" class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div v-if="showFileErrors" class="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
                 <div class="flex items-start gap-2">
                     <AlertCircle class="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                     <div>
-                        <p class="text-sm font-medium text-red-800">Some files failed to upload:</p>
-                        <ul class="mt-1 text-sm text-red-600 list-disc list-inside">
+                        <p class="text-sm font-semibold text-red-800 dark:text-red-200">Some files failed to upload</p>
+                        <ul class="mt-1 list-inside list-disc text-sm text-red-700 dark:text-red-300">
                             <li v-for="(msg, idx) in fileErrors" :key="idx">{{ msg }}</li>
                         </ul>
                     </div>
@@ -377,8 +401,8 @@ const handleCancel = () => {
             </div>
 
             <!-- Batch upload progress (chunked) -->
-            <div v-if="batchStatus" class="mb-4">
-                <div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            <div v-if="batchStatus" class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div class="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                     {{ batchStatus }}
                     <span v-if="batchTotalFiles > 1">
                         ({{ batchUploadedFiles }}/{{ batchTotalFiles }})
@@ -393,7 +417,7 @@ const handleCancel = () => {
 
             <!-- ZIP upload progress -->
             <div v-if="zipUploading" class="mb-4">
-                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                     <div class="flex items-center gap-3">
                         <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                         <span class="text-sm text-gray-700 dark:text-gray-300">{{ zipProgress }}</span>
@@ -402,14 +426,14 @@ const handleCancel = () => {
             </div>
 
             <!-- Post-upload summary with retry button -->
-            <div v-if="uploadSummary && uploadSummary.failed > 0" class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div v-if="uploadSummary && uploadSummary.failed > 0" class="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
                 <div class="flex items-start gap-2">
                     <AlertCircle class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
                     <div class="flex-1">
-                        <p class="text-sm font-medium text-amber-800">
+                        <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
                             {{ uploadSummary.success }} uploaded, {{ uploadSummary.failed }} failed.
                         </p>
-                        <ul class="mt-1 text-sm text-amber-700 list-disc list-inside">
+                        <ul class="mt-1 list-inside list-disc text-sm text-amber-700 dark:text-amber-300">
                             <li v-for="name in uploadSummary.failedFiles" :key="name">{{ name }}</li>
                         </ul>
                         <div class="flex items-center gap-3 mt-3">

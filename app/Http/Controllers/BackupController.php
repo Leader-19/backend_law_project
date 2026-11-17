@@ -47,21 +47,35 @@ class BackupController extends Controller
 
         // Prevent timeout on large backups
         set_time_limit(0);
-        ini_set('memory_limit', '512M');
 
         $backupName = 'backup_'.now()->format('Y-m-d_H-i-s').'_'.Str::lower(Str::random(6));
         $tempDir = storage_path('app/private/backups/'.$backupName);
-        $zipPath = null;
-
+        $zipPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.$backupName.'.zip';
         File::makeDirectory($tempDir, 0700, true, true);
+
+        $zip = new ZipArchive;
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            File::deleteDirectory($tempDir);
+            throw new \RuntimeException('Unable to create the backup archive.');
+        }
+        $metadataHandle = null;
+        $zipClosed = false;
 
         try {
             $expandedCategoryIds = $this->expandCategoryIds($categoryIds);
 
             // Stream documents in chunks instead of loading all at once
             $documentCount = 0;
-            $export = ['file_count' => 0, 'missing_files' => []];
-            $documentMeta = [];
+            $export = ['file_count' => 0, 'missing_file_count' => 0, 'missing_files' => []];
+            $metadataPath = $tempDir.DIRECTORY_SEPARATOR.'category-data.json';
+            $metadataHandle = fopen($metadataPath, 'wb');
+            if ($metadataHandle === false) {
+                throw new \RuntimeException('Unable to create category metadata.');
+            }
+            $categories = Category::whereIn('id', $expandedCategoryIds)
+                ->get(['id', 'parent_id', 'title', 'description', 'created_at', 'updated_at']);
+            fwrite($metadataHandle, '{"categories":'.json_encode($categories, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR).',"documents":[');
+            $isFirstMetadata = true;
 
             Document::query()
                 ->whereIn('category_id', $expandedCategoryIds)
@@ -78,13 +92,20 @@ class BackupController extends Controller
                     'updated_at',
                 ])
                 ->orderBy('id')
-                ->chunkById(200, function ($documents) use ($tempDir, &$export, &$documentMeta, &$documentCount) {
-                    $result = $this->exportFiles($tempDir, $documents);
+                ->chunkById(200, function ($documents) use ($zip, $metadataHandle, &$isFirstMetadata, &$export, &$documentCount) {
+                    $result = $this->exportFiles($zip, $documents);
                     $export['file_count'] += $result['file_count'];
-                    $export['missing_files'] = array_merge($export['missing_files'], $result['missing_files']);
+                    $export['missing_file_count'] += $result['missing_file_count'];
+                    $remainingSamples = max(0, 1000 - count($export['missing_files']));
+                    if ($remainingSamples > 0) {
+                        $export['missing_files'] = array_merge(
+                            $export['missing_files'],
+                            array_slice($result['missing_files'], 0, $remainingSamples)
+                        );
+                    }
 
                     foreach ($documents as $document) {
-                        $documentMeta[] = $document->only([
+                        $metadata = json_encode($document->only([
                             'id',
                             'category_id',
                             'doc_name',
@@ -94,36 +115,59 @@ class BackupController extends Controller
                             'description',
                             'created_at',
                             'updated_at',
-                        ]);
+                        ]), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                        fwrite($metadataHandle, ($isFirstMetadata ? '' : ',').$metadata);
+                        $isFirstMetadata = false;
                     }
 
                     $documentCount += $documents->count();
                 });
 
+            fwrite($metadataHandle, "]}\n");
+            fclose($metadataHandle);
+            $metadataHandle = null;
+
             if ($includeDatabase) {
                 $this->exportDatabase($tempDir);
+                if (! $zip->addFile($tempDir.DIRECTORY_SEPARATOR.'database.sql', 'database.sql')) {
+                    throw new \RuntimeException('Unable to add the database dump to the backup archive.');
+                }
             }
 
-            $this->writeCategoryMetadata($tempDir, $expandedCategoryIds, $documentMeta);
             $this->writeManifest(
                 $tempDir,
                 $categoryIds,
                 $expandedCategoryIds,
                 $documentCount,
                 $export['missing_files'],
+                $export['missing_file_count'],
                 $includeDatabase
             );
 
-            $zipPath = $this->createZip($tempDir, $backupName);
+            if (! $zip->addFile($metadataPath, 'category-data.json')
+                || ! $zip->addFile($tempDir.DIRECTORY_SEPARATOR.'manifest.json', 'manifest.json')) {
+                throw new \RuntimeException('Unable to add backup metadata to the archive.');
+            }
+            if (! $zip->close()) {
+                throw new \RuntimeException('Unable to finalize the backup archive.');
+            }
+            $zipClosed = true;
 
             ActivityLog::record('backup_created', 'Backup archive created', null, [
                 'requested_category_ids' => $categoryIds,
                 'includes_database' => $includeDatabase,
                 'document_count' => $documentCount,
                 'file_count' => $export['file_count'],
-                'missing_file_count' => count($export['missing_files']),
+                'missing_file_count' => $export['missing_file_count'],
+                'missing_file_samples_truncated' => $export['missing_file_count'] > count($export['missing_files']),
             ]);
         } catch (\Throwable $exception) {
+            if (is_resource($metadataHandle)) {
+                fclose($metadataHandle);
+            }
+            if (! $zipClosed) {
+                $zip->close();
+            }
             File::deleteDirectory($tempDir);
             if ($zipPath !== null && File::exists($zipPath)) {
                 File::delete($zipPath);
@@ -132,19 +176,32 @@ class BackupController extends Controller
         }
 
         return response()->streamDownload(function () use ($zipPath, $tempDir) {
+            $handle = false;
             try {
                 $handle = fopen($zipPath, 'rb');
+                if ($handle === false) {
+                    throw new \RuntimeException('Unable to read the completed backup archive.');
+                }
                 while (! feof($handle)) {
-                    echo fread($handle, 1024 * 1024); // 1MB chunks
+                    $chunk = fread($handle, 1024 * 1024); // 1MB chunks
+                    if ($chunk === false) {
+                        throw new \RuntimeException('Failed while streaming the backup archive.');
+                    }
+                    echo $chunk;
                     flush();
                 }
-                fclose($handle);
             } finally {
+                if (is_resource($handle)) {
+                    fclose($handle);
+                }
                 File::deleteDirectory($tempDir);
                 File::delete($zipPath);
             }
         }, $backupName.'.zip', [
             'Content-Type' => 'application/zip',
+            'Content-Length' => (string) filesize($zipPath),
+            'Cache-Control' => 'private, no-store',
+            'X-Accel-Buffering' => 'no',
         ]);
     }
 
@@ -252,34 +309,25 @@ class BackupController extends Controller
         return $quote.str_replace($quote, $quote.$quote, $identifier).$quote;
     }
 
-    private function exportFiles(string $tempDir, $documents): array
+    private function exportFiles(ZipArchive $zip, $documents): array
     {
-        $categoriesDir = $tempDir.DIRECTORY_SEPARATOR.'categories';
-        File::ensureDirectoryExists($categoriesDir, 0700);
-
         $fileCount = 0;
         $missingFiles = [];
         $disk = Storage::disk('public');
 
         foreach ($documents as $document) {
             $categoryName = $document->category?->title ?? 'uncategorized';
-            $categoryDir = $categoriesDir.DIRECTORY_SEPARATOR.$this->sanitizeDirName($categoryName);
-
-            if (! File::isDirectory($categoryDir)) {
-                File::makeDirectory($categoryDir, 0755, true);
-            }
+            $categoryDir = 'categories/'.$document->category_id.'_'.$this->sanitizeDirName($categoryName);
 
             // Main document file
             if ($document->doc_upload) {
                 if ($disk->exists($document->doc_upload)) {
                     $ext = pathinfo($document->doc_upload, PATHINFO_EXTENSION);
                     $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'.'.$ext;
-                    $dest = $categoryDir.DIRECTORY_SEPARATOR.$safeName;
-
-                    if (! File::exists($dest)) {
-                        File::copy($disk->path($document->doc_upload), $dest);
-                        $fileCount++;
+                    if (! $zip->addFile($disk->path($document->doc_upload), $categoryDir.'/'.$safeName)) {
+                        throw new \RuntimeException("Unable to add document {$document->id} to the backup archive.");
                     }
+                    $fileCount++;
                 } else {
                     $missingFiles[] = $document->doc_upload;
                 }
@@ -290,12 +338,10 @@ class BackupController extends Controller
                 if ($disk->exists($document->image)) {
                     $ext = pathinfo($document->image, PATHINFO_EXTENSION);
                     $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'_image.'.$ext;
-                    $dest = $categoryDir.DIRECTORY_SEPARATOR.$safeName;
-
-                    if (! File::exists($dest)) {
-                        File::copy($disk->path($document->image), $dest);
-                        $fileCount++;
+                    if (! $zip->addFile($disk->path($document->image), $categoryDir.'/'.$safeName)) {
+                        throw new \RuntimeException("Unable to add the image for document {$document->id} to the backup archive.");
                     }
+                    $fileCount++;
                 } else {
                     $missingFiles[] = $document->image;
                 }
@@ -304,47 +350,9 @@ class BackupController extends Controller
 
         return [
             'file_count' => $fileCount,
+            'missing_file_count' => count($missingFiles),
             'missing_files' => $missingFiles,
         ];
-    }
-
-    private function createZip(string $tempDir, string $backupName): string
-    {
-        $zipPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.$backupName.'.zip';
-        $zip = new ZipArchive;
-
-        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException('Unable to create the backup archive.');
-        }
-
-        // Faster compression for large backups (less CPU)
-        if (defined('ZipArchive::CM_STORE')) {
-            // Optional: store without compression for speed on already-compressed files (pdf, images)
-            // $zip->setCompressionName(..., ZipArchive::CM_STORE);
-        }
-
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($tempDir, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::LEAVES_ONLY
-        );
-
-        foreach ($files as $file) {
-            if (! $file->isFile()) {
-                continue;
-            }
-
-            $filePath = $file->getRealPath();
-            $relativePath = substr($filePath, strlen($tempDir) + 1);
-
-            // Use addFile (streams from disk) instead of addFromString
-            $zip->addFile($filePath, str_replace('\\', '/', $relativePath));
-        }
-
-        if (! $zip->close()) {
-            throw new \RuntimeException('Unable to finalize the backup archive.');
-        }
-
-        return $zipPath;
     }
 
     private function expandCategoryIds(array $categoryIds): array
@@ -371,26 +379,13 @@ class BackupController extends Controller
         return $ids->all();
     }
 
-    private function writeCategoryMetadata(string $tempDir, array $categoryIds, array $documentMeta): void
-    {
-        $categories = Category::whereIn('id', $categoryIds)
-            ->get(['id', 'parent_id', 'title', 'description', 'created_at', 'updated_at']);
-
-        file_put_contents(
-            $tempDir.DIRECTORY_SEPARATOR.'category-data.json',
-            json_encode([
-                'categories' => $categories,
-                'documents' => $documentMeta,
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
-        );
-    }
-
     private function writeManifest(
         string $tempDir,
         array $requestedCategoryIds,
         array $expandedCategoryIds,
         int $documentCount,
         array $missingFiles,
+        int $missingFileCount,
         bool $includesDatabase
     ): void {
         file_put_contents(
@@ -401,7 +396,9 @@ class BackupController extends Controller
                 'included_category_ids' => $expandedCategoryIds,
                 'includes_database' => $includesDatabase,
                 'document_count' => $documentCount,
+                'missing_file_count' => $missingFileCount,
                 'missing_files' => $missingFiles,
+                'missing_file_samples_truncated' => $missingFileCount > count($missingFiles),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)
         );
     }

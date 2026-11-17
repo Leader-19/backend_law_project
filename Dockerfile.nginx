@@ -1,0 +1,19 @@
+
+# ==========================================
+# Nginx Production Image
+# Laravel Static Files + Reverse FastCGI
+# ==========================================
+
+FROM nginx:1.28-alpine
+
+WORKDIR /var/www/html
+
+# Copy Laravel public files
+COPY public/ /var/www/html/public/
+
+# Nginx configuration will be mounted
+# through Kubernetes ConfigMap
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

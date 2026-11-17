@@ -16,10 +16,13 @@ class DocumentController extends Controller
     public function preview(Request $request)
     {
         $limit = min(max((int) $request->integer('limit', 5), 1), 10);
+        $user = $request->user();
+        $isAdmin = $user->hasRole('Admin');
+        $viewableIds = $isAdmin ? null : $user->getViewableCategoryIds();
 
-        $cacheKey = "api.documents.preview.{$limit}";
+        $cacheKey = 'api.documents.preview.'.md5(($isAdmin ? 'admin' : implode(',', $viewableIds)).":{$limit}");
 
-        $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($limit) {
+        $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($limit, $isAdmin, $viewableIds) {
             $all = Category::with([
                 'documents' => fn ($q) => $q
                     ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
@@ -27,8 +30,9 @@ class DocumentController extends Controller
                     ->limit($limit),
             ])
                 ->withCount('documents')
+                ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
                 ->orderBy('title')
-                ->get(['id', 'title', 'description', 'parent_id']);
+                ->get(['id', 'title', 'description', 'parent_id', 'access_type']);
 
             return $this->buildTreeWithDocuments($all);
         });
@@ -69,7 +73,7 @@ class DocumentController extends Controller
                 ->withCount('documents')
                 ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
                 ->orderBy('title')
-                ->get(['id', 'title', 'description', 'parent_id']);
+                ->get(['id', 'title', 'description', 'parent_id', 'access_type']);
 
             return $this->buildTreeWithDocuments($all);
         });
@@ -128,7 +132,7 @@ class DocumentController extends Controller
             ->withCount('documents')
             ->when(! $isAdmin, fn ($q) => $q->whereIn('id', $viewableIds))
             ->orderBy('title')
-            ->get(['id', 'title', 'description', 'parent_id']);
+            ->get(['id', 'title', 'description', 'parent_id', 'access_type']);
 
         $tree = $this->buildTreeWithDocuments($categories);
 
@@ -225,6 +229,10 @@ class DocumentController extends Controller
     public function show(string $id)
     {
         $document = Document::with('category:id,title')->findOrFail($id);
+        $user = request()->user();
+        if (! $user->hasRole('Admin') && ! $user->hasCategoryPermission('view', $document->category)) {
+            return response()->json(['status' => 'error', 'message' => 'You do not have access to view this document.'], 403);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -243,7 +251,9 @@ class DocumentController extends Controller
     private function buildTreeWithDocuments($categories, $parentId = null)
     {
         return $categories
-            ->where('parent_id', $parentId)
+            ->filter(fn ($category) => $parentId === null
+                ? ($category->parent_id === null || ! $categories->contains('id', $category->parent_id))
+                : $category->parent_id === $parentId)
             ->values()
             ->map(function ($category) use ($categories) {
                 return [
@@ -251,6 +261,7 @@ class DocumentController extends Controller
                     'title' => $category->title,
                     'description' => $category->description,
                     'parent_id' => $category->parent_id,
+                    'access_type' => $category->access_type,
                     'documents_count' => $category->documents_count,
                     'documents' => $category->documents->map(fn ($doc) => [
                         'id' => $doc->id,

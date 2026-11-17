@@ -20,6 +20,7 @@ const form = useForm({
     title: '',
     description: '', // keep spelling if DB uses this
     parent_id: null as number | null,
+    access_type: 'plan' as 'public' | 'plan',
 })
 
 </script>
@@ -70,6 +71,16 @@ const form = useForm({
                     <p v-if="form.errors.description" class="text-red-500 text-sm mt-1">
                         {{ form.errors.description }}
                     </p>
+                </div>
+
+                <!-- Parent Category -->
+                <div>
+                    <label class="block text-sm font-medium">Access</label>
+                    <select v-model="form.access_type" class="mt-1 block w-full rounded-md border-gray-300 px-3 py-2">
+                        <option value="public">Public — available to all registered users</option>
+                        <option value="plan">Plan — requires an assigned active plan</option>
+                    </select>
+                    <p v-if="form.errors.access_type" class="text-red-500 text-sm mt-1">{{ form.errors.access_type }}</p>
                 </div>
 
                 <!-- Parent Category -->

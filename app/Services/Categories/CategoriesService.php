@@ -41,6 +41,7 @@ class CategoriesService
             'description' => $request->description,
             'user_id' => Auth::id(),
             'parent_id' => $request->parent_id ?? null,
+            'access_type' => $request->access_type,
         ]);
     }
 
@@ -55,6 +56,7 @@ class CategoriesService
             'title' => $request->title,
             'description' => $request->description,
             'parent_id' => $request->parent_id ?? null,
+            'access_type' => $request->access_type,
         ]);
     }
 

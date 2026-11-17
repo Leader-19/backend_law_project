@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\UserLibrary;
+use App\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,9 @@ class LibraryController extends Controller
     {
         $user = $request->user();
 
-        $query = $user->library()->with('category');
+        $viewableCategoryIds = $user->getViewableCategoryIds();
+        $query = $user->library()->with('category')
+            ->whereHas('category', fn ($q) => $q->whereIn('categories.id', $viewableCategoryIds));
 
         // Apply sorting
         // Note: the BelongsToMany library() relationship already JOINs documents
@@ -75,6 +78,7 @@ class LibraryController extends Controller
             ->join('documents', 'user_library.document_id', '=', 'documents.id')
             ->join('categories', 'documents.category_id', '=', 'categories.id')
             ->where('user_library.user_id', $user->id)
+            ->whereIn('categories.id', $viewableCategoryIds)
             ->select('categories.id', 'categories.title')
             ->selectRaw('COUNT(DISTINCT user_library.document_id) as document_count')
             ->groupBy('categories.id', 'categories.title')
@@ -86,6 +90,7 @@ class LibraryController extends Controller
         $uncategorizedCount = DB::table('user_library')
             ->join('documents', 'user_library.document_id', '=', 'documents.id')
             ->where('user_library.user_id', $user->id)
+            ->whereIn('documents.category_id', $viewableCategoryIds)
             ->where(function ($q) {
                 $q->whereNull('documents.category_id')
                     ->orWhere('documents.category_id', 0);
@@ -119,6 +124,11 @@ class LibraryController extends Controller
 
         $user = $request->user();
         $documentId = $request->input('document_id');
+        $document = Document::with('category')->findOrFail($documentId);
+
+        if (! $document->category || ! $user->hasCategoryPermission('view', $document->category)) {
+            return response()->json(['status' => 'error', 'message' => 'You do not have access to this document.'], 403);
+        }
 
         // Check if already in library
         $exists = UserLibrary::where('user_id', $user->id)

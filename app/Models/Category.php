@@ -34,6 +34,7 @@ class Category extends Model
         'description',
         'user_id',
         'parent_id',
+        'access_type',
     ];
 
     public function user()

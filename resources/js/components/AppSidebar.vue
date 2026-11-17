@@ -24,6 +24,8 @@ const hasUserPermission = hasAnyPermission(['users.view', 'users.create', 'users
 const hasRolePermission = hasAnyPermission(['roles.view', 'roles.create', 'roles.edit', 'roles.delete']);
 const hasCategoryPermission = hasAnyPermission(['category.view', 'category.create', 'category.edit', 'category.delete']);
 const hasDocumentPermission = hasAnyPermission(['document.view', 'document.create', 'document.edit', 'document.delete']);
+const hasAdministratorBookPermission = hasAnyPermission(['administrator-books.view', 'administrator-books.create', 'administrator-books.edit', 'administrator-books.delete']);
+const hasAdministratorBookCategoryPermission = can('administrator-book-categories.view');
 
 const hasDashboardPermission = can('dashboard.view');
 const hasDocumentPermission2 = hasAnyPermission(['document.view', 'document.create', 'document.edit', 'document.delete']);
@@ -138,6 +140,23 @@ const mainNavItems = computed<NavItem[]>(() => [
                 title: 'Import Documents',
                 href: '/documents/batch/create',
                 icon: Upload,
+            }] : []),
+            ...(hasAdministratorBookPermission ? [{
+                title: 'Administrator Book',
+                href: '/administrator-books',
+                icon: BookMarked,
+                items: [
+                    {
+                        title: 'Administrator Book',
+                        href: '/administrator-books',
+                        icon: BookMarked,
+                    },
+                    ...(hasAdministratorBookCategoryPermission ? [{
+                        title: 'Book Categories',
+                        href: '/administrator-book-categories',
+                        icon: FolderTree,
+                    }] : []),
+                ],
             }] : []),
             {
                 title: 'Subscription Plans',

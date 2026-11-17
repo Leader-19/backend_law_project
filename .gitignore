@@ -50,3 +50,9 @@ yarn-error.log
 .claude/
 .cursor/
 .windsurf/
+
+k3s.yaml
+kubeconfig
+
+k3s.yaml
+kubeconfig

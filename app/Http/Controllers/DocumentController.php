@@ -22,10 +22,15 @@ class DocumentController extends Controller
     /**
      * Cached category list – reused in index / create / edit / batch.
      */
-    private function getCategories()
+    private function getCategories(?array $viewableIds = null)
     {
-        return Cache::remember('categories.list', now()->addMinutes(30), function () {
+        $cacheKey = $viewableIds === null
+            ? 'categories.list.admin'
+            : 'categories.list.'.md5(implode(',', $viewableIds));
+
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($viewableIds) {
             return Category::query()
+                ->when($viewableIds !== null, fn ($q) => $q->whereIn('id', $viewableIds))
                 ->orderBy('title')
                 ->get(['id', 'title', 'parent_id']);
         });
@@ -52,6 +57,18 @@ class DocumentController extends Controller
 
         $categoryIds = $validated['category_ids'];
 
+        $user = $request->user();
+        $isAdmin = $user->hasRole('Admin');
+        $viewableCategoryIds = $isAdmin ? null : $user->getViewableCategoryIds();
+        if (! $isAdmin) {
+            $categoryIds = $categoryIds === []
+                ? $viewableCategoryIds
+                : array_values(array_intersect($categoryIds, $viewableCategoryIds));
+            if ($categoryIds === []) {
+                $categoryIds = [-1];
+            }
+        }
+
         $paginated = $this->service->getPaginated(
             $perPage,
             $page,
@@ -62,7 +79,7 @@ class DocumentController extends Controller
 
         return Inertia::render('Documents/DocumentIndex', [
             'documents' => $paginated->items(),
-            'categories' => $this->getCategories(),
+            'categories' => $this->getCategories($viewableCategoryIds),
             'selectedCategoryIds' => $categoryIds,
             'searchType' => $searchType,
             'pagination' => [

@@ -1,0 +1,131 @@
+name: Build and Deploy Backend
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "k8s/**"
+      - "*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: backend-law-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/leader-19/backend_law_project
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_DATA }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.kube"
+          echo "$KUBECONFIG_DATA" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+
+      - name: Verify cluster connection
+        run: |
+          set -euo pipefail
+          kubectl config view --minify | grep server
+          kubectl get nodes
+
+      - name: Sync Laravel .env to K3s Secret
+        env:
+          LARAVEL_ENV: ${{ secrets.LARAVEL_ENV }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$LARAVEL_ENV" \
+            | tr -d '\r' \
+            | sed -E 's/^[[:space:]]+//; s/[[:space:]]*=[[:space:]]*/=/' \
+            | grep -E '^[A-Za-z_][A-Za-z0-9_.-]*=' > .env.k8s
+          kubectl create secret generic laravel-secrets \
+            --from-env-file=.env.k8s \
+            --namespace=backend-law \
+            --dry-run=client -o yaml | kubectl apply -f -
+          rm -f .env.k8s
+
+      - name: Update Kubernetes Image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          test -f k8s/deployment.yaml
+
+          sed -i -E \
+            "s#(image: *${IMAGE_NAME}:).*#\1${IMAGE_TAG}#" \
+            k8s/deployment.yaml
+
+          echo "Updated Kubernetes image:"
+          grep -n "image:" k8s/deployment.yaml
+
+      - name: Deploy to K3s
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/ -n backend-law
+          kubectl rollout status deployment/laravel-backend -n backend-law --timeout=180s
+
+      - name: Commit Kubernetes Manifest
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add k8s/deployment.yaml
+
+          if ! git diff --cached --quiet; then
+            git commit -m "deploy: update backend image to ${{ github.sha }}"
+            git pull --rebase origin master
+            git push origin HEAD:master
+          else
+            echo "No Kubernetes manifest changes."
+          fi
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f "$HOME/.kube/config"

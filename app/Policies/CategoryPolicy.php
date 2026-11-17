@@ -12,7 +12,7 @@ class CategoryPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasRole('Admin') || $user->categoryPermissions()->exists();
+        return $user->hasRole('Admin') || $user->getViewableCategoryIds() !== [];
     }
 
     public function view(User $user, Category $category): bool
