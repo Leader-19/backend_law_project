@@ -4,29 +4,6 @@ use App\Models\User;
 use App\Notifications\VerifyApiEmail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
-use Spatie\Permission\Models\Role;
-
-test('registering does not return a token and sends a verification email', function () {
-    Role::create(['name' => 'Normal']);
-    Notification::fake();
-
-    $response = $this->postJson('/api/register', [
-        'name' => 'Test User',
-        'email' => 'newuser@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
-    ]);
-
-    $response->assertCreated();
-    $response->assertJsonMissing(['token']);
-    $response->assertJson(['requires_verification' => true]);
-
-    $user = User::where('email', 'newuser@example.com')->first();
-    expect($user)->not->toBeNull();
-    expect($user->hasVerifiedEmail())->toBeFalse();
-
-    Notification::assertSentTo($user, VerifyApiEmail::class);
-});
 
 test('an unverified user cannot log in', function () {
     $user = User::factory()->unverified()->create();

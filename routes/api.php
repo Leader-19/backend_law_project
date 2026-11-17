@@ -33,6 +33,7 @@ Route::post('/webhooks/stripe', StripeWebhookController::class)->middleware('thr
 Route::post('/webhooks/telegram/payments', TelegramPaymentWebhookController::class)->middleware('throttle:120,1');
 
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
+Route::post('/register/verify', [AuthController::class, 'verifyRegistration'])->middleware('throttle:6,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:6,1');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:6,1');

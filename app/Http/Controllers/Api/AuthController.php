@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\User;
+use App\Notifications\RegistrationCode;
 use App\Services\SubscriptionService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -18,29 +22,102 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /** Minutes a registration code stays valid before the pending signup must be restarted. */
+    private const REGISTRATION_CODE_TTL_MINUTES = 3;
+
+    /**
+     * No User row is created here. The full signup is encrypted into a
+     * registration_token the client holds onto; the account is only ever
+     * persisted once verifyRegistration() confirms the emailed code.
+     */
     public function register(RegisterRequest $request)
     {
         $validated = $request->validated();
 
-        $user = User::create([
+        $code = (string) random_int(100000, 999999);
+        $expiresAt = now()->addMinutes(self::REGISTRATION_CODE_TTL_MINUTES);
+
+        $registrationToken = Crypt::encryptString(json_encode([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password_hash' => Hash::make($validated['password']),
+            'code' => $code,
+            'expires_at' => $expiresAt->toIso8601String(),
+        ]));
+
+        Notification::route('mail', $validated['email'])
+            ->notify(new RegistrationCode($code, self::REGISTRATION_CODE_TTL_MINUTES));
+
+        return $this->success(
+            'We sent a verification code to your email. Enter it to finish creating your account.',
+            [
+                'registration_token' => $registrationToken,
+                'expires_in' => self::REGISTRATION_CODE_TTL_MINUTES * 60,
+            ],
+        );
+    }
+
+    /**
+     * Decrypts the registration_token from register(), checks the code and
+     * expiry, and only now creates the User row - this is the single point
+     * where a pending signup becomes a real account.
+     */
+    public function verifyRegistration(Request $request)
+    {
+        $validated = $request->validate([
+            'registration_token' => ['required', 'string'],
+            'code' => ['required', 'string', 'digits:6'],
+            'device_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $invalid = fn () => ValidationException::withMessages([
+            'code' => ['This code has expired or is invalid. Please register again.'],
+        ]);
+
+        try {
+            $payload = json_decode(Crypt::decryptString($validated['registration_token']), true);
+        } catch (\Throwable) {
+            throw $invalid();
+        }
+
+        if (! is_array($payload) || ! isset($payload['email'], $payload['code'], $payload['expires_at'], $payload['password_hash'], $payload['name'])) {
+            throw $invalid();
+        }
+
+        if (now()->greaterThan(Carbon::parse($payload['expires_at']))) {
+            throw $invalid();
+        }
+
+        if (! hash_equals($payload['code'], $validated['code'])) {
+            throw $invalid();
+        }
+
+        if (User::where('email', $payload['email'])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['This email is already registered. Please sign in instead.'],
+            ]);
+        }
+
+        $user = User::create([
+            'name' => $payload['name'],
+            'email' => $payload['email'],
+            'password' => $payload['password_hash'],
             'registration_source' => 'frontend',
             'status' => User::STATUS_APPROVED,
             'approved_at' => now(),
         ]);
+
+        // email_verified_at is deliberately not mass-assignable; this is the
+        // one place allowed to set it, since the code above it already proved
+        // ownership of the inbox.
+        $user->forceFill(['email_verified_at' => now()])->save();
 
         $user->assignRole('Normal');
         app(SubscriptionService::class)->ensureFreeSubscription($user);
 
         event(new Registered($user));
 
-        return $this->success(
-            'Account created. Please check your email to verify your address before signing in.',
-            ['requires_verification' => true],
-            201,
-        );
+        return $this->authenticatedResponse($user, $validated['device_name'] ?? 'api-client', 201);
     }
 
     public function login(Request $request)
