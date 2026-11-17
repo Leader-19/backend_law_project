@@ -78,14 +78,22 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                Log::channel('stack')->error('Unhandled API exception', [
-                    'request_id' => $request->attributes->get('request_id'),
-                    'exception' => get_class($e),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'user_id' => auth()->id(),
-                    'ip' => $request->ip(),
-                ]);
+                // A failure writing the log (e.g. a permissions issue on the
+                // log file) must never take the whole error response down
+                // with it - that turns a normal 4xx/5xx into an opaque,
+                // header-less 500 with the real exception lost entirely.
+                try {
+                    Log::channel('stack')->error('Unhandled API exception', [
+                        'request_id' => $request->attributes->get('request_id'),
+                        'exception' => get_class($e),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'user_id' => auth()->id(),
+                        'ip' => $request->ip(),
+                    ]);
+                } catch (Throwable) {
+                    // Logging failed - still render the real response below.
+                }
 
                 $message = 'Something went wrong. Please try again later.';
 
