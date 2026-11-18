@@ -38,13 +38,20 @@ abstract class Controller extends \App\Http\Controllers\Controller
     protected function error(string $message, int $status = 400, ?\Throwable $exception = null): JsonResponse
     {
         if ($exception) {
-            Log::channel('stack')->error($message, [
-                'exception' => $exception->getMessage(),
-                'file' => $exception->getFile(),
-                'line' => $exception->getLine(),
-                'user_id' => auth()->id(),
-                'ip' => request()->ip(),
-            ]);
+            // A broken log sink (e.g. a file-permissions issue) must never
+            // take the error response down with it - that turns a clear 4xx/5xx
+            // into an opaque, unrelated 500 with the real message lost.
+            try {
+                Log::channel('stack')->error($message, [
+                    'exception' => $exception->getMessage(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'user_id' => auth()->id(),
+                    'ip' => request()->ip(),
+                ]);
+            } catch (\Throwable) {
+                // Logging failed - still render the real response below.
+            }
         }
 
         return response()->json([
@@ -55,11 +62,15 @@ abstract class Controller extends \App\Http\Controllers\Controller
 
     protected function validationError(ValidationException $e): JsonResponse
     {
-        Log::channel('stack')->warning('Validation failed', [
-            'errors' => $e->errors(),
-            'user_id' => auth()->id(),
-            'ip' => request()->ip(),
-        ]);
+        try {
+            Log::channel('stack')->warning('Validation failed', [
+                'errors' => $e->errors(),
+                'user_id' => auth()->id(),
+                'ip' => request()->ip(),
+            ]);
+        } catch (\Throwable) {
+            // Logging failed - still render the real response below.
+        }
 
         return response()->json([
             'status' => 'error',
