@@ -45,8 +45,16 @@ class AuthController extends Controller
             'expires_at' => $expiresAt->toIso8601String(),
         ]));
 
-        Notification::route('mail', $validated['email'])
-            ->notify(new RegistrationCode($code, self::REGISTRATION_CODE_TTL_MINUTES));
+        try {
+            Notification::route('mail', $validated['email'])
+                ->notify(new RegistrationCode($code, self::REGISTRATION_CODE_TTL_MINUTES));
+        } catch (\Throwable $e) {
+            return $this->error(
+                'We could not send the verification email right now. Please try again in a moment.',
+                503,
+                $e,
+            );
+        }
 
         return $this->success(
             'We sent a verification code to your email. Enter it to finish creating your account.',

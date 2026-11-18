@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Notifications\RegistrationCode;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 
@@ -36,6 +37,20 @@ test('registering does not create a user and sends only a code by email', functi
     expect($payload['code'])->toMatch('/^\d{6}$/');
 
     Notification::assertSentOnDemand(RegistrationCode::class);
+});
+
+test('a mail delivery failure returns a clear error instead of crashing', function () {
+    Mail::shouldReceive('send')->andThrow(new RuntimeException('mail transport is down'));
+
+    $response = $this->postJson('/api/register', [
+        'name' => 'Test User',
+        'email' => 'maildown@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
+
+    $response->assertStatus(503);
+    expect(User::where('email', 'maildown@example.com')->exists())->toBeFalse();
 });
 
 test('verifying with the correct code creates the user and logs them in', function () {
