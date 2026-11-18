@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage-pvc
+  namespace: backend-law
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-backup
+  namespace: backend-law
+spec:
+  schedule: "0 20 * * *" # 03:00 Asia/Phnom_Penh (UTC+7)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: backup
+              image: mysql:8.0
+              envFrom:
+                - secretRef:
+                    name: mysql-secrets
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  STAMP=$(date +%Y-%m-%d_%H-%M-%S)
+                  DIR="/backups/${STAMP}"
+                  mkdir -p "$DIR"
+
+                  echo "-> Dumping database..."
+                  mysqldump -h mysql -u root -p"${MYSQL_ROOT_PASSWORD}" \
+                    --single-transaction --quick --routines --triggers \
+                    "${MYSQL_DATABASE}" | gzip > "$DIR/database.sql.gz"
+
+                  echo "-> Archiving uploaded files..."
+                  tar -czf "$DIR/storage-app.tar.gz" -C /app-storage .
+
+                  echo "-> Retention: deleting backups older than 14 days..."
+                  find /backups -maxdepth 1 -mindepth 1 -type d -mtime +14 -exec rm -rf {} \;
+
+                  echo "-> Done: $DIR"
+                  du -sh "$DIR"
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+                - name: laravel-storage
+                  mountPath: /app-storage
+                  readOnly: true
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-storage-pvc
+            - name: laravel-storage
+              persistentVolumeClaim:
+                claimName: laravel-storage-pvc
