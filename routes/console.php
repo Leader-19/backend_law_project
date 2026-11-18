@@ -14,4 +14,3 @@ Schedule::command('health:database')->everyThirtyMinutes()->withoutOverlapping()
 Schedule::call(function () {
     app(SubscriptionService::class)->expireEndedSubscriptions();
 })->hourly()->name('subscriptions:expire')->withoutOverlapping();
-
