@@ -23,10 +23,12 @@ class RegistrationCode extends Notification
 
     public function toMail($notifiable): MailMessage
     {
+        $appName = config('app.name');
+
         return (new MailMessage)
-            ->subject('Your SPRITUP verification code')
+            ->subject("Your {$appName} verification code")
             ->greeting('Verify your email')
-            ->line('Enter this code to finish creating your SPRITUP account:')
+            ->line("Enter this code to finish creating your {$appName} account:")
             ->line(new HtmlString(
                 '<div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;margin:24px 0;">'.$this->code.'</div>'
             ))
