@@ -61,7 +61,7 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="space-y-6" enctype="multipart/form-data">
                 <BookFormFields
-                    :form="form"
+                    v-model:form="form"
                     :categories="categories"
                     :plans="plans"
                     :processing="form.processing"

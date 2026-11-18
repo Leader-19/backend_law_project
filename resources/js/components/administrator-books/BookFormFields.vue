@@ -14,13 +14,14 @@ interface Plan {
 }
 
 defineProps<{
-    form: Form<Record<string, unknown>>
     categories: Category[]
     plans: Plan[]
     processing: boolean
     isEdit?: boolean
     submitLabel?: string
 }>()
+
+const form = defineModel<Form<Record<string, unknown>>>('form', { required: true })
 
 const emit = defineEmits<{ submit: []; 'file-change': [File | null] }>()
 

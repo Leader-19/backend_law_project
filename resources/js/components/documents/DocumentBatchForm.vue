@@ -1,23 +1,13 @@
 <script setup lang="ts">
-import type { Form } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
+import { reactive, watch } from 'vue';
 import ZipDropZone from '../../components/ZipDropZone.vue';
-import UploadCloud from '@/Components/Icons/UploadCloud.vue'; // adjust path if needed
 
 interface UploadedFile {
     uuid: string;
     name: string;
     size: number;
     maxSize?: number;
-}
-
-interface BatchErrors {
-    [key: string]: string | null;
-}
-
-interface FileErrors {
-    [key: string]: string | null;
 }
 
 const page = usePage();
@@ -51,24 +41,8 @@ const selectedFiles = reactive<
 >({});
 
 const fileErrors = reactive<Record<string, string | null>>({});
-const fileErrors2 = reactive<Record<string, string | null>>({});
-
-const errors = reactive<BatchErrors>({});
 
 const activeTab = reactive({ value: 'files' as 'files' | 'zip' });
-
-const isSubmitDisabled = computed(() => {
-    if (activeTab.value === 'files') {
-        return (
-            Object.keys(selectedFiles).length === 0 ||
-            Object.values(fileErrors).some(Boolean)
-        );
-    }
-    if (activeTab.value === 'zip') {
-        return !zipForm.zip_file || Object.values(zipForm.errors).some(Boolean);
-    }
-    return true;
-});
 
 watch(
     () => currentUser?.status ?? 'inactive',
@@ -86,21 +60,6 @@ function documentPolicyCanEdit(): boolean {
         permissions.includes('document.create') ||
         permissions.includes('document.edit')
     );
-}
-
-function handleFileSelect(
-    file: UploadedFile,
-    event: Event,
-    errorsObj: Record<string, string | null>,
-) {
-    const target = event.target as HTMLInputElement;
-    const fileError =
-        typeof file.maxSize !== 'undefined' && file.size > file.maxSize
-            ? 'Max file size: ' + (file.maxSize / 1024 / 1024).toFixed(2) + 'MB'
-            : null;
-
-    errorsObj[file.uuid] = fileError;
-    fileErrors2[file.uuid] = fileError;
 }
 
 function handleRemoveFile(uuid: string) {
