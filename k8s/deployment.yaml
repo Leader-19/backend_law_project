@@ -39,10 +39,15 @@ spec:
               set -e
               test -f /var/www/html/artisan
               cp -a /var/www/html/. /shared/
+              mkdir -p /shared/storage/app/public /shared/storage/app/private
+              chown -R www-data:www-data /shared/storage/app
+              ln -sfn ../storage/app/public /shared/public/storage
               echo "Laravel application files copied successfully"
           volumeMounts:
             - name: app-files
               mountPath: /shared
+            - name: laravel-storage
+              mountPath: /shared/storage/app
 
       containers:
         - name: laravel-backend
@@ -75,6 +80,8 @@ spec:
           volumeMounts:
             - name: app-files
               mountPath: /var/www/html
+            - name: laravel-storage
+              mountPath: /var/www/html/storage/app
 
         - name: nginx
           image: nginx:1.28-alpine
@@ -94,12 +101,18 @@ spec:
             - name: app-files
               mountPath: /var/www/html
               readOnly: true
+            - name: laravel-storage
+              mountPath: /var/www/html/storage/app
+              readOnly: true
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
 
       volumes:
         - name: app-files
           emptyDir: {}
+        - name: laravel-storage
+          persistentVolumeClaim:
+            claimName: laravel-storage-pvc
         - name: nginx-config
           configMap:
             name: nginx-config
