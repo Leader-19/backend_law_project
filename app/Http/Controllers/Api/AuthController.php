@@ -287,6 +287,7 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'is_verified' => $user->hasVerifiedEmail(),
+            'is_google' => $user->registration_source === 'google',
             'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
             'roles' => $user->getRoleNames()->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),

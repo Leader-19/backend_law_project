@@ -8,7 +8,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Spatie\Permission\Models\Role;
@@ -100,6 +102,13 @@ class GoogleAuthController extends Controller
             }
             $subscriptions->ensureFreeSubscription($user);
 
+            // Cache Google's avatar locally rather than linking its URL directly -
+            // that URL can expire, rate-limit, or simply go stale after the user
+            // changes their Google photo, breaking our avatar display either way.
+            if (! $user->avatar && $googleUser->getAvatar()) {
+                $this->cacheGoogleAvatar($user, $googleUser->getAvatar());
+            }
+
             if ($source === 'backend') {
                 Auth::login($user, true);
                 $request->session()->regenerate();
@@ -132,5 +141,38 @@ class GoogleAuthController extends Controller
         }
 
         return url('/auth/google/callback');
+    }
+
+    /**
+     * Download Google's avatar once and store our own copy. A failure here
+     * (Google down, rate limited, etc.) must never block sign-in - the user
+     * just falls back to the default placeholder avatar.
+     */
+    protected function cacheGoogleAvatar(User $user, string $avatarUrl): void
+    {
+        try {
+            $response = Http::timeout(5)->get($avatarUrl);
+
+            if (! $response->successful()) {
+                return;
+            }
+
+            $contentType = $response->header('Content-Type', '');
+            $extension = match (true) {
+                str_contains($contentType, 'png') => 'png',
+                str_contains($contentType, 'webp') => 'webp',
+                default => 'jpg',
+            };
+
+            $path = 'avatars/'.Str::uuid().'.'.$extension;
+            Storage::disk('public')->put($path, $response->body());
+
+            $user->update(['avatar' => $path]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to cache Google avatar', [
+                'user_id' => $user->id,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 }
