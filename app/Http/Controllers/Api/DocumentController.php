@@ -17,8 +17,10 @@ class DocumentController extends Controller
     {
         $limit = min(max((int) $request->integer('limit', 5), 1), 10);
         $user = $request->user();
-        $isAdmin = $user->hasRole('Admin');
-        $viewableIds = $isAdmin ? null : $user->getViewableCategoryIds();
+        $isAdmin = $user && $user->hasRole('Admin');
+        $viewableIds = $isAdmin ? null : ($user
+            ? $user->getViewableCategoryIds()
+            : Category::where('access_type', 'public')->pluck('id')->all());
 
         $cacheKey = 'api.documents.preview.'.md5(($isAdmin ? 'admin' : implode(',', $viewableIds)).":{$limit}");
 
@@ -49,7 +51,9 @@ class DocumentController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user && $user->hasRole('Admin');
-        $viewableIds = $isAdmin ? null : ($user?->getViewableCategoryIds() ?? []);
+        $viewableIds = $isAdmin ? null : ($user
+            ? $user->getViewableCategoryIds()
+            : Category::where('access_type', 'public')->pluck('id')->all());
 
         if (! $isAdmin && empty($viewableIds)) {
             return response()->json([

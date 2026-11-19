@@ -13,7 +13,9 @@ class CategoryController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user && $user->hasRole('Admin');
-        $viewableIds = $isAdmin ? null : ($user?->getViewableCategoryIds() ?? []);
+        $viewableIds = $isAdmin ? null : ($user
+            ? $user->getViewableCategoryIds()
+            : Category::where('access_type', 'public')->pluck('id')->all());
 
         if (! $isAdmin && empty($viewableIds)) {
             return response()->json([
