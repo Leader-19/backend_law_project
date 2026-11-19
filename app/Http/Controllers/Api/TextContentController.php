@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\TextContent\TextContentRequest;
+use App\Models\Category;
 use App\Models\TextContent;
 use Illuminate\Http\Request;
 
@@ -10,11 +11,32 @@ class TextContentController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
+        $isAdmin = $user && $user->hasRole('Admin');
+        $viewableIds = $isAdmin ? null : ($user
+            ? $user->getViewableCategoryIds()
+            : Category::where('access_type', 'public')->pluck('id')->all());
+
         $perPage = $request->get('per_page', 15);
+
+        if (! $isAdmin && empty($viewableIds)) {
+            return response()->json([
+                'status' => 'success',
+                'data' => [],
+                'pagination' => [
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'per_page' => (int) $perPage,
+                    'total' => 0,
+                ],
+            ]);
+        }
+
         $search = $request->get('search', '');
         $categoryId = $request->get('category_id');
 
-        $query = TextContent::with('category:id,title');
+        $query = TextContent::with('category:id,title')
+            ->when(! $isAdmin, fn ($q) => $q->whereIn('category_id', $viewableIds));
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -44,6 +66,9 @@ class TextContentController extends Controller
 
     public function store(TextContentRequest $request)
     {
+        $category = Category::findOrFail($request->validated('category_id'));
+        $this->authorize('create', [TextContent::class, $category]);
+
         $textContent = TextContent::create([
             ...$request->validated(),
             'user_id' => $request->user()->id,
@@ -56,9 +81,19 @@ class TextContentController extends Controller
         ], 201);
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        $textContent = TextContent::with('category:id,title')->findOrFail($id);
+        $textContent = TextContent::with('category:id,title,access_type,parent_id')->findOrFail($id);
+        $user = $request->user();
+        $isAdmin = $user && $user->hasRole('Admin');
+
+        $allowed = $isAdmin
+            || ($user && $textContent->category && $user->hasCategoryPermission('view', $textContent->category))
+            || (! $user && $textContent->category && $textContent->category->access_type === 'public');
+
+        if (! $allowed) {
+            return response()->json(['status' => 'error', 'message' => 'You do not have access to view this content.'], 403);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -69,6 +104,8 @@ class TextContentController extends Controller
     public function update(TextContentRequest $request, string $id)
     {
         $textContent = TextContent::findOrFail($id);
+        $this->authorize('update', $textContent);
+
         $textContent->update($request->validated());
 
         return response()->json([
@@ -81,6 +118,8 @@ class TextContentController extends Controller
     public function destroy(string $id)
     {
         $textContent = TextContent::findOrFail($id);
+        $this->authorize('delete', $textContent);
+
         $textContent->delete();
 
         return response()->noContent();

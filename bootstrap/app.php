@@ -25,6 +25,8 @@ use Spatie\Permission\Exceptions\UnauthorizedException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -138,6 +140,23 @@ return Application::configure(basePath: dirname(__DIR__))
                         'status' => 'error',
                         'message' => 'This link is invalid or has expired.',
                     ], 403);
+                }
+
+                if ($e instanceof AccessDeniedHttpException) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'You do not have permission to perform this action.',
+                    ], 403);
+                }
+
+                // Any other HTTP exception (e.g. 405 Method Not Allowed) should
+                // keep its real status code instead of being flattened to a
+                // generic 500 - only genuinely unexpected errors fall through.
+                if ($e instanceof HttpExceptionInterface) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $e->getMessage() ?: $message,
+                    ], $e->getStatusCode(), $e->getHeaders());
                 }
 
                 return response()->json([
