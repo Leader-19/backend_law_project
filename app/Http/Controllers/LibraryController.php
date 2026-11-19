@@ -69,6 +69,15 @@ class LibraryController extends Controller
 
         $perPage = min((int) $request->input('per_page', 12), 50);
         $libraryItems = $query->paginate($perPage);
+        // Eloquent casts the primary key back to int on read regardless of
+        // what's assigned to it, so the uuid swap has to happen on the
+        // already-converted array, not on the live model attribute.
+        $libraryItems->getCollection()->transform(function ($document) {
+            $array = $document->toArray();
+            $array['id'] = $document->uuid;
+
+            return $array;
+        });
 
         // Get distinct categories with document counts from the user's full library.
         // Use DB::table() directly instead of the BelongsToMany relationship to
@@ -119,12 +128,11 @@ class LibraryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'document_id' => 'required|exists:documents,id',
+            'document_id' => 'required|string|exists:documents,uuid',
         ]);
 
         $user = $request->user();
-        $documentId = $request->input('document_id');
-        $document = Document::with('category')->findOrFail($documentId);
+        $document = Document::with('category')->where('uuid', $request->input('document_id'))->firstOrFail();
 
         if (! $document->category || ! $user->hasCategoryPermission('view', $document->category)) {
             return response()->json(['status' => 'error', 'message' => 'You do not have access to this document.'], 403);
@@ -132,7 +140,7 @@ class LibraryController extends Controller
 
         // Check if already in library
         $exists = UserLibrary::where('user_id', $user->id)
-            ->where('document_id', $documentId)
+            ->where('document_id', $document->id)
             ->exists();
 
         if ($exists) {
@@ -144,7 +152,7 @@ class LibraryController extends Controller
 
         UserLibrary::create([
             'user_id' => $user->id,
-            'document_id' => $documentId,
+            'document_id' => $document->id,
         ]);
 
         return response()->json([
@@ -153,12 +161,12 @@ class LibraryController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, int $documentId): JsonResponse
+    public function destroy(Request $request, Document $document): JsonResponse
     {
         $user = $request->user();
 
         UserLibrary::where('user_id', $user->id)
-            ->where('document_id', $documentId)
+            ->where('document_id', $document->id)
             ->delete();
 
         return response()->json([
@@ -171,11 +179,11 @@ class LibraryController extends Controller
     {
         $request->validate([
             'document_ids' => 'required|array|min:1',
-            'document_ids.*' => 'integer|exists:documents,id',
+            'document_ids.*' => 'string|exists:documents,uuid',
         ]);
 
         $user = $request->user();
-        $documentIds = $request->input('document_ids');
+        $documentIds = Document::whereIn('uuid', $request->input('document_ids'))->pluck('id');
 
         $deleted = UserLibrary::where('user_id', $user->id)
             ->whereIn('document_id', $documentIds)
@@ -191,9 +199,9 @@ class LibraryController extends Controller
     public function check(Request $request): JsonResponse
     {
         $user = $request->user();
-        $documentId = $request->input('document_id');
+        $documentId = Document::where('uuid', $request->input('document_id'))->value('id');
 
-        $inLibrary = UserLibrary::where('user_id', $user->id)
+        $inLibrary = $documentId && UserLibrary::where('user_id', $user->id)
             ->where('document_id', $documentId)
             ->exists();
 

@@ -28,7 +28,7 @@ class DocumentController extends Controller
         $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($limit, $isAdmin, $viewableIds) {
             $all = Category::with([
                 'documents' => fn ($q) => $q
-                    ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+                    ->select('id', 'uuid', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
                     ->latest()
                     ->limit($limit),
             ])
@@ -71,7 +71,7 @@ class DocumentController extends Controller
         $categories = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($isAdmin, $viewableIds) {
             $all = Category::with([
                 'documents' => fn ($q) => $q
-                    ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+                    ->select('id', 'uuid', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
                     ->latest()
                     ->limit(10),
             ])
@@ -130,7 +130,7 @@ class DocumentController extends Controller
 
         $categories = Category::with([
             'documents' => fn ($q) => $q
-                ->select('id', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
+                ->select('id', 'uuid', 'doc_name', 'doc_title', 'description', 'doc_upload', 'image', 'category_id', 'created_at')
                 ->latest()
                 ->limit($docLimit),
         ])
@@ -150,7 +150,7 @@ class DocumentController extends Controller
         ]);
     }
 
-    public function getContent(Request $request, string $id)
+    public function getContent(Request $request, Document $document)
     {
         $user = $request->user();
 
@@ -162,7 +162,7 @@ class DocumentController extends Controller
             ], 401);
         }
 
-        $document = Document::with('category:id,title')->findOrFail($id);
+        $document->loadMissing('category:id,title');
 
         if (! $user->hasRole('Admin')) {
             $viewableCategoryIds = $user->getViewableCategoryIds();
@@ -183,7 +183,7 @@ class DocumentController extends Controller
 
         return response()->json([
             'document' => [
-                'id' => $document->id,
+                'id' => $document->uuid,
                 'doc_name' => $document->doc_name,
                 'doc_title' => $document->doc_title,
                 'description' => $document->description,
@@ -199,7 +199,7 @@ class DocumentController extends Controller
      * not yet migrated) - this is the only legitimate way to reach its bytes,
      * since no public URL exists for documents.
      */
-    public function file(Request $request, string $id)
+    public function file(Request $request, Document $document)
     {
         $user = $request->user();
 
@@ -209,8 +209,6 @@ class DocumentController extends Controller
                 'message' => 'Please log in to view this document.',
             ], 401);
         }
-
-        $document = Document::findOrFail($id);
 
         if (! $user->hasRole('Admin')) {
             $viewableCategoryIds = $user->getViewableCategoryIds();
@@ -235,9 +233,9 @@ class DocumentController extends Controller
         return response()->file($source['path']);
     }
 
-    public function show(string $id)
+    public function show(Document $document)
     {
-        $document = Document::with('category:id,title')->findOrFail($id);
+        $document->loadMissing('category:id,title,access_type,parent_id');
         $user = request()->user();
         if (! $user->hasRole('Admin') && ! $user->hasCategoryPermission('view', $document->category)) {
             return response()->json(['status' => 'error', 'message' => 'You do not have access to view this document.'], 403);
@@ -246,7 +244,7 @@ class DocumentController extends Controller
         return response()->json([
             'status' => 'success',
             'document' => [
-                'id' => $document->id,
+                'id' => $document->uuid,
                 'doc_name' => $document->doc_name,
                 'doc_title' => $document->doc_title,
                 'description' => $document->description,
@@ -273,7 +271,7 @@ class DocumentController extends Controller
                     'access_type' => $category->access_type,
                     'documents_count' => $category->documents_count,
                     'documents' => $category->documents->map(fn ($doc) => [
-                        'id' => $doc->id,
+                        'id' => $doc->uuid,
                         'doc_name' => $doc->doc_name,
                         'doc_title' => $doc->doc_title,
                         'description' => $doc->description,

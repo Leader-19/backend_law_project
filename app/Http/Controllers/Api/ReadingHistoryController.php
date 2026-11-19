@@ -21,6 +21,18 @@ class ReadingHistoryController extends Controller
             ->latest('last_opened_at')
             ->paginate(12);
 
+        // Eloquent casts the primary key back to int on read regardless of
+        // what's assigned to it, so the uuid swap has to happen on the
+        // already-converted array, not on the live model attribute.
+        $history->getCollection()->transform(function ($entry) {
+            $array = $entry->toArray();
+            if ($entry->document) {
+                $array['document']['id'] = $entry->document->uuid;
+            }
+
+            return $array;
+        });
+
         return response()->json([
             'status' => 'success',
             'data' => $history->items(),
@@ -36,13 +48,13 @@ class ReadingHistoryController extends Controller
     public function updateProgress(Request $request): JsonResponse
     {
         $request->validate([
-            'document_id' => 'required|exists:documents,id',
+            'document_id' => 'required|string|exists:documents,uuid',
             'last_page' => 'required|integer|min:1',
             'total_pages' => 'required|integer|min:1',
         ]);
 
         $user = $request->user();
-        $document = Document::with('category')->findOrFail($request->input('document_id'));
+        $document = Document::with('category')->where('uuid', $request->input('document_id'))->firstOrFail();
         abort_unless($document->category && $user->hasCategoryPermission('view', $document->category), 403);
 
         $progress = ($request->input('total_pages') > 0)
@@ -52,7 +64,7 @@ class ReadingHistoryController extends Controller
         $history = ReadingHistory::updateOrCreate(
             [
                 'user_id' => $user->id,
-                'document_id' => $request->input('document_id'),
+                'document_id' => $document->id,
             ],
             [
                 'last_page' => $request->input('last_page'),
@@ -69,14 +81,14 @@ class ReadingHistoryController extends Controller
         ]);
     }
 
-    public function getProgress(Request $request, int $documentId): JsonResponse
+    public function getProgress(Request $request, Document $document): JsonResponse
     {
         $user = $request->user();
-        $document = Document::with('category')->findOrFail($documentId);
+        $document->loadMissing('category');
         abort_unless($document->category && $user->hasCategoryPermission('view', $document->category), 403);
 
         $history = ReadingHistory::where('user_id', $user->id)
-            ->where('document_id', $documentId)
+            ->where('document_id', $document->id)
             ->first();
 
         return response()->json([

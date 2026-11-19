@@ -48,8 +48,8 @@ Route::get('/subscription-plans/{id}', [SubscriptionPlanController::class, 'show
 
 Route::get('/documents', [DocumentController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/documents/preview', [DocumentController::class, 'preview'])->middleware('throttle:30,1');
-Route::get('/documents/{id}', [DocumentController::class, 'show'])->middleware(['auth:sanctum', 'throttle:60,1']);
-Route::get('/documents/{id}/content', [DocumentController::class, 'getContent'])->middleware(['auth:sanctum', 'throttle:30,1']);
+Route::get('/documents/{document:uuid}', [DocumentController::class, 'show'])->middleware(['auth:sanctum', 'throttle:60,1']);
+Route::get('/documents/{document:uuid}/content', [DocumentController::class, 'getContent'])->middleware(['auth:sanctum', 'throttle:30,1']);
 Route::get('/categories', [CategoryController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/categories/{id}', [CategoryController::class, 'show'])->middleware(['auth:sanctum', 'throttle:60,1']);
 Route::get('/text-contents', [TextContentController::class, 'index'])->middleware('throttle:60,1');
@@ -83,8 +83,8 @@ Route::middleware(['auth:sanctum', 'route.security'])->group(function () {
     // User Categories & Documents
     Route::get('/my-categories', [CategoryController::class, 'myCategories'])->middleware('throttle:30,1');
     Route::get('/my-documents', [DocumentController::class, 'myDocuments'])->middleware('throttle:30,1');
-    Route::get('/documents/{id}/content', [DocumentController::class, 'getContent'])->middleware('throttle:30,1');
-    Route::get('/documents/{id}/file', [DocumentController::class, 'file'])->middleware('throttle:30,1');
+    Route::get('/documents/{document:uuid}/content', [DocumentController::class, 'getContent'])->middleware('throttle:30,1');
+    Route::get('/documents/{document:uuid}/file', [DocumentController::class, 'file'])->middleware('throttle:30,1');
 
     // Text Contents
     Route::post('/text-contents', [TextContentController::class, 'store'])->middleware(['throttle:30,1', 'subscription.limit:text_content']);
@@ -99,14 +99,14 @@ Route::middleware(['auth:sanctum', 'route.security'])->group(function () {
     // Library
     Route::get('/library', [LibraryController::class, 'index'])->middleware('throttle:30,1');
     Route::post('/library', [LibraryController::class, 'store'])->middleware('throttle:30,1');
-    Route::delete('/library/{documentId}', [LibraryController::class, 'destroy'])->middleware('throttle:30,1');
+    Route::delete('/library/{document:uuid}', [LibraryController::class, 'destroy'])->middleware('throttle:30,1');
     Route::delete('/library', [LibraryController::class, 'bulkDestroy'])->middleware('throttle:10,1');
     Route::post('/library/check', [LibraryController::class, 'check'])->middleware('throttle:30,1');
 
     // Reading History
     Route::get('/reading-history', [ReadingHistoryController::class, 'index'])->middleware('throttle:30,1');
     Route::post('/reading-history/progress', [ReadingHistoryController::class, 'updateProgress'])->middleware('throttle:30,1');
-    Route::get('/reading-history/{documentId}/progress', [ReadingHistoryController::class, 'getProgress'])->middleware('throttle:30,1');
+    Route::get('/reading-history/{document:uuid}/progress', [ReadingHistoryController::class, 'getProgress'])->middleware('throttle:30,1');
 
     // Quizzes
     Route::get('/quizzes', [QuizController::class, 'index'])->middleware('throttle:30,1');
