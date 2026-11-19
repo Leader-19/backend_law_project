@@ -313,7 +313,8 @@ class BackupController extends Controller
     {
         $fileCount = 0;
         $missingFiles = [];
-        $disk = Storage::disk('public');
+        $localDisk = Storage::disk('public');
+        $s3Disk = Storage::disk('s3');
 
         foreach ($documents as $document) {
             $categoryName = $document->category?->title ?? 'uncategorized';
@@ -321,10 +322,15 @@ class BackupController extends Controller
 
             // Main document file
             if ($document->doc_upload) {
-                if ($disk->exists($document->doc_upload)) {
-                    $ext = pathinfo($document->doc_upload, PATHINFO_EXTENSION);
-                    $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'.'.$ext;
-                    if (! $zip->addFile($disk->path($document->doc_upload), $categoryDir.'/'.$safeName)) {
+                $ext = pathinfo($document->doc_upload, PATHINFO_EXTENSION);
+                $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'.'.$ext;
+                $entryName = $categoryDir.'/'.$safeName;
+
+                if ($s3Disk->exists($document->doc_upload)) {
+                    $zip->addFromString($entryName, $s3Disk->get($document->doc_upload));
+                    $fileCount++;
+                } elseif ($localDisk->exists($document->doc_upload)) {
+                    if (! $zip->addFile($localDisk->path($document->doc_upload), $entryName)) {
                         throw new \RuntimeException("Unable to add document {$document->id} to the backup archive.");
                     }
                     $fileCount++;
@@ -335,10 +341,15 @@ class BackupController extends Controller
 
             // Image file
             if ($document->image) {
-                if ($disk->exists($document->image)) {
-                    $ext = pathinfo($document->image, PATHINFO_EXTENSION);
-                    $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'_image.'.$ext;
-                    if (! $zip->addFile($disk->path($document->image), $categoryDir.'/'.$safeName)) {
+                $ext = pathinfo($document->image, PATHINFO_EXTENSION);
+                $safeName = $document->id.'_'.$this->sanitizeFileName($document->doc_name).'_image.'.$ext;
+                $entryName = $categoryDir.'/'.$safeName;
+
+                if ($s3Disk->exists($document->image)) {
+                    $zip->addFromString($entryName, $s3Disk->get($document->image));
+                    $fileCount++;
+                } elseif ($localDisk->exists($document->image)) {
+                    if (! $zip->addFile($localDisk->path($document->image), $entryName)) {
                         throw new \RuntimeException("Unable to add the image for document {$document->id} to the backup archive.");
                     }
                     $fileCount++;

@@ -40,13 +40,13 @@ class DocumentsService
             // keep original name but make it safe and unique
             $filename = safe_filename($file->getClientOriginalName());
 
-            $path = $file->storeAs('documents', $filename, 'public');
+            $path = $file->storeAs('documents', $filename, 's3');
         }
 
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             $imageName = safe_filename($image->getClientOriginalName(), 'image');
-            $imagePath = $image->storeAs('documents/images', $imageName, 'public');
+            $imagePath = $image->storeAs('documents/images', $imageName, 's3');
         }
 
         return $this->repo->store([
@@ -80,7 +80,7 @@ class DocumentsService
 
             // delete old file
             if ($document->doc_upload) {
-                \Storage::disk('public')->delete($document->doc_upload);
+                Storage::disk('s3')->delete($document->doc_upload);
             }
 
             $file = $request->file('doc_upload');
@@ -88,16 +88,16 @@ class DocumentsService
             // keep original name safe and unique
             $filename = safe_filename($file->getClientOriginalName());
 
-            $data['doc_upload'] = $file->storeAs('documents', $filename, 'public');
+            $data['doc_upload'] = $file->storeAs('documents', $filename, 's3');
         }
 
         if ($request->hasFile('image')) {
             if ($document->image) {
-                \Storage::disk('public')->delete($document->image);
+                Storage::disk('s3')->delete($document->image);
             }
             $image = $request->file('image');
             $imageName = safe_filename($image->getClientOriginalName(), 'image');
-            $data['image'] = $image->storeAs('documents/images', $imageName, 'public');
+            $data['image'] = $image->storeAs('documents/images', $imageName, 's3');
         }
 
         return $this->repo->update($id, $data);
@@ -108,11 +108,11 @@ class DocumentsService
         $document = $this->repo->find($id);
 
         if ($document->doc_upload) {
-            Storage::disk('public')->delete($document->doc_upload);
+            Storage::disk('s3')->delete($document->doc_upload);
         }
 
         if ($document->image) {
-            Storage::disk('public')->delete($document->image);
+            Storage::disk('s3')->delete($document->image);
         }
 
         return $this->repo->delete($id);
@@ -132,7 +132,7 @@ class DocumentsService
             foreach ($validated['doc_upload'] as $file) {
                 try {
                     $filename = safe_filename($file->getClientOriginalName());
-                    $path = $file->storeAs('documents', $filename, 'public');
+                    $path = $file->storeAs('documents', $filename, 's3');
 
                     $this->repo->store([
                         'user_id' => $userId,
@@ -244,7 +244,7 @@ class DocumentsService
         DB::transaction(function () use ($files, $userId, $categoryId, $description, &$count, &$failures) {
             foreach ($files as $fileData) {
                 try {
-                    $path = Storage::disk('public')->putFileAs('documents', $fileData['path'], basename($fileData['path']));
+                    $path = Storage::disk('s3')->putFileAs('documents', $fileData['path'], basename($fileData['path']));
 
                     $this->repo->store([
                         'user_id' => $userId,

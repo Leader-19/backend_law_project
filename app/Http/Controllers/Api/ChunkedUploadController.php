@@ -8,6 +8,7 @@ use App\Models\Document;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ChunkedUploadController extends Controller
@@ -187,12 +188,12 @@ class ChunkedUploadController extends Controller
             return response()->json(['error' => 'Your subscription does not allow more documents.'], 403);
         }
 
-        // Reassemble to disk in bounded memory.
+        // Reassemble to a scratch location in bounded memory, then upload the
+        // finished file to R2. The scratch file lives inside the chunk dir so
+        // it's cleaned up by the File::deleteDirectory() call below either way.
         $filename = \safe_filename($meta['filename']);
-        $finalPath = storage_path('app/private/documents/'.$filename);
-
-        // Ensure destination directory exists
-        File::makeDirectory(dirname($finalPath), 0755, true, true);
+        $relativePath = 'documents/'.$filename;
+        $finalPath = $chunkDir.'/assembled_'.$filename;
 
         $handle = fopen($finalPath, 'wb');
         if (! $handle) {
@@ -230,7 +231,17 @@ class ChunkedUploadController extends Controller
             ], 400);
         }
 
-        $relativePath = 'documents/'.$filename;
+        $stream = fopen($finalPath, 'rb');
+        $uploaded = $stream !== false && Storage::disk('s3')->put($relativePath, $stream);
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+
+        if (! $uploaded) {
+            File::deleteDirectory($chunkDir);
+
+            return response()->json(['error' => 'Failed to upload the document to storage.'], 500);
+        }
 
         $document = Document::create([
             'user_id' => auth()->id(),

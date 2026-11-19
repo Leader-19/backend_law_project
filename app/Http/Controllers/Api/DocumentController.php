@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Writer\HTML;
 use Smalot\PdfParser\Parser;
@@ -194,9 +195,9 @@ class DocumentController extends Controller
 
     /**
      * Stream the original document file to an authenticated, authorized user.
-     * The file lives on the private disk - this is the only legitimate way
-     * to reach its bytes (no public URL exists for documents uploaded after
-     * the private-disk migration).
+     * The file lives on R2 (new/migrated documents) or local disk (anything
+     * not yet migrated) - this is the only legitimate way to reach its bytes,
+     * since no public URL exists for documents.
      */
     public function file(Request $request, string $id)
     {
@@ -221,13 +222,17 @@ class DocumentController extends Controller
             }
         }
 
-        $path = $this->resolveDocumentPath($document);
+        $source = $this->resolveDocumentSource($document);
 
-        if (! $path) {
+        if (! $source) {
             return response()->json(['status' => 'error', 'message' => 'File not found.'], 404);
         }
 
-        return response()->file($path);
+        if ($source['disk'] === 's3') {
+            return Storage::disk('s3')->response($source['path']);
+        }
+
+        return response()->file($source['path']);
     }
 
     public function show(string $id)
@@ -282,10 +287,29 @@ class DocumentController extends Controller
     }
 
     /**
-     * Resolve a document's file on disk. Checks the private disk first (where
-     * everything is stored since the public-disk exposure was fixed), then
-     * falls back to the legacy public path for documents uploaded before that
-     * migration ran. Returns null if the file isn't found in either location.
+     * Resolve where a document's bytes actually live: R2 (new uploads and
+     * anything migrated there) first, then local disk for anything not yet
+     * migrated. Returns null if the file isn't found anywhere.
+     */
+    private function resolveDocumentSource(Document $document): ?array
+    {
+        if ($document->doc_upload && Storage::disk('s3')->exists($document->doc_upload)) {
+            return ['disk' => 's3', 'path' => $document->doc_upload];
+        }
+
+        $localPath = $this->resolveDocumentPath($document);
+        if ($localPath) {
+            return ['disk' => 'local', 'path' => $localPath];
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve a document's file on the local disk. Checks the private disk
+     * first (where everything was stored before the R2 migration), then falls
+     * back to the legacy public path for documents uploaded even earlier.
+     * Returns null if the file isn't found in either location.
      */
     private function resolveDocumentPath(Document $document): ?string
     {
@@ -304,13 +328,22 @@ class DocumentController extends Controller
 
     private function extractContent(Document $document): string
     {
-        $path = $this->resolveDocumentPath($document);
+        $source = $this->resolveDocumentSource($document);
         $ext = strtolower(pathinfo($document->doc_upload, PATHINFO_EXTENSION));
         $content = '';
+        $tempPath = null;
 
         try {
-            if (! $path) {
+            if (! $source) {
                 return 'File not found.';
+            }
+
+            if ($source['disk'] === 's3') {
+                $tempPath = tempnam(sys_get_temp_dir(), 'doc');
+                file_put_contents($tempPath, Storage::disk('s3')->get($source['path']));
+                $path = $tempPath;
+            } else {
+                $path = $source['path'];
             }
 
             if ($ext === 'docx') {
@@ -338,6 +371,10 @@ class DocumentController extends Controller
             }
         } catch (\Exception $e) {
             $content = 'Could not extract file content: '.$e->getMessage();
+        } finally {
+            if ($tempPath && file_exists($tempPath)) {
+                @unlink($tempPath);
+            }
         }
 
         return $content;
