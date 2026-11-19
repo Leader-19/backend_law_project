@@ -105,6 +105,7 @@ class TextContentController extends Controller
     {
         $textContent = TextContent::findOrFail($id);
         $this->authorize('update', $textContent);
+        $this->authorizeCategoryMove($request, $textContent->category_id);
 
         $textContent->update($request->validated());
 
@@ -123,5 +124,27 @@ class TextContentController extends Controller
         $textContent->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * authorize('update', $textContent) only checks permission on the
+     * record's current category. Since category_id is a plain editable
+     * field, a user with edit rights on category A could otherwise move a
+     * record into category B without ever being checked against B.
+     */
+    private function authorizeCategoryMove(TextContentRequest $request, ?int $currentCategoryId): void
+    {
+        $newCategoryId = (int) $request->validated('category_id');
+
+        if ($newCategoryId === $currentCategoryId) {
+            return;
+        }
+
+        $targetCategory = Category::findOrFail($newCategoryId);
+        abort_unless(
+            $request->user()->hasRole('Admin') || $request->user()->hasCategoryPermission('edit', $targetCategory),
+            403,
+            'You do not have permission to move this content into the selected category.'
+        );
     }
 }

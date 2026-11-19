@@ -137,6 +137,7 @@ class DocumentController extends Controller
     {
         $document = $this->service->find($id);
         $this->authorize('update', $document);
+        $this->authorizeCategoryMove($request, $document->category_id);
 
         $this->service->update($request, $id);
 
@@ -370,5 +371,27 @@ class DocumentController extends Controller
         }
 
         return $count;
+    }
+
+    /**
+     * authorize('update', $document) only checks permission on the
+     * document's current category. Since category_id is a plain editable
+     * field, a user with edit rights on category A could otherwise move a
+     * document into category B without ever being checked against B.
+     */
+    private function authorizeCategoryMove(DocumentRequest $request, ?int $currentCategoryId): void
+    {
+        $newCategoryId = (int) $request->validated('category_id');
+
+        if ($newCategoryId === $currentCategoryId) {
+            return;
+        }
+
+        $targetCategory = Category::findOrFail($newCategoryId);
+        abort_unless(
+            $request->user()->hasRole('Admin') || $request->user()->hasCategoryPermission('edit', $targetCategory),
+            403,
+            'You do not have permission to move this document into the selected category.'
+        );
     }
 }

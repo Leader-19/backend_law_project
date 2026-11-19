@@ -17,7 +17,12 @@ class TextContentController extends Controller
         $search = $request->get('search', '');
         $categoryId = $request->get('category_id');
 
-        $query = TextContent::with('category');
+        $user = $request->user();
+        $isAdmin = $user->hasRole('Admin');
+        $viewableIds = $isAdmin ? null : $user->getViewableCategoryIds();
+
+        $query = TextContent::with('category')
+            ->when(! $isAdmin, fn ($q) => $q->whereIn('category_id', $viewableIds));
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -33,7 +38,6 @@ class TextContentController extends Controller
         $paginated = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
-        $user = $request->user();
         $quota = null;
 
         if ($user && ! $user->hasRole('Admin')) {
@@ -111,6 +115,7 @@ class TextContentController extends Controller
     {
         $textContent = TextContent::findOrFail($id);
         $this->authorize('update', $textContent);
+        $this->authorizeCategoryMove($request, $textContent->category_id);
 
         $textContent->update($request->validated());
 
@@ -144,5 +149,27 @@ class TextContentController extends Controller
 
         return redirect()->route('text-contents.index')
             ->with('success', 'Selected text contents deleted successfully!');
+    }
+
+    /**
+     * authorize('update', $textContent) only checks permission on the
+     * record's current category. Since category_id is a plain editable
+     * field, a user with edit rights on category A could otherwise move a
+     * record into category B without ever being checked against B.
+     */
+    private function authorizeCategoryMove(TextContentRequest $request, ?int $currentCategoryId): void
+    {
+        $newCategoryId = (int) $request->validated('category_id');
+
+        if ($newCategoryId === $currentCategoryId) {
+            return;
+        }
+
+        $targetCategory = Category::findOrFail($newCategoryId);
+        abort_unless(
+            $request->user()->hasRole('Admin') || $request->user()->hasCategoryPermission('edit', $targetCategory),
+            403,
+            'You do not have permission to move this content into the selected category.'
+        );
     }
 }
