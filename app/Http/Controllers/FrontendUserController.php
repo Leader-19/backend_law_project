@@ -126,6 +126,10 @@ class FrontendUserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
 
+        $roles = (array) $request->roles;
+        $grantsAdmin = in_array('Admin', $roles, true) || in_array('Super Admin', $roles, true);
+        abort_if($grantsAdmin && ! $request->user()->hasRole('Admin'), 403, 'Only administrators can grant the Admin role.');
+
         $user->name = $request->name;
         $user->email = $request->email;
 
@@ -136,8 +140,7 @@ class FrontendUserController extends Controller
         $user->save();
 
         if ($request->has('roles')) {
-            $roles = (array) $request->roles;
-            if (in_array('Admin', $roles) || in_array('Super Admin', $roles)) {
+            if ($grantsAdmin) {
                 $roles = Role::pluck('name')->all();
             }
             $user->syncRoles($roles);

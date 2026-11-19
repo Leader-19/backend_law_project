@@ -74,6 +74,10 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
 
+        $roles = (array) $request->roles;
+        $grantsAdmin = in_array('Admin', $roles, true) || in_array('Super Admin', $roles, true);
+        abort_if($grantsAdmin && ! $request->user()->hasRole('Admin'), 403, 'Only administrators can grant the Admin role.');
+
         $user = User::create(
             $request->only(['name', 'email']) + [
                 'password' => Hash::make($request->password),
@@ -81,8 +85,7 @@ class UserController extends Controller
             ]
         );
 
-        $roles = (array) $request->roles;
-        if (in_array('Admin', $roles) || in_array('Super Admin', $roles)) {
+        if ($grantsAdmin) {
             $roles = Role::pluck('name')->all();
         }
         $user->syncRoles($roles);
@@ -133,6 +136,10 @@ class UserController extends Controller
             'roles.*' => ['string', 'exists:roles,name'],
         ]);
 
+        $roles = (array) $request->roles;
+        $grantsAdmin = in_array('Admin', $roles, true) || in_array('Super Admin', $roles, true);
+        abort_if($grantsAdmin && ! $request->user()->hasRole('Admin'), 403, 'Only administrators can grant the Admin role.');
+
         $user->name = $request->name;
         $user->email = $request->email;
 
@@ -142,8 +149,7 @@ class UserController extends Controller
 
         $user->save();
 
-        $roles = (array) $request->roles;
-        if (in_array('Admin', $roles) || in_array('Super Admin', $roles)) {
+        if ($grantsAdmin) {
             $roles = Role::pluck('name')->all();
         }
         $user->syncRoles($roles);
