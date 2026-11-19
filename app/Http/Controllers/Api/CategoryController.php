@@ -144,6 +144,8 @@ class CategoryController extends Controller
     public function update(CategoryRequest $request, string $id)
     {
         $category = Category::findOrFail($id);
+        $this->authorize('update', $category);
+
         $category->update($request->validated());
 
         $this->clearCategoryCaches();
@@ -158,6 +160,8 @@ class CategoryController extends Controller
     public function destroy(string $id)
     {
         $category = Category::findOrFail($id);
+        $this->authorize('delete', $category);
+
         $category->delete();
 
         $this->clearCategoryCaches();
