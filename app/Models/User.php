@@ -560,6 +560,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return false;
     }
 
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar ? route('avatars.show', basename($this->avatar)) : null;
+    }
+
     protected static function booted(): void
     {
         // Deleting a user cascade-deletes their documents and categories at the
@@ -567,10 +572,10 @@ class User extends Authenticatable implements MustVerifyEmailContract
         static::deleting(function (User $user) {
             $cleanup = function ($document) {
                 if ($document->doc_upload) {
-                    Storage::disk('public')->delete($document->doc_upload);
+                    Storage::disk('s3')->delete($document->doc_upload);
                 }
                 if ($document->image) {
-                    Storage::disk('public')->delete($document->image);
+                    Storage::disk('s3')->delete($document->image);
                 }
             };
 
@@ -582,6 +587,10 @@ class User extends Authenticatable implements MustVerifyEmailContract
                 foreach ($category->documents as $document) {
                     $cleanup($document);
                 }
+            }
+
+            if ($user->avatar) {
+                Storage::disk('s3')->delete($user->avatar);
             }
         });
     }

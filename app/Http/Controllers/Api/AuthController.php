@@ -251,18 +251,16 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-            Storage::disk('public')->delete($user->avatar);
+        if ($user->avatar && Storage::disk('s3')->exists($user->avatar)) {
+            Storage::disk('s3')->delete($user->avatar);
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
+        $path = $request->file('avatar')->store('avatars', 's3');
 
         $user->update(['avatar' => $path]);
 
-        $avatarUrl = asset(Storage::url($path));
-
         return $this->success($this->actorMessage('updated', 'avatar'), [
-            'avatar_url' => $avatarUrl,
+            'avatar_url' => $user->avatar_url,
             'user' => $this->userPayload($user),
         ]);
     }
@@ -288,7 +286,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'is_verified' => $user->hasVerifiedEmail(),
             'is_google' => $user->registration_source === 'google',
-            'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
+            'avatar_url' => $user->avatar_url,
             'roles' => $user->getRoleNames()->values(),
             'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
             'subscription' => $subscriptions->map(fn ($sub) => [

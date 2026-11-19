@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdministratorBookCategoryController;
 use App\Http\Controllers\AdministratorBookController;
 use App\Http\Controllers\Api\ChunkedUploadController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\CategoryController;
@@ -49,6 +50,10 @@ Route::get('/', function () {
 Route::get('verify/{certificateNumber}', [CertificateController::class, 'verify'])
     ->middleware('throttle:30,1')
     ->name('certificates.verify');
+
+Route::get('avatars/{filename}', [AvatarController::class, 'show'])
+    ->where('filename', '[A-Za-z0-9_\-]+\.[A-Za-z0-9]+')
+    ->name('avatars.show');
 
 Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->middleware('throttle:10,1')->name('google.redirect');
 Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->middleware('throttle:10,1')->name('google.callback');
@@ -438,7 +443,7 @@ Route::middleware(['auth', 'verified', 'route.security'])->group(function () {
     Route::post('library', [LibraryController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('library.store');
-    Route::delete('library/{documentId}', [LibraryController::class, 'destroy'])
+    Route::delete('library/{document:uuid}', [LibraryController::class, 'destroy'])
         ->middleware('throttle:30,1')
         ->name('library.destroy');
     Route::get('library/check', [LibraryController::class, 'check'])

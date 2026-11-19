@@ -10,7 +10,6 @@ use App\Models\UserSubscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 
@@ -37,7 +36,7 @@ class FrontendUserController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
+                    'avatar_url' => $user->avatar_url,
                     'roles' => $user->roles->pluck('name'),
                     'created_at' => $user->created_at?->diffForHumans(),
                 ];
@@ -69,7 +68,7 @@ class FrontendUserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'avatar_url' => $user->avatar ? asset(Storage::url($user->avatar)) : null,
+                'avatar_url' => $user->avatar_url,
                 'roles' => $user->roles->pluck('name'),
                 'registration_source' => $user->registration_source,
                 'categories' => $user->categoryPermissions()

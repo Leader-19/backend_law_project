@@ -33,7 +33,7 @@ class LeaderboardController extends Controller
             ->get()
             ->map(function ($entry, $index) {
                 $entry->rank = $index + 1;
-                $entry->user = User::select('id', 'name', 'avatar')->find($entry->user_id);
+                $entry->user = User::select('id', 'name', 'avatar')->find($entry->user_id)?->append('avatar_url');
 
                 return $entry;
             })

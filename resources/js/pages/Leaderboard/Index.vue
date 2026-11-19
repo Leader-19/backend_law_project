@@ -106,8 +106,8 @@ function getRankIcon(rank: number) {
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
-                                    <div v-if="entry.user?.avatar" class="w-8 h-8 rounded-full overflow-hidden">
-                                        <img :src="`/storage/${entry.user.avatar}`" :alt="entry.user.name" class="w-full h-full object-cover" />
+                                    <div v-if="entry.user?.avatar_url" class="w-8 h-8 rounded-full overflow-hidden">
+                                        <img :src="entry.user.avatar_url" :alt="entry.user.name" class="w-full h-full object-cover" />
                                     </div>
                                     <div v-else class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                                         <User class="w-4 h-4 text-gray-400" />

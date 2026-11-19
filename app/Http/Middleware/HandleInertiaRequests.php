@@ -53,7 +53,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'auth' => [
                 'user' => $user ? $user->only([
-                    'id', 'name', 'email', 'status', 'avatar',
+                    'id', 'name', 'email', 'status', 'avatar_url',
                     'registration_source', 'approved_at', 'rejection_reason',
                     'email_verified_at', 'created_at', 'updated_at',
                 ]) : null,

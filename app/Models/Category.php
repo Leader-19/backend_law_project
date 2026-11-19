@@ -20,10 +20,10 @@ class Category extends Model
 
             foreach ($category->documents as $document) {
                 if ($document->doc_upload) {
-                    Storage::disk('public')->delete($document->doc_upload);
+                    Storage::disk('s3')->delete($document->doc_upload);
                 }
                 if ($document->image) {
-                    Storage::disk('public')->delete($document->image);
+                    Storage::disk('s3')->delete($document->image);
                 }
             }
         });

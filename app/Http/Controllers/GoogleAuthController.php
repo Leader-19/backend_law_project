@@ -165,7 +165,7 @@ class GoogleAuthController extends Controller
             };
 
             $path = 'avatars/'.Str::uuid().'.'.$extension;
-            Storage::disk('public')->put($path, $response->body());
+            Storage::disk('s3')->put($path, $response->body());
 
             $user->update(['avatar' => $path]);
         } catch (\Throwable $e) {
