@@ -63,10 +63,10 @@ class QuizController extends Controller
     {
         $user = $request->user();
 
-        $quiz->load([
-            'category:id,title',
-            'questions.options',
-        ]);
+        $quiz->load('category:id,title');
+        abort_unless($user->hasRole('Admin') || $user->hasCategoryPermission('view', $quiz->category), 403, 'You do not have access to this quiz.');
+
+        $quiz->load(['questions.options:id,question_id,option_text,sort_order']);
 
         $attempts = $quiz->attemptsForUser($user)
             ->latest('completed_at')
@@ -83,12 +83,15 @@ class QuizController extends Controller
     {
         $user = $request->user();
 
+        $quiz->load('category:id,title');
+        abort_unless($user->hasRole('Admin') || $user->hasCategoryPermission('view', $quiz->category), 403, 'You do not have access to this quiz.');
+
         if (! $quiz->canUserAttempt($user)) {
             return redirect()->route('quizzes.show', $quiz)
                 ->with('error', 'You cannot attempt this quiz.');
         }
 
-        $quiz->load(['questions.options']);
+        $quiz->load(['questions.options:id,question_id,option_text,sort_order']);
 
         return Inertia::render('Quizzes/Take', [
             'quiz' => $quiz,
@@ -98,6 +101,9 @@ class QuizController extends Controller
     public function submit(Request $request, Quiz $quiz): RedirectResponse
     {
         $user = $request->user();
+
+        $quiz->load('category:id,title');
+        abort_unless($user->hasRole('Admin') || $user->hasCategoryPermission('view', $quiz->category), 403, 'You do not have access to this quiz.');
 
         if (! $quiz->canUserAttempt($user)) {
             return back()->with('error', 'You cannot attempt this quiz.');

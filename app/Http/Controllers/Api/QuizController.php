@@ -51,7 +51,10 @@ class QuizController extends Controller
     {
         $user = $request->user();
 
-        $quiz->load(['category', 'questions.options']);
+        $quiz->load('category');
+        abort_unless($user->hasRole('Admin') || $user->hasCategoryPermission('view', $quiz->category), 403, 'You do not have access to this quiz.');
+
+        $quiz->load(['questions.options:id,question_id,option_text,sort_order']);
 
         $attempts = $quiz->attemptsForUser($user)
             ->latest('completed_at')
@@ -69,11 +72,14 @@ class QuizController extends Controller
     {
         $user = $request->user();
 
+        $quiz->load('category');
+        abort_unless($user->hasRole('Admin') || $user->hasCategoryPermission('view', $quiz->category), 403, 'You do not have access to this quiz.');
+
         if (! $quiz->canUserAttempt($user)) {
             return response()->json(['message' => 'You cannot attempt this quiz.'], 403);
         }
 
-        $quiz->load(['questions.options']);
+        $quiz->load(['questions.options:id,question_id,option_text,sort_order']);
 
         return response()->json([
             'status' => 'success',
@@ -84,6 +90,9 @@ class QuizController extends Controller
     public function submit(Request $request, Quiz $quiz): JsonResponse
     {
         $user = $request->user();
+
+        $quiz->load('category');
+        abort_unless($user->hasRole('Admin') || $user->hasCategoryPermission('view', $quiz->category), 403, 'You do not have access to this quiz.');
 
         if (! $quiz->canUserAttempt($user)) {
             return response()->json(['message' => 'You cannot attempt this quiz.'], 403);
