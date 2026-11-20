@@ -112,7 +112,7 @@ return [
      * this will refresh permissions on every TickTerminated, TaskTerminated and RequestTerminated
      * NOTE: This should not be needed in most cases, but an Octane/Vapor combination benefited from it.
      */
-    'register_octane_reset_listener' => false,
+    // TTL for the Spatie permissions/roles cache (1 hour = 3600 s).\n    'expiration_time' => DateInterval::createFromDateString('1 hour'),\n\n    // Namespaced cache key + prefix so it never collides with app cache.\n    'cache_key' => env('PERMISSION_CACHE_KEY', 'spatie_permission'),\n\n    'cache_prefix' => env('PERMISSION_CACHE_PREFIX', 'spritup:permissions:'),\n\n    'register_octane_reset_listener' => false,
 
     /*
      * Events will fire when a role or permission is assigned/unassigned:
@@ -193,7 +193,7 @@ return [
          * The cache key used to store all permissions.
          */
 
-        'key' => 'spatie.permission.cache',
+        'key' => env('PERMISSION_CACHE_KEY', 'spatie_permission'),
 
         /*
          * You may optionally indicate a specific cache driver to use for permission and
@@ -201,6 +201,6 @@ return [
          * file. Using 'default' here means to use the `default` set in cache.php.
          */
 
-        'store' => 'default',
+        'store' => env('PERMISSION_CACHE_STORE', 'redis'),
     ],
 ];

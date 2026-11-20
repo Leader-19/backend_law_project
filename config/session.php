@@ -4,7 +4,7 @@ use Illuminate\Support\Str;
 
 return [
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Default Session Driver
     |--------------------------------------------------------------------------
@@ -18,9 +18,9 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => env('SESSION_DRIVER', 'redis'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Lifetime
     |--------------------------------------------------------------------------
@@ -36,7 +36,7 @@ return [
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
@@ -49,7 +49,7 @@ return [
 
     'encrypt' => env('SESSION_ENCRYPT', false),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session File Location
     |--------------------------------------------------------------------------
@@ -62,7 +62,7 @@ return [
 
     'files' => storage_path('framework/sessions'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Database Connection
     |--------------------------------------------------------------------------
@@ -73,9 +73,9 @@ return [
     |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    'connection' => env('SESSION_CONNECTION', 'default'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Database Table
     |--------------------------------------------------------------------------
@@ -88,7 +88,7 @@ return [
 
     'table' => env('SESSION_TABLE', 'sessions'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Cache Store
     |--------------------------------------------------------------------------
@@ -101,9 +101,9 @@ return [
     |
     */
 
-    'store' => env('SESSION_STORE'),
+    'store' => env('SESSION_STORE', 'default'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Sweeping Lottery
     |--------------------------------------------------------------------------
@@ -116,7 +116,7 @@ return [
 
     'lottery' => [2, 100],
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Cookie Name
     |--------------------------------------------------------------------------
@@ -132,46 +132,46 @@ return [
         Str::slug((string) env('APP_NAME', 'laravel')).'-session'
     ),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Cookie Path
     |--------------------------------------------------------------------------
     |
     | The session cookie path determines the path for which the cookie will
-    | be regarded as available. Typically, this will be the root path of
-    | your application, but you're free to change this when necessary.
+    | be regarded as available as available. Typically, this will be the
+    | root path of your application, but you're free to change this when
+    | necessary.
     |
     */
 
     'path' => env('SESSION_PATH', '/'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Session Cookie Domain
     |--------------------------------------------------------------------------
     |
     | This value determines the domain and subdomains the session cookie is
-    | available to. By default, the cookie will be available to the root
-    | domain and all subdomains. Typically, this shouldn't be changed.
+    | available to. Typically, this should not be changed.
     |
     */
 
     'domain' => env('SESSION_DOMAIN'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | HTTPS Only Cookies
     |--------------------------------------------------------------------------
     |
     | By setting this option to true, session cookies will only be sent back
-    | to the server if the browser has a HTTPS connection. This will keep
+    | to the server if the browser has an HTTPS connection. This will keep
     | the cookie from being sent to you when it can't be done securely.
     |
     */
 
     'secure' => env('SESSION_SECURE_COOKIE'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | HTTP Access Only
     |--------------------------------------------------------------------------
@@ -184,7 +184,7 @@ return [
 
     'http_only' => env('SESSION_HTTP_ONLY', true),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Same-Site Cookies
     |--------------------------------------------------------------------------
@@ -201,7 +201,7 @@ return [
 
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
-    /*
+    /*|
     |--------------------------------------------------------------------------
     | Partitioned Cookies
     |--------------------------------------------------------------------------

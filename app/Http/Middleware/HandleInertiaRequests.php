@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Category;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -25,22 +26,29 @@ class HandleInertiaRequests extends Middleware
         $categories = [];
 
         if ($user) {
-            if ($user->hasRole('Admin')) {
-                $categories = Category::orderBy('title')->get(['id', 'title', 'parent_id', 'description'])->map(fn ($cat) => [
-                    'id' => $cat->id,
-                    'title' => $cat->title,
-                    'parent_id' => $cat->parent_id,
-                    'description' => $cat->description,
-                ])->all();
-            } else {
+            $cacheKey = $user->hasRole('Admin')
+                ? 'categories.sidebar.admin'
+                : 'categories.sidebar.user.'.($user->id ?? 'anon');
+
+            $categories = Cache::remember($cacheKey, now()->addHours(2), function () use ($user) {
+                if ($user->hasRole('Admin')) {
+                    return Category::orderBy('title')->get(['id', 'title', 'parent_id', 'description'])->map(fn ($cat) => [
+                        'id' => $cat->id,
+                        'title' => $cat->title,
+                        'parent_id' => $cat->parent_id,
+                        'description' => $cat->description,
+                    ])->all();
+                }
+
                 $viewableIds = $user->getViewableCategoryIds();
-                $categories = Category::whereIn('id', $viewableIds)->orderBy('title')->get(['id', 'title', 'parent_id', 'description'])->map(fn ($cat) => [
+
+                return Category::whereIn('id', $viewableIds)->orderBy('title')->get(['id', 'title', 'parent_id', 'description'])->map(fn ($cat) => [
                     'id' => $cat->id,
                     'title' => $cat->title,
                     'parent_id' => $cat->parent_id,
                     'description' => $cat->description,
                 ])->all();
-            }
+            });
         }
 
         return [

@@ -15,7 +15,7 @@ class Category extends Model
     protected static function booted(): void
     {
         static::deleting(function (Category $category) {
-            // Load documents once to avoid N+1
+            // Load documents once to avoid N+1 before deleting
             $category->load('documents');
 
             foreach ($category->documents as $document) {

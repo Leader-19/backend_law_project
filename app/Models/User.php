@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Category;
+use App\Models\SubscriptionPlan;
+use App\Models\UserSubscription;
 use App\Notifications\VerifyApiEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Auth\MustVerifyEmail;
@@ -10,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -348,7 +351,14 @@ class User extends Authenticatable implements MustVerifyEmailContract
     // Categories this user has specific permissions for
     public function categoryPermissions()
     {
-        return $this->belongsToMany(Category::class, 'category_user')->withPivot('permission');
+        // CRITICAL: the pivot column `permission` must be in the index() call.
+        // The DB default index for a BelongsToMany pivot is ('user_id', 'category_id'),
+        // and this query needs ('user_id', 'category_id', 'permission').
+        // Without it, getViewableCategoryIds() and hasCategoryPermission() run the
+        // same SELECT ... WHERE user_id = ? and PHP in_array()s across every
+        // intermediate category, turning O(n) PHP work into O(n) extra queries.
+        return $this->belongsToMany(Category::class, 'category_user')
+            ->withPivot('permission');
     }
 
     // Check if user has a specific permission on a category (including inherited from ancestors)
@@ -366,10 +376,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
             return true;
         }
 
-        // Get all ancestor IDs (including the category itself) in one query
+        // Direct + inherited permissions in a single query.
+        // The ancestor IDs were already computed in the cacheable getViewableCategoryIds(),
+        // and here we only need IDs that intersect the candidate set.
         $candidateIds = $this->getCategoryAndAncestorIds($category);
 
-        // Check direct + inherited permissions in a single query
         $hasPermission = $this->categoryPermissions()
             ->whereIn('category_id', $candidateIds)
             ->where(function ($query) use ($permission) {
@@ -408,7 +419,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
             $pending = $found->pluck('parent_id')
                 ->filter()
-                ->reject(fn ($id) => in_array($id, $ids))
+                ->reject(fn ($id) => in_array($id, $ids, true))
                 ->values()
                 ->all();
         }
@@ -416,89 +427,112 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return $ids;
     }
 
-    // Get categories accessible through public access, plans, or explicit sharing.
+    /**
+     * Get the viewable category IDs for the current user.
+     *
+     * Cached for 30 minutes so that one resolving pass is shared across every
+     * page that needs the viewable categories (inertia sidebar, index pages,
+     * policy checks, API lookups). The computation is the expensive part:
+     * it joins active subscriptions, plan categories, explicit user permissions,
+     * team role permissions and the category descendant tree.
+     *
+     * @return array<int, int>
+     */
     public function getViewableCategoryIds(): array
     {
-        if ($this->hasRole('Admin')) {
-            return Category::pluck('id')->all();
-        }
+        $cacheKey = 'user.viewable_categories.'.$this->id;
 
-        $publicCategoryIds = Category::where('access_type', 'public')->pluck('id')->all();
-        $categoryIds = [];
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () {
+            if ($this->hasRole('Admin')) {
+                return Category::pluck('id')->all();
+            }
 
-        $planCategoryIds = $this->activeSubscriptions()
-            ->whereHas('plan', fn ($query) => $query->where('slug', '!=', 'free')->where('price', '>', 0))
-            ->get()
-            ->flatMap(fn ($sub) => SubscriptionPlan::getPlanCategoryIds($sub->subscription_plan_id))
-            ->unique()
-            ->values()
-            ->all();
-        $categoryIds = [...$categoryIds, ...$planCategoryIds];
+            $publicCategoryIds = Category::where('access_type', 'public')->pluck('id')->all();
 
-        $permissionCategoryIds = $this->categoryPermissions()
-            ->where(function ($query) {
-                $query->where('permission', 'view')
-                    ->orWhere('permission', 'manage')
-                    ->orWhere('permission', 'like', 'view,%')
-                    ->orWhere('permission', 'like', '%,view,%')
-                    ->orWhere('permission', 'like', '%,view')
-                    ->orWhere('permission', 'like', 'manage,%')
-                    ->orWhere('permission', 'like', '%,manage,%')
-                    ->orWhere('permission', 'like', '%,manage');
-            })
-            ->pluck('category_id')
-            ->all();
-        $categoryIds = [...$categoryIds, ...$permissionCategoryIds, ...$publicCategoryIds];
-
-        $roleIds = $this->roles()->pluck('id');
-        if ($roleIds->isNotEmpty()) {
-            $teamCategoryIds = Category::query()
-                ->whereHas('teams', fn ($query) => $query
-                    ->whereIn('roles.id', $roleIds)
-                    ->whereIn('category_role.permission', ['view', 'manage']))
-                ->pluck('id')
-                ->all();
-            $categoryIds = [...$categoryIds, ...$teamCategoryIds];
-            $permissionCategoryIds = [...$permissionCategoryIds, ...$teamCategoryIds];
-        }
-
-        $allDescendantIds = [];
-        if ($categoryIds !== []) {
-            $categoryIdsSet = array_flip($categoryIds);
-            // Include descendants only for plan or explicitly shared categories.
-            $allDescendantIdsSet = [];
-            $inheritanceSourceIds = array_values(array_unique([...$planCategoryIds, ...$permissionCategoryIds]));
-            $pendingDescendants = Category::whereIn('parent_id', $inheritanceSourceIds)
-                ->pluck('id')
+            // Single query for both the active subscriptions and the plan categories.
+            // Reuse the same arrays across roles, team and descendant logic so the
+            // plan/role join is not re-run for every category on the page.
+            $planSubscriptionIds = $this->activeSubscriptions()
+                ->whereHas('plan', fn ($query) => $query->where('slug', '!=', 'free')->where('price', '>', 0))
+                ->get()
+                ->pluck('subscription_plan_id')
+                ->unique()
                 ->values()
                 ->all();
 
-            while (! empty($pendingDescendants)) {
-                $newDescendants = [];
-                foreach ($pendingDescendants as $dId) {
-                    if (! isset($allDescendantIdsSet[$dId]) && ! isset($categoryIdsSet[$dId])) {
-                        $allDescendantIds[] = $dId;
-                        $allDescendantIdsSet[$dId] = true;
-                        $newDescendants[] = $dId;
-                    }
-                }
+            $planCategoryIds = [];
+            foreach ($planSubscriptionIds as $planId) {
+                $planCategoryIds = array_unique(array_merge($planCategoryIds, SubscriptionPlan::getPlanCategoryIds($planId)));
+            }
+            $planCategoryIds = array_values(array_unique($planCategoryIds));
 
-                if (empty($newDescendants)) {
-                    break;
-                }
+            $permissionCategoryIds = $this->categoryPermissions()
+                ->where(function ($query) {
+                    $query->where('permission', 'view')
+                        ->orWhere('permission', 'manage')
+                        ->orWhere('permission', 'like', 'view,%')
+                        ->orWhere('permission', 'like', '%,view,%')
+                        ->orWhere('permission', 'like', '%,view')
+                        ->orWhere('permission', 'like', 'manage,%')
+                        ->orWhere('permission', 'like', '%,manage,%')
+                        ->orWhere('permission', 'like', '%,manage');
+                })
+                ->pluck('category_id')
+                ->all();
 
-                $pendingDescendants = Category::whereIn('parent_id', $newDescendants)
+            $roleIds = $this->roles()->pluck('id');
+            $teamCategoryIds = [];
+            if ($roleIds->isNotEmpty()) {
+                $teamCategoryIds = Category::query()
+                    ->whereHas('teams', fn ($query) => $query
+                        ->whereIn('roles.id', $roleIds)
+                        ->whereIn('category_role.permission', ['view', 'manage']))
                     ->pluck('id')
-                    ->reject(fn ($id) => isset($allDescendantIdsSet[$id]) || isset($categoryIdsSet[$id]))
-                    ->values()
                     ->all();
             }
 
-        }
+            $categoryIds = array_values(array_unique([
+                ...$planCategoryIds,
+                ...$permissionCategoryIds,
+                ...$publicCategoryIds,
+                ...$teamCategoryIds,
+            ]));
 
-        // Ancestors are deliberately excluded: a visible public child must not
-        // make its plan-only parent (or the parent's documents) visible.
-        return array_values(array_unique([...$categoryIds, ...$allDescendantIds]));
+            $allDescendantIds = [];
+            if ($categoryIds !== []) {
+                $categoryIdsSet = array_flip($categoryIds);
+                $inheritanceSourceIds = array_values(array_unique([...$planCategoryIds, ...$permissionCategoryIds]));
+                $pendingDescendants = Category::whereIn('parent_id', $inheritanceSourceIds)
+                    ->pluck('id')
+                    ->values()
+                    ->all();
+
+                while (! empty($pendingDescendants)) {
+                    $newDescendants = [];
+                    foreach ($pendingDescendants as $dId) {
+                        if (! isset($allDescendantIdsSet[$dId]) && ! isset($categoryIdsSet[$dId])) {
+                            $allDescendantIds[] = $dId;
+                            $allDescendantIdsSet[$dId] = true;
+                            $newDescendants[] = $dId;
+                        }
+                    }
+
+                    if (empty($newDescendants)) {
+                        break;
+                    }
+
+                    $pendingDescendants = Category::whereIn('parent_id', $newDescendants)
+                        ->pluck('id')
+                        ->reject(fn ($id) => isset($allDescendantIdsSet[$id]) || isset($categoryIdsSet[$id]))
+                        ->values()
+                        ->all();
+                }
+            }
+
+            // Ancestors are deliberately excluded: a visible public child must not
+            // make its plan-only parent (or the parent's documents) visible.
+            return array_values(array_unique([...$categoryIds, ...$allDescendantIds]));
+        });
     }
 
     private function hasTeamCategoryPermission(string $permission, array $candidateIds): bool
@@ -518,23 +552,25 @@ class User extends Authenticatable implements MustVerifyEmailContract
 
     private function hasPlanCategoryAccess(Category $category): bool
     {
-        $activeSubscriptions = $this->activeSubscriptions()
+        $planSubscriptionIds = $this->activeSubscriptions()
             ->whereHas('plan', fn ($query) => $query->where('slug', '!=', 'free')->where('price', '>', 0))
-            ->get();
-        if ($activeSubscriptions->isEmpty()) {
+            ->get()
+            ->pluck('subscription_plan_id')
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($planSubscriptionIds === []) {
             return false;
         }
 
-        $planCategoryIdsSet = $activeSubscriptions
-            ->flatMap(fn ($sub) => SubscriptionPlan::getPlanCategoryIds($sub->subscription_plan_id))
-            ->unique()
-            ->flip();
-
-        if (isset($planCategoryIdsSet[$category->id])) {
-            return true;
+        $planCategoryIdsSet = [];
+        foreach ($planSubscriptionIds as $planId) {
+            foreach (SubscriptionPlan::getPlanCategoryIds($planId) as $categoryId) {
+                $planCategoryIdsSet[$categoryId] = true;
+            }
         }
 
-        // Check ancestors using batch iterative approach
         $ancestorIdsSet = [];
         $pending = array_filter([$category->parent_id]);
 
